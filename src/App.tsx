@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import type { Slide, SlideFormat, Tone, ConsoleMessage, Item } from './types'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { Slide, SlideFormat, Tone, ConsoleMessage, Item, EditorLine, EditorSelection } from './types'
 import { generateConsoleMessages } from './utils/validation'
 import { loadPresentation } from './utils/slides'
 import { extractSlideLayout, splitSlidesByHeading } from './utils/markdown'
 import { formatConfigs } from './constants/formatConfigs'
-import { createItem, updateItem, deleteItem } from './utils/items'
+import { createItem, updateItem } from './utils/items'
 import { saveItemsToLocalStorage, loadItemsFromLocalStorage } from './utils/fileSystem'
+import { contentToLines, linesToContent, linesToAttributeMap } from './utils/attributes'
 import type { SlideItem } from './types'
 
 const MAIN_SLIDE_ITEM_ID = 'main-slide'
@@ -23,18 +24,11 @@ import { ItemTabBar } from './components/items/ItemTabBar'
 import { ItemDetailPanel } from './components/items/ItemDetailPanel'
 import { ItemModal } from './components/items/ItemModal'
 import { SlideShowView } from './components/slideshow/SlideShowView'
+import { FloatingNavBar } from './components/floatingNavBar/FloatingNavBar'
 import './App.css'
 
-function App() {
-  const [slides, setSlides] = useState<Slide[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [currentFormat, setCurrentFormat] = useState<SlideFormat>('webinar')
-  const [currentTone, setCurrentTone] = useState<Tone>('simple')
-  const [items, setItems] = useState<Item[]>([])
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(MAIN_SLIDE_ITEM_ID)
-  const [showItemModal, setShowItemModal] = useState(false)
-  const [editingItem, setEditingItem] = useState<Item | null>(null)
-  const [editorContent, setEditorContent] = useState(`# [表紙] プレゼンテーションタイトル
+// Default content
+const DEFAULT_CONTENT = `# [表紙] プレゼンテーションタイトル
 
 あなたのプレゼンテーションをここに作成
 
@@ -76,11 +70,29 @@ function App() {
 - 結論2
 - 結論3
 
-ご清聴ありがとうございました`)
+ご清聴ありがとうございました`
+
+function App() {
+  const [slides, setSlides] = useState<Slide[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentFormat, setCurrentFormat] = useState<SlideFormat>('webinar')
+  const [currentTone, setCurrentTone] = useState<Tone>('simple')
+  const [items, setItems] = useState<Item[]>([])
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(MAIN_SLIDE_ITEM_ID)
+  const [showItemModal, setShowItemModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<Item | null>(null)
+  
+  // Line-based editor state
+  const [lines, setLines] = useState<EditorLine[]>(() => contentToLines(DEFAULT_CONTENT))
+  const [currentLineIndex, setCurrentLineIndex] = useState(0)
+  const [currentAttribute, setCurrentAttribute] = useState<string | null>(null)
+  const [selection, setSelection] = useState<EditorSelection | null>(null)
+  
   const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([])
   const [isComposing, setIsComposing] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
   const isSyncingRef = useRef(false)
+  const lastSyncedContentRef = useRef<string | null>(null)
   const isInitializedRef = useRef(false)
   const [isBulkExporting, setIsBulkExporting] = useState(false)
   const [isPptExporting, setIsPptExporting] = useState(false)
@@ -93,12 +105,18 @@ function App() {
   const headerNameInputRef = useRef<HTMLInputElement>(null)
   
   // Undo/Redo用の履歴管理
-  const historyRef = useRef<string[]>([])
+  const historyRef = useRef<EditorLine[][]>([])
   const historyIndexRef = useRef(-1)
   const isUndoRedoRef = useRef(false)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+
+  // Derived editorContent from lines (for compatibility) - memoized for performance
+  const editorContent = useMemo(() => linesToContent(lines), [lines])
+  
+  // Derived attributeMap from lines (for compatibility) - memoized for performance
+  const attributeMap = useMemo(() => linesToAttributeMap(lines), [lines])
 
   // アイテムの初期化
   useEffect(() => {
@@ -112,34 +130,29 @@ function App() {
       } as Partial<SlideItem>)
       newMainSlideItem.id = MAIN_SLIDE_ITEM_ID
       setItems([newMainSlideItem, ...loadedItems])
-      // メインスライドアイテムを選択状態にする
       setSelectedItemId(MAIN_SLIDE_ITEM_ID)
+      lastSyncedContentRef.current = editorContent
     } else {
       // メインスライドアイテムが存在する場合、エディタの内容を同期
       if (mainSlideItem.type === 'slide') {
-        setEditorContent(mainSlideItem.content)
+        setLines(contentToLines(mainSlideItem.content))
+        lastSyncedContentRef.current = mainSlideItem.content
       }
       setItems(loadedItems)
-      // メインスライドアイテムを選択状態にする
       setSelectedItemId(MAIN_SLIDE_ITEM_ID)
     }
     
-    // 初期化完了フラグを設定（これ以降のitems変更はlocalStorageに保存される）
     isInitializedRef.current = true
   }, [])
 
   // 履歴にエディタ内容を追加する関数
-  const addToHistory = useCallback((content: string) => {
-    // 現在位置より後の履歴を削除
+  const addToHistory = useCallback((newLines: EditorLine[]) => {
     historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
-    // 新しい内容を追加
-    historyRef.current.push(content)
-    // 履歴サイズの制限（最大100件）
+    historyRef.current.push(newLines.map(l => ({ ...l })))
     if (historyRef.current.length > 100) {
       historyRef.current = historyRef.current.slice(-100)
     }
     historyIndexRef.current = historyRef.current.length - 1
-    // undo/redo可能状態を更新
     setCanUndo(historyIndexRef.current > 0)
     setCanRedo(false)
   }, [])
@@ -147,15 +160,14 @@ function App() {
   // Undo処理
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current > 0) {
-      // デバウンス中のタイマーをクリア
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current)
         debounceTimeoutRef.current = null
       }
       isUndoRedoRef.current = true
       historyIndexRef.current--
-      const previousContent = historyRef.current[historyIndexRef.current]
-      setEditorContent(previousContent)
+      const previousLines = historyRef.current[historyIndexRef.current]
+      setLines(previousLines.map(l => ({ ...l })))
       setCanUndo(historyIndexRef.current > 0)
       setCanRedo(true)
       setTimeout(() => {
@@ -169,8 +181,8 @@ function App() {
     if (historyIndexRef.current < historyRef.current.length - 1) {
       isUndoRedoRef.current = true
       historyIndexRef.current++
-      const nextContent = historyRef.current[historyIndexRef.current]
-      setEditorContent(nextContent)
+      const nextLines = historyRef.current[historyIndexRef.current]
+      setLines(nextLines.map(l => ({ ...l })))
       setCanUndo(true)
       setCanRedo(historyIndexRef.current < historyRef.current.length - 1)
       setTimeout(() => {
@@ -181,26 +193,31 @@ function App() {
 
   // エディタ内容の変更を履歴に記録（デバウンス付き）
   useEffect(() => {
-    // 初期化前はスキップ
     if (!isInitializedRef.current) return
-    // Undo/Redo中はスキップ
     if (isUndoRedoRef.current) return
     
-    // 初回の履歴追加
     if (historyRef.current.length === 0) {
-      addToHistory(editorContent)
+      addToHistory(lines)
       return
     }
     
-    // 同じ内容の場合はスキップ
-    if (editorContent === historyRef.current[historyIndexRef.current]) return
+    // Compare with current history entry
+    const currentHistory = historyRef.current[historyIndexRef.current]
+    const isSame = currentHistory && 
+      currentHistory.length === lines.length &&
+      currentHistory.every((l, i) => 
+        l.id === lines[i].id && 
+        l.attribute === lines[i].attribute && 
+        l.text === lines[i].text
+      )
     
-    // デバウンス: 連続入力時は200ms後に履歴に追加
+    if (isSame) return
+    
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
     }
     debounceTimeoutRef.current = setTimeout(() => {
-      addToHistory(editorContent)
+      addToHistory(lines)
     }, 200)
     
     return () => {
@@ -208,17 +225,15 @@ function App() {
         clearTimeout(debounceTimeoutRef.current)
       }
     }
-  }, [editorContent, addToHistory])
+  }, [lines, addToHistory])
 
   // キーボードショートカット
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Z または Cmd+Z でUndo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
         handleUndo()
       }
-      // Ctrl+Y または Cmd+Shift+Z でRedo
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault()
         handleRedo()
@@ -231,37 +246,36 @@ function App() {
 
   // エディタの内容とメインスライドアイテムを同期（エディタ→アイテム）
   useEffect(() => {
-    // 初期化完了前は同期しない
     if (!isInitializedRef.current) return
     if (isSyncingRef.current) return
     
     const mainSlideItem = items.find(item => item.id === MAIN_SLIDE_ITEM_ID)
     if (mainSlideItem && mainSlideItem.type === 'slide') {
-      // エディタの内容が変更されたら、メインスライドアイテムを更新
       if (mainSlideItem.content !== editorContent) {
         isSyncingRef.current = true
         setItems(prevItems => updateItem(prevItems, MAIN_SLIDE_ITEM_ID, {
           content: editorContent
         } as Partial<SlideItem>))
+        lastSyncedContentRef.current = editorContent
         setTimeout(() => {
           isSyncingRef.current = false
         }, 0)
       }
     }
-  }, [editorContent])
+  }, [editorContent, items])
 
   // メインスライドアイテムとエディタの内容を同期（アイテム→エディタ）
+  // 注意: この同期は外部からの変更（AI編集など）のみを対象とする
   useEffect(() => {
-    // 初期化完了前は同期しない
     if (!isInitializedRef.current) return
     if (isSyncingRef.current) return
     
     const mainSlideItem = items.find(item => item.id === MAIN_SLIDE_ITEM_ID)
     if (mainSlideItem && mainSlideItem.type === 'slide') {
-      // メインスライドアイテムが変更されたら、エディタの内容を更新
-      if (mainSlideItem.content !== editorContent) {
+      if (lastSyncedContentRef.current !== mainSlideItem.content) {
         isSyncingRef.current = true
-        setEditorContent(mainSlideItem.content)
+        setLines(contentToLines(mainSlideItem.content))
+        lastSyncedContentRef.current = mainSlideItem.content
         setTimeout(() => {
           isSyncingRef.current = false
         }, 0)
@@ -271,22 +285,20 @@ function App() {
 
   // 選択されているアイテムが存在するかチェック
   useEffect(() => {
-    if (items.length === 0) return // アイテムがまだ初期化されていない場合はスキップ
+    if (items.length === 0) return
     
     if (selectedItemId) {
       const selectedItem = items.find(item => item.id === selectedItemId)
       if (!selectedItem && selectedItemId !== MAIN_SLIDE_ITEM_ID) {
-        // 選択されているアイテムが存在しない場合、メインスライドアイテムを選択
         setSelectedItemId(MAIN_SLIDE_ITEM_ID)
       }
     } else if (selectedItemId === null) {
-      // 何も選択されていない場合、メインスライドアイテムを選択
       const mainSlideItem = items.find(item => item.id === MAIN_SLIDE_ITEM_ID)
       if (mainSlideItem) {
         setSelectedItemId(MAIN_SLIDE_ITEM_ID)
       }
     }
-  }, [items])
+  }, [items, selectedItemId])
 
   // ヘッダー編集: アイテムが変更されたら編集状態をリセット
   useEffect(() => {
@@ -304,9 +316,7 @@ function App() {
 
   // アイテムをlocalStorageに保存
   useEffect(() => {
-    // 初期化完了前は保存しない（既存データの上書きを防止）
     if (!isInitializedRef.current) return
-    // メインスライドアイテムが存在しない場合は保存しない（初期化途中の空配列を保存しない）
     const hasMainSlide = items.some(item => item.id === MAIN_SLIDE_ITEM_ID)
     if (!hasMainSlide) return
     saveItemsToLocalStorage(items)
@@ -315,7 +325,7 @@ function App() {
   // スライドのパース
   useEffect(() => {
     const slideSplitLevel = formatConfigs[currentFormat].slideSplitLevel
-    const slideTexts = splitSlidesByHeading(editorContent, slideSplitLevel)
+    const slideTexts = splitSlidesByHeading(editorContent, slideSplitLevel, attributeMap)
     const parsedSlides = slideTexts
       .map((text) => {
         const trimmedContent = text.trim()
@@ -329,13 +339,48 @@ function App() {
     if (currentIndex >= parsedSlides.length) {
       setCurrentIndex(Math.max(0, parsedSlides.length - 1))
     }
-  }, [editorContent, currentIndex, currentFormat])
+  }, [editorContent, currentIndex, currentFormat, attributeMap])
 
   // コンソールメッセージの生成
   useEffect(() => {
     const messages = generateConsoleMessages(editorContent)
     setConsoleMessages(messages)
   }, [editorContent])
+
+  // Handle current line change from editor
+  const handleCurrentLineChange = useCallback((lineIndex: number, attribute: string | null) => {
+    setCurrentLineIndex(lineIndex)
+    setCurrentAttribute(attribute)
+  }, [])
+
+  // Handle selection change from editor
+  const handleSelectionChange = useCallback((newSelection: EditorSelection | null) => {
+    setSelection(newSelection)
+  }, [])
+
+  // Set attribute for current line (from FloatingNavBar)
+  const handleSetAttribute = useCallback((lineNumber: number, attribute: string | null) => {
+    const lineIndex = lineNumber - 1
+    if (lineIndex < 0 || lineIndex >= lines.length) return
+    
+    const newLines = [...lines]
+    newLines[lineIndex] = { ...newLines[lineIndex], attribute }
+    setLines(newLines)
+  }, [lines])
+
+  // Set attributes for range (from FloatingNavBar)
+  const handleSetAttributesForRange = useCallback((startLine: number, endLine: number, attribute: string | null) => {
+    const startIndex = startLine - 1
+    const endIndex = endLine - 1
+    
+    const newLines = [...lines]
+    for (let i = startIndex; i <= endIndex && i < lines.length; i++) {
+      if (i >= 0) {
+        newLines[i] = { ...newLines[i], attribute }
+      }
+    }
+    setLines(newLines)
+  }, [lines])
 
   // アイテム管理のハンドラー
   const handleAddItem = () => {
@@ -344,77 +389,39 @@ function App() {
   }
 
   const handleEditItem = (item: Item) => {
-    // メインスライドアイテムの場合は編集モーダルを開かない（エディタで直接編集）
     if (item.id === MAIN_SLIDE_ITEM_ID) {
-      // メインスライドアイテムを選択状態のままにする
       return
     }
     setEditingItem(item)
     setShowItemModal(true)
-    }
+  }
 
   const handleUpdateItem = (itemId: string, updates: Partial<Item>) => {
     setItems(prev => updateItem(prev, itemId, updates))
   }
 
-  const handleDeleteItem = (itemId: string) => {
-    if (confirm('Are you sure you want to delete this item?')) {
-      setItems(prev => {
-        const newItems = deleteItem(prev, itemId)
-        // 削除されたアイテムが選択されていた場合、メインスライドアイテムを選択
-        if (selectedItemId === itemId) {
-          setSelectedItemId(MAIN_SLIDE_ITEM_ID)
-        }
-        return newItems
-      })
-    }
-  }
-
   const handleSaveItem = (itemData: Partial<Item>) => {
     if (editingItem) {
-      // Update existing item
       setItems(prev => updateItem(prev, editingItem.id, itemData))
     } else {
-      // Create new item
       const newItem = createItem(
         itemData.name!,
         itemData.type!,
         itemData
       )
       setItems(prev => [...prev, newItem])
-      }
+    }
     setShowItemModal(false)
     setEditingItem(null)
   }
 
-  const handleInsertItem = (item: Item) => {
-    // Insert item reference at the cursor position
-    const insertText = `@${item.name}`
-    setEditorContent(prev => prev + '\n\n' + insertText)
-  }
-
   const handleNavigate = (direction: 'prev' | 'next') => {
-    console.log('[App] handleNavigate called:', {
-      direction,
-      currentIndex,
-      slidesLength: slides.length
-    })
     setCurrentIndex(prevIndex => {
-      console.log('[App] setCurrentIndex callback:', {
-        prevIndex,
-        direction,
-        slidesLength: slides.length
-      })
       if (direction === 'prev' && prevIndex > 0) {
-        const newIndex = prevIndex - 1
-        console.log('[App] Navigating to prev, newIndex:', newIndex)
-        return newIndex
+        return prevIndex - 1
       } else if (direction === 'next' && prevIndex < slides.length - 1) {
-        const newIndex = prevIndex + 1
-        console.log('[App] Navigating to next, newIndex:', newIndex)
-        return newIndex
+        return prevIndex + 1
       }
-      console.log('[App] Cannot navigate, staying at:', prevIndex)
       return prevIndex
     })
   }
@@ -431,23 +438,20 @@ function App() {
       return updatedItems
     })
     
-    // 作成したアイテムを選択状態にする
     setSelectedItemId(newTableItem.id)
   }
+
+  // Handle content update from external sources (e.g., AI chat)
+  const handleSetEditorContent = useCallback((content: string) => {
+    setLines(contentToLines(content))
+  }, [])
 
   return (
     <div className="h-screen max-h-screen flex flex-col overflow-hidden">
       <Toolbar
-        onLoad={() => loadPresentation(setEditorContent, setCurrentIndex)}
+        onLoad={() => loadPresentation(handleSetEditorContent, setCurrentIndex)}
         onShowHelp={() => setShowHelpModal(true)}
         onShowExport={() => setShowExportModal(true)}
-        onStartSlideShow={() => {
-          if (slides.length > 0) {
-            setShowSlideShow(true)
-          } else {
-            alert('スライドがありません')
-          }
-        }}
         onUndo={handleUndo}
         onRedo={handleRedo}
         canUndo={canUndo}
@@ -522,6 +526,13 @@ function App() {
               previewRef={previewRef}
               items={items}
               onNavigate={handleNavigate}
+              onStartSlideShow={() => {
+                if (slides.length > 0) {
+                  setShowSlideShow(true)
+                } else {
+                  alert('スライドがありません')
+                }
+              }}
             />
           </div>
 
@@ -684,42 +695,30 @@ function App() {
           
           <div className="flex" style={{ flex: 1, minHeight: 0 }}>
             {/* エディター部分（条件付き表示） */}
-            <div className="flex flex-col relative" style={{ minHeight: 0, flex: '1 1 auto' }}>
+            <div className="flex flex-col" style={{ minHeight: 0, flex: '1 1 auto' }}>
             {/* その他のアイテム選択時：ItemDetailPanelを表示 */}
             {selectedItemId && selectedItemId !== MAIN_SLIDE_ITEM_ID ? (
               <ItemDetailPanel
                 item={items.find(item => item.id === selectedItemId) || null}
                 onEdit={handleEditItem}
-                onDelete={handleDeleteItem}
                 onUpdateItem={handleUpdateItem}
-                onInsert={handleInsertItem}
-                onClose={() => setSelectedItemId(null)}
-                existingNames={items.map(item => item.name)}
               />
             ) : (
               /* デフォルト（メインスライドアイテム選択時 or 未選択時）：エディタを表示 */
-              <>
-                <Editor
-                  editorContent={editorContent}
-                  setEditorContent={setEditorContent}
-                  isComposing={isComposing}
-                  setIsComposing={setIsComposing}
-                  errorMessages={consoleMessages}
-                />
-                <div
-                  className="pointer-events-none absolute bottom-6 z-40"
-                  style={{ left: '50%', transform: 'translateX(-50%)', width: 'min(420px, calc(100% - 120px))' }}
-                >
-                  <div className="pointer-events-auto w-full">
-                    <Toast messages={consoleMessages} />
-                  </div>
-                </div>
-              </>
+              <Editor
+                lines={lines}
+                setLines={setLines}
+                isComposing={isComposing}
+                setIsComposing={setIsComposing}
+                errorMessages={consoleMessages}
+                onCurrentLineChange={handleCurrentLineChange}
+                onSelectionChange={handleSelectionChange}
+              />
             )}
       </div>
 
             {/* アイテムタブバー（常時表示） */}
-            <div className="flex flex-col" style={{ width: '48px', minHeight: 0, borderLeft: '1px solid #3a3a3a' }}>
+            <div className="flex flex-col" style={{ width: '42px', minHeight: 0, borderLeft: '1px solid #3a3a3a' }}>
               <ItemTabBar
                 items={items}
                 selectedItemId={selectedItemId}
@@ -730,13 +729,59 @@ function App() {
               />
             </div>
           </div>
+          {/* Toast - FloatingNavBarの上に表示（エディタ選択時のみ） */}
+          {/* 行番号カラム(60px)を除いたテキスト部分の中央に配置 */}
+          {(!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
+            <div
+              className="pointer-events-none fixed z-40"
+              style={{ 
+                bottom: '56px',
+                left: 'calc(40% + 60px + (35% - 42px - 60px) / 2)', 
+                transform: 'translateX(-50%)',
+                maxWidth: '420px',
+                width: 'calc(35% - 150px)'
+              }}
+            >
+              <div className="pointer-events-auto w-full">
+                <Toast messages={consoleMessages} />
+              </div>
+            </div>
+          )}
+          {/* FloatingNavBar - エディタ領域の最下部（エディタ選択時のみ） */}
+          {/* 行番号カラム(60px)を除いたテキスト部分の中央に配置 */}
+          {(!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
+            <div
+              className="pointer-events-none fixed z-40"
+              style={{ 
+                bottom: '12px',
+                left: 'calc(40% + 60px + (35% - 42px - 60px) / 2)', 
+                transform: 'translateX(-50%)',
+                maxWidth: '420px',
+                width: 'calc(35% - 150px)'
+              }}
+            >
+              <div className="pointer-events-auto w-full">
+                <FloatingNavBar
+                  itemType="slide"
+                  currentLine={currentLineIndex + 1}
+                  currentAttribute={currentAttribute}
+                  selection={selection ? {
+                    startLine: selection.startLine + 1,
+                    endLine: selection.endLine + 1
+                  } : null}
+                  onSetAttribute={handleSetAttribute}
+                  onSetAttributesForRange={handleSetAttributesForRange}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* AIチャットパネル */}
         <div className="flex flex-col" style={{ width: '25%', minHeight: 0 }}>
           <ChatPanel
             editorContent={editorContent}
-            onApplyEdit={(content) => setEditorContent(content)}
+            onApplyEdit={(content) => handleSetEditorContent(content)}
             onCreateTable={handleCreateTable}
             existingItemNames={items.map(item => item.name)}
           />

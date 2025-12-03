@@ -91,3 +91,39 @@ export const clearItemsFromLocalStorage = (): void => {
   localStorage.removeItem('slide-editor-items')
 }
 
+// Save editor content to localStorage
+export const saveEditorContentToLocalStorage = (content: string): void => {
+  localStorage.setItem('slide-editor-content', content)
+}
+
+// Load editor content from localStorage
+export const loadEditorContentFromLocalStorage = (): string | null => {
+  return localStorage.getItem('slide-editor-content')
+}
+
+// Save attribute map to localStorage
+export const saveAttributeMapToLocalStorage = (attributeMap: Map<number, string | null>): void => {
+  const obj: Record<string, string | null> = {}
+  attributeMap.forEach((value, key) => {
+    obj[key.toString()] = value
+  })
+  localStorage.setItem('slide-editor-attributes', JSON.stringify(obj))
+}
+
+// Load attribute map from localStorage
+export const loadAttributeMapFromLocalStorage = (): Map<number, string | null> => {
+  try {
+    const data = localStorage.getItem('slide-editor-attributes')
+    if (!data) return new Map()
+    
+    const obj = JSON.parse(data) as Record<string, string | null>
+    const map = new Map<number, string | null>()
+    Object.entries(obj).forEach(([key, value]) => {
+      map.set(parseInt(key, 10), value)
+    })
+    return map
+  } catch {
+    return new Map()
+  }
+}
+

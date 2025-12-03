@@ -12,6 +12,24 @@ export const formatSizes: Record<SlideFormat, { width: number; height: number }>
   a4: { width: 1123, height: 1587 }, // A4 (210mm x 297mm at 96dpi)
 }
 
+// フォントサイズ設定
+// 本文フォントサイズを基準として、ジャンプ率で見出しやキーメッセージのサイズを計算
+export const fontConfigs: Record<SlideFormat, {
+  baseFontSize: number // 本文フォントサイズ（px）
+  headingJumpRate: number // 見出しのジャンプ率
+  keyMessageJumpRate: number // キーメッセージのジャンプ率
+  codeJumpRate: number // コードブロックのジャンプ率
+  fontFamily: string // フォントファミリー
+}> = {
+  webinar: { baseFontSize: 34, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
+  meeting: { baseFontSize: 34, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
+  seminar: { baseFontSize: 43, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
+  conference: { baseFontSize: 67, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic Medium", sans-serif' },
+  instapost: { baseFontSize: 34, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif' },
+  instastory: { baseFontSize: 36, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif' },
+  a4: { baseFontSize: 22, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif' },
+}
+
 export const formatConfigs: Record<SlideFormat, { icon: string; name: string; description: string; ratio: string; slideSplitLevel: number; width: number; height: number }> = {
   webinar: { icon: 'videocam', name: 'Webinar (16:9)', description: 'オンラインウェビナーやリモートプレゼンテーション向けのフォーマット', ratio: '16:9', slideSplitLevel: 1, width: formatSizes.webinar.width, height: formatSizes.webinar.height },
   meeting: { icon: 'groups', name: 'SlideS (16:9)', description: '小規模な会議やチームミーティング向けのフォーマット', ratio: '16:9', slideSplitLevel: 1, width: formatSizes.meeting.width, height: formatSizes.meeting.height },

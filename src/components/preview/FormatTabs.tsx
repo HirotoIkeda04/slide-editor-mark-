@@ -12,7 +12,7 @@ export const FormatTabs = ({ currentFormat, onFormatChange }: FormatTabsProps) =
   const [needsScroll, setNeedsScroll] = useState(false)
   const needsScrollRef = useRef(false)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, description: string) => {
     if (tooltipTimeoutRef.current) {

@@ -1,18 +1,144 @@
-/* Editor with line numbers */
+/* Line-based Editor Container */
+.editor-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  background-color: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  font-family: 'M PLUS 1 Code', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 18px;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.editor-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Line Numbers Column */
+.editor-line-numbers {
+  flex-shrink: 0;
+  min-width: 3ch;  /* 3桁分の幅 */
+  width: fit-content;  /* 4桁以上になったら自動で広がる */
+  padding: 8px 6px 8px 8px;
+  background-color: #222;
+  border-right: 1px solid #3a3a3a;
+  text-align: right;
+  user-select: none;
+  color: #666;
+}
+
+.editor-line-number {
+  height: 18px;
+  line-height: 18px;
+  font-size: 10px;
+}
+
+/* Content Area */
+.editor-content {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  margin-left: 2ch;  /* 行番号カラムとの間に半角2スペース分の余白 */
+}
+
+/* Single Line */
+.editor-line {
+  display: flex;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 12px 0 0;
+}
+
+.editor-line.current {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Indent Display (leading whitespace) */
+.editor-indent {
+  flex-shrink: 0;
+  color: transparent;
+  user-select: none;
+  white-space: pre;
+}
+
+/* Attribute Display (inline, next to text) */
+.editor-attribute {
+  flex-shrink: 0;
+  color: #888;
+  user-select: none;
+  white-space: pre;
+}
+
+/* Text Input Wrapper */
+.editor-text-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Selection Highlight */
+.selection-highlight {
+  position: absolute;
+  top: 0;
+  height: 18px;
+  background-color: rgba(59, 130, 246, 0.3);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Text Input */
+.editor-text-input {
+  width: 100%;
+  height: 18px;
+  line-height: 18px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #e5e7eb;
+  font-family: inherit;
+  font-size: inherit;
+  caret-color: #d4a574;
+  position: relative;
+  z-index: 1;
+}
+
+.editor-text-input:focus {
+  outline: none;
+}
+
+.editor-text-input::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Legacy styles for compatibility */
 .editor-with-lines {
   position: relative;
   height: 100%;
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+
+.editor-with-lines::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .editor-lines {
-  overflow: hidden !important;
   user-select: none;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-family: monospace;
-  line-height: 1.5;
-  padding: 1rem;
-  padding-bottom: 6rem; /* 4行分の余白 (1.5 * 4 = 6rem) */
+  line-height: 18px;
   box-sizing: border-box;
-  /* スクロールバーを非表示 */
+  background-color: #222 !important;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -22,33 +148,18 @@
   width: 0;
   height: 0;
 }
-#slide-editor-textarea {
-  font-size: 0.75rem !important;
-  font-family: monospace !important;
-  line-height: 1.5 !important;
-  padding: 1rem !important;
-  padding-bottom: 6rem !important; /* 4行分の余白 (1.5 * 4 = 6rem) */
-  box-sizing: border-box !important;
-  resize: none;
-  min-height: 0;
-  background: transparent;
-  /* スクロールバーを非表示 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
 
-#slide-editor-textarea::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
-  width: 0;
-  height: 0;
+.editor-lines > div {
+  line-height: 18px;
+  height: 18px;
 }
 
 /* Editor File Header */
 .editor-file-header {
   display: flex;
   align-items: center;
-  height: 44px; /* chat-headerと同じ固定高さ */
-  padding: 0.75rem 1rem; /* chat-headerと同じパディング */
+  height: 44px;
+  padding: 0.75rem 1rem;
   box-sizing: border-box;
 }
 
@@ -63,4 +174,3 @@
   font-weight: 500;
   user-select: none;
 }
-

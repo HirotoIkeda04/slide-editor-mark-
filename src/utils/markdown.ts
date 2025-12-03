@@ -170,42 +170,67 @@ export const extractSlideLayout = (content: string): 'cover' | 'toc' | 'section'
 }
 
 // 見出しレベルに基づいてスライドを分割する関数
-export const splitSlidesByHeading = (content: string, headingLevel: number): string[] => {
+// attributeMap: 行インデックス（0-based）から属性値へのマップ
+export const splitSlidesByHeading = (
+  content: string, 
+  headingLevel: number,
+  attributeMap?: Map<number, string | null>
+): string[] => {
   const lines = content.split('\n')
   const slides: string[] = []
   let currentSlide: string[] = []
   let firstHeadingFound = false
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
+  // 属性値を含む行を生成するヘルパー関数
+  const lineWithAttribute = (line: string, lineIndex: number): string => {
+    const attribute = attributeMap?.get(lineIndex)
+    if (!attribute) return line
+    // 属性値が既に行に含まれている場合はそのまま返す
     const trimmed = line.trim()
+    if (trimmed.startsWith(attribute)) return line
+    // 属性値を追加
+    return `${attribute} ${line}`
+  }
+
+  // 行から見出しレベルを取得（属性値優先）
+  const getHeadingLevel = (line: string, lineIndex: number): number | null => {
+    const attribute = attributeMap?.get(lineIndex)
+    if (attribute === '#') return 1
+    if (attribute === '##') return 2
+    if (attribute === '###') return 3
     
-    // 見出し行をチェック
+    // 属性値がない場合は行のテキストから判断
+    const trimmed = line.trim()
     const headingMatch = trimmed.match(/^(#+)\s+/)
     if (headingMatch) {
-      const headingLevelInLine = headingMatch[1].length
-      
-      // 指定レベル以上の見出しで区切る（例：レベル1を指定した場合、#のみで区切る）
-      if (headingLevelInLine <= headingLevel) {
-        // 最初の見出しが見つかった場合、それまでのコンテンツを最初のスライドとして追加
-        if (!firstHeadingFound) {
-          if (currentSlide.length > 0) {
-            slides.push(currentSlide.join('\n'))
-            currentSlide = []
-          }
-          firstHeadingFound = true
-        } else {
-          // 現在のスライドを保存して新しいスライドを開始
-          if (currentSlide.length > 0) {
-            slides.push(currentSlide.join('\n'))
-          }
+      return headingMatch[1].length
+    }
+    return null
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const headingLevelInLine = getHeadingLevel(line, i)
+    
+    if (headingLevelInLine !== null && headingLevelInLine <= headingLevel) {
+      // 最初の見出しが見つかった場合、それまでのコンテンツを最初のスライドとして追加
+      if (!firstHeadingFound) {
+        if (currentSlide.length > 0) {
+          slides.push(currentSlide.join('\n'))
           currentSlide = []
         }
+        firstHeadingFound = true
+      } else {
+        // 現在のスライドを保存して新しいスライドを開始
+        if (currentSlide.length > 0) {
+          slides.push(currentSlide.join('\n'))
+        }
+        currentSlide = []
       }
     }
     
-    // 現在の行をスライドに追加
-    currentSlide.push(line)
+    // 現在の行をスライドに追加（属性値を含む）
+    currentSlide.push(lineWithAttribute(line, i))
   }
   
   // 最後のスライドを追加
@@ -300,7 +325,7 @@ export const expandItemReferences = (
   // @アイテム名 パターンをマッチ
   const itemReferencePattern = /@([^\s@]+)/g
   
-  const result = content.replace(itemReferencePattern, (match, itemName) => {
+  const result = content.replace(itemReferencePattern, (_match, itemName) => {
     const itemMarkdown = itemResolverFn(itemName)
     if (itemMarkdown === null) {
       // アイテムが見つからない場合はエラーメッセージを表示

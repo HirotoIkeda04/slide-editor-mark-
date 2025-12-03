@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import type { Item, ItemType, TableItem, ImageItem, TextItem, ImageDisplayMode } from '../../types'
-import { cropImage, percentCropToPixelCrop } from '../../utils/imageProcessing'
+import { cropImage } from '../../utils/imageProcessing'
 
 interface ItemModalProps {
   isOpen: boolean

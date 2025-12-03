@@ -68,7 +68,7 @@ export const updateItem = (
         ...item,
         ...updates,
         updatedAt: new Date().toISOString()
-      }
+      } as Item
     }
     return item
   })
@@ -105,47 +105,50 @@ export const isNameUnique = (items: Item[], name: string, excludeId?: string): b
   return !items.some(item => item.name === name && item.id !== excludeId)
 }
 
-// Convert table to Markdown
+// Convert table to Markdown (or chart marker for chart display formats)
 export const tableToMarkdown = (table: TableItem): string => {
-  const { data, headers } = table
+  const { data, headers, displayFormat, hiddenRows = [], hiddenColumns = [] } = table
   if (!data || data.length === 0) return ''
+
+  // グラフ形式の場合、特殊なマーカーを返す
+  // このマーカーはPreviewコンポーネントで検出され、TableChartコンポーネントに置き換えられる
+  if (displayFormat && displayFormat !== 'table') {
+    return `<table-chart id="${table.id}" name="${table.name}" format="${displayFormat}"></table-chart>`
+  }
 
   let markdown = ''
   
-  // 列数を決定（最初の行またはヘッダーから）
-  const colCount = headers && headers.length > 0 ? headers.length : (data[0]?.length || 0)
+  // 非表示列を除外した列インデックス
+  const visibleColumnIndices = (headers && headers.length > 0 ? headers : data[0] || [])
+    .map((_, i) => i)
+    .filter(i => !hiddenColumns.includes(i))
+  
+  // 列数を決定（表示される列のみ）
+  const colCount = visibleColumnIndices.length
   if (colCount === 0) return ''
 
   // Add headers if exists
   if (headers && headers.length > 0) {
-    const headerRow = headers.map(h => h || '').slice(0, colCount)
-    // 列数に合わせて調整
-    while (headerRow.length < colCount) {
-      headerRow.push('')
-    }
+    const headerRow = visibleColumnIndices.map(i => headers[i] || '')
     markdown += '| ' + headerRow.join(' | ') + ' |\n'
     markdown += '| ' + headerRow.map(() => '---').join(' | ') + ' |\n'
   } else {
     // ヘッダーがない場合、最初の行をヘッダーとして扱う
-    if (data.length > 0) {
-      const firstRow = data[0].map(cell => cell || '').slice(0, colCount)
-      while (firstRow.length < colCount) {
-        firstRow.push('')
-      }
+    if (data.length > 0 && !hiddenRows.includes(0)) {
+      const firstRow = visibleColumnIndices.map(i => data[0][i] || '')
       markdown += '| ' + firstRow.join(' | ') + ' |\n'
       markdown += '| ' + firstRow.map(() => '---').join(' | ') + ' |\n'
     }
   }
 
-  // Add data rows
+  // Add data rows (非表示行を除外)
   const startRow = headers && headers.length > 0 ? 0 : 1 // ヘッダーがない場合は最初の行をスキップ
   for (let i = startRow; i < data.length; i++) {
+    // 非表示行をスキップ
+    if (hiddenRows.includes(i)) continue
+    
     const row = data[i] || []
-    const rowCells = row.map(cell => cell || '').slice(0, colCount)
-    // 列数に合わせて調整
-    while (rowCells.length < colCount) {
-      rowCells.push('')
-    }
+    const rowCells = visibleColumnIndices.map(colIdx => row[colIdx] || '')
     markdown += '| ' + rowCells.join(' | ') + ' |\n'
   }
 

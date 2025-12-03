@@ -4,7 +4,6 @@ interface ToolbarProps {
   onLoad: () => void
   onShowHelp: () => void
   onShowExport: () => void
-  onStartSlideShow: () => void
   onUndo: () => void
   onRedo: () => void
   canUndo: boolean
@@ -15,7 +14,6 @@ export const Toolbar = ({
   onLoad,
   onShowHelp,
   onShowExport,
-  onStartSlideShow,
   onUndo,
   onRedo,
   canUndo,
@@ -56,20 +54,6 @@ export const Toolbar = ({
         </button>
         <button onClick={onShowHelp} className="toolbar-button" data-tooltip="使い方">
           <span className="material-icons toolbar-icon">help_outline</span>
-        </button>
-        <button onClick={onStartSlideShow} className="toolbar-button" data-tooltip="スライドショー">
-          <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            {/* スクリーン */}
-            <rect x="4" y="6" width="16" height="12" rx="1.5" />
-            {/* プレイボタン */}
-            <path d="M10 10.5L13 12L10 13.5V10.5Z" fill="currentColor" />
-            {/* スタンドの左脚 */}
-            <line x1="7" y1="18" x2="6" y2="20" />
-            {/* スタンドの右脚 */}
-            <line x1="17" y1="18" x2="18" y2="20" />
-            {/* スタンドのベース */}
-            <line x1="6" y1="20" x2="18" y2="20" />
-          </svg>
         </button>
         <button onClick={onShowExport} className="toolbar-button toolbar-button-primary" data-tooltip="保存">
           <span className="material-icons toolbar-icon">download</span>

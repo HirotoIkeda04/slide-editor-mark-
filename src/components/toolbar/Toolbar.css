@@ -107,26 +107,26 @@
 }
 
 .toolbar-button-primary {
-  background: linear-gradient(135deg, #FFCB6B 0%, #FFB74D 100%);
+  background: linear-gradient(135deg, #d4a574 0%, #c99a63 100%);
   color: #1a1a1a;
   border: none;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(255, 203, 107, 0.3);
+  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
 }
 
 .toolbar-button-primary:hover {
-  background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
-  box-shadow: 0 4px 12px rgba(255, 203, 107, 0.5);
+  background: linear-gradient(135deg, #e0b485 0%, #d4a574 100%);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.5);
 }
 
 .toolbar-button-primary::after {
-  background: linear-gradient(135deg, #FFCB6B 0%, #FFB74D 100%);
+  background: linear-gradient(135deg, #d4a574 0%, #c99a63 100%);
   color: #1a1a1a;
   border: none;
 }
 
 .toolbar-button-primary::before {
-  border-bottom-color: #FFCB6B;
+  border-bottom-color: #d4a574;
 }
 
 .toolbar-icon {

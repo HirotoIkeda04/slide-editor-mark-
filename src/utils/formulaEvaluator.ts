@@ -1,5 +1,5 @@
 import type { FormulaToken, CellReference, RangeReference } from './formulaParser'
-import { parseFormula, columnNameToIndex, parseCellReference, parseRangeReference } from './formulaParser'
+import { parseFormula, columnNameToIndex } from './formulaParser'
 import { parseCellValue } from './tableUtils'
 import type { CellDataType } from '../types'
 

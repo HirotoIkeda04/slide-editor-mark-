@@ -33,24 +33,28 @@ export const Toast = ({ messages }: ToastProps) => {
 
   return (
     <div
-      className="rounded-lg shadow-lg border px-3 py-2 flex items-center gap-1.5"
+      className="border flex items-center gap-1"
       style={{
         backgroundColor: '#2b2b2b',
         borderColor: '#3a3a3a',
         color: '#ff7373',
-        width: '100%'
+        fontSize: '10px',
+        padding: '6px 10px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
       }}
     >
       {/* 上向き矢印（前へ） */}
       {hasMultiple && (
         <button
           onClick={handlePrevious}
-          className="text-xs font-semibold text-[#e5e7eb] px-0.5 transition-colors hover:text-white"
+          className="font-semibold text-[#e5e7eb] transition-colors hover:text-white"
           style={{
             background: 'transparent',
             border: 'none',
             lineHeight: 1,
-            letterSpacing: '0.05em'
+            fontSize: '10px',
+            padding: '0 2px'
           }}
           aria-label="前の問題"
         >
@@ -60,7 +64,7 @@ export const Toast = ({ messages }: ToastProps) => {
 
       {/* 問題番号と総数 */}
       {hasMultiple && (
-        <span className="text-xs font-medium" style={{ minWidth: '28px', textAlign: 'center', color: '#e5e7eb' }}>
+        <span style={{ minWidth: '24px', textAlign: 'center', color: '#e5e7eb', fontSize: '8px' }}>
           {currentIndex + 1}/{messages.length}
         </span>
       )}
@@ -69,12 +73,13 @@ export const Toast = ({ messages }: ToastProps) => {
       {hasMultiple && (
         <button
           onClick={handleNext}
-          className="text-xs font-semibold text-[#e5e7eb] px-0.5 transition-colors hover:text-white"
+          className="font-semibold text-[#e5e7eb] transition-colors hover:text-white"
           style={{
             background: 'transparent',
             border: 'none',
             lineHeight: 1,
-            letterSpacing: '0.05em'
+            fontSize: '10px',
+            padding: '0 2px'
           }}
           aria-label="次の問題"
         >
@@ -83,11 +88,17 @@ export const Toast = ({ messages }: ToastProps) => {
       )}
 
       {/* メッセージ */}
-      <div className="flex-1 flex items-center gap-3" style={{ marginLeft: '16px' }}>
-        <span className="text-xs font-mono" style={{ color: '#ff8f8f' }}>
+      <div className="flex-1 flex items-center gap-2" style={{ marginLeft: hasMultiple ? '8px' : '0', minWidth: 0 }}>
+        <span className="font-mono" style={{ color: '#ff8f8f', fontSize: '10px', flexShrink: 0 }}>
           L{currentMessage.line}
         </span>
-        <span className="text-xs flex-1 leading-snug">
+        <span 
+          className="leading-tight" 
+          style={{ 
+            fontSize: '10px',
+            wordBreak: 'break-word',
+          }}
+        >
           {currentMessage.message}
         </span>
       </div>

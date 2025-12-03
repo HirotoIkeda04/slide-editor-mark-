@@ -1,15 +1,15 @@
-/* フォーマット別フォントサイズ調整（1920x1080px基準） */
+/* フォーマット別フォントサイズ調整（CSS変数を使用） */
 
-/* SlideS-16:9 (小規模会議) - 28pxベース */
+/* SlideS-16:9 (小規模会議) */
 .format-meeting .prose {
-  font-size: 28px;
+  font-size: var(--base-font-size, 28px);
   line-height: 1.5;
 }
 
 .format-meeting .prose h1,
 .format-meeting .prose h2,
 .format-meeting .prose h3 {
-  font-size: 42px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 42px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -18,20 +18,20 @@
 }
 
 .format-meeting .prose code {
-  font-size: 22.4px; /* 28px * 0.8 */
+  font-size: var(--code-font-size, 22.4px);
 }
 
 /* InstaPost/InstaStory (1080px幅 = 0.5625倍) */
-/* Post-4:5 (Instagram投稿) - 28pxベース */
+/* Post-4:5 (Instagram投稿) */
 .format-instapost .prose {
-  font-size: 28px;
+  font-size: var(--base-font-size, 28px);
   line-height: 1.5;
 }
 
 .format-instapost .prose h1,
 .format-instapost .prose h2,
 .format-instapost .prose h3 {
-  font-size: 42px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 42px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -61,19 +61,19 @@
 }
 
 .format-instapost .prose code {
-  font-size: 22.4px; /* 28px * 0.8 */
+  font-size: var(--code-font-size, 22.4px);
 }
 
-/* Story-9:16 (Instagramストーリー) - 30pxベース */
+/* Story-9:16 (Instagramストーリー) */
 .format-instastory .prose {
-  font-size: 30px;
+  font-size: var(--base-font-size, 30px);
   line-height: 1.5;
 }
 
 .format-instastory .prose h1,
 .format-instastory .prose h2,
 .format-instastory .prose h3 {
-  font-size: 45px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 45px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -82,19 +82,19 @@
 }
 
 .format-instastory .prose code {
-  font-size: 24px; /* 30px * 0.8 */
+  font-size: var(--code-font-size, 24px);
 }
 
-/* Print-A4 (印刷・配布資料) - 18pxベース */
+/* Print-A4 (印刷・配布資料) */
 .format-a4 .prose {
-  font-size: 18px;
+  font-size: var(--base-font-size, 18px);
   line-height: 1.5;
 }
 
 .format-a4 .prose h1,
 .format-a4 .prose h2,
 .format-a4 .prose h3 {
-  font-size: 27px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 27px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -105,7 +105,7 @@
 .format-a4 .prose p,
 .format-a4 .prose ul,
 .format-a4 .prose ol {
-  font-size: 18px;
+  font-size: var(--base-font-size, 18px);
   margin-top: 0.8em;
   margin-bottom: 0.8em;
 }
@@ -116,19 +116,19 @@
 }
 
 .format-a4 .prose code {
-  font-size: 14.4px; /* 18px * 0.8 */
+  font-size: var(--code-font-size, 14.4px);
 }
 
-/* Webinar-16:9 (オンライン配信・画面共有) - 28pxベース */
+/* Webinar-16:9 (オンライン配信・画面共有) */
 .format-webinar .prose {
-  font-size: 28px;
+  font-size: var(--base-font-size, 28px);
   line-height: 1.5;
 }
 
 .format-webinar .prose h1,
 .format-webinar .prose h2,
 .format-webinar .prose h3 {
-  font-size: 42px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 42px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -137,19 +137,19 @@
 }
 
 .format-webinar .prose code {
-  font-size: 22.4px; /* 28px * 0.8 */
+  font-size: var(--code-font-size, 22.4px);
 }
 
-/* SlideM-16:9 (中規模セミナー) - 36pxベース */
+/* SlideM-16:9 (中規模セミナー) */
 .format-seminar .prose {
-  font-size: 36px;
+  font-size: var(--base-font-size, 36px);
   line-height: 1.5;
 }
 
 .format-seminar .prose h1,
 .format-seminar .prose h2,
 .format-seminar .prose h3 {
-  font-size: 54px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 54px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -158,19 +158,19 @@
 }
 
 .format-seminar .prose code {
-  font-size: 28.8px; /* 36px * 0.8 */
+  font-size: var(--code-font-size, 28.8px);
 }
 
-/* SlideL-16:9 (大規模カンファレンス) - 56pxベース */
+/* SlideL-16:9 (大規模カンファレンス) */
 .format-conference .prose {
-  font-size: 56px;
+  font-size: var(--base-font-size, 56px);
   line-height: 1.5;
 }
 
 .format-conference .prose h1,
 .format-conference .prose h2,
 .format-conference .prose h3 {
-  font-size: 84px; /* すべての見出しレベルを統一 */
+  font-size: var(--heading-font-size, 84px); /* すべての見出しレベルを統一 */
   line-height: 1.3;
 }
 
@@ -179,6 +179,6 @@
 }
 
 .format-conference .prose code {
-  font-size: 44.8px; /* 56px * 0.8 */
+  font-size: var(--code-font-size, 44.8px);
 }
 

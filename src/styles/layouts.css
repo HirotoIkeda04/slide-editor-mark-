@@ -11,7 +11,7 @@
 
 /* キーメッセージスタイル */
 .key-message {
-  font-size: 48px; /* 2em */
+  font-size: var(--key-message-font-size, 48px);
   font-weight: 700;
   line-height: 1.3333333;
   margin-bottom: 0.75em;

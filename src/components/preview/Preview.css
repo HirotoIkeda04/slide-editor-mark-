@@ -71,19 +71,19 @@
   margin-right: 0 !important; /* 最後のタブの右マージンを0に */
 }
 .preview-tab:not(.active):hover {
-  background: rgba(255, 203, 107, 0.1);
-  color: #ffcb6b;
-  border-color: rgba(255, 203, 107, 0.5);
-  box-shadow: 0 2px 7px -4px rgba(255, 203, 107, 0.25);
+  background: rgba(212, 165, 116, 0.1);
+  color: #d4a574;
+  border-color: rgba(212, 165, 116, 0.5);
+  box-shadow: 0 2px 7px -4px rgba(212, 165, 116, 0.25);
   z-index: 2;
 }
 .preview-tab.active {
   background: #2b2b2b;
-  color: #ffcb6b;
-  border-color: #ffcb6b;
+  color: #d4a574;
+  border-color: #d4a574;
   border-bottom: 0;
   font-weight: 700;
-  box-shadow: 0 2px 8px -6px rgba(255, 203, 107, 0.25);
+  box-shadow: 0 2px 8px -6px rgba(212, 165, 116, 0.25);
   z-index: 10;
 }
 .preview-tab.first {
@@ -124,7 +124,7 @@
   display: block;
 }
 .tab-aspect-ratio {
-  color: rgba(255, 203, 107, 0.6); /* フォーマット名と同じ系統の色（#ffcb6b）の暗めのバージョン */
+  color: rgba(212, 165, 116, 0.6); /* フォーマット名と同じ系統の色（#d4a574）の暗めのバージョン */
   font-size: 0.65rem; /* アスペクト比のフォントサイズをさらに小さく */
   line-height: 1;
   margin-top: 0.125rem;
@@ -173,5 +173,45 @@
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 6px solid #2a2a2a;
+}
+
+/* YouTubeスタイルのフルスクリーンボタン */
+.preview-fullscreen-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+}
+
+.preview-fullscreen-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: white;
+}
+
+/* ホバー時に表示 */
+*:hover > .preview-fullscreen-btn,
+.preview-fullscreen-btn:hover,
+.preview-fullscreen-btn:focus {
+  opacity: 1;
+}
+
+.preview-fullscreen-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.preview-fullscreen-btn:active {
+  transform: scale(0.95);
 }
 

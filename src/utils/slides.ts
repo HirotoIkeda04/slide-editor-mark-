@@ -1,7 +1,7 @@
 import type { Slide } from '../types'
 
 export const addSlide = (setEditorContent: (updater: (prev: string) => string) => void) => {
-  setEditorContent(prev => prev + '\n\n---\n\n# 新しいスライド\n\n内容を入力')
+  setEditorContent(prev => prev + '\n\n---\n\n新しいスライド\n\n内容を入力')
 }
 
 export const deleteSlide = (

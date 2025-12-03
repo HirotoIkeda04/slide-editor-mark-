@@ -16,7 +16,7 @@
 }
 
 .bg-blue-500 {
-  background-color: #ffcb6b;
+  background-color: #d4a574;
 }
 
 .bg-red-500 {
@@ -48,7 +48,7 @@
 }
 
 .text-blue-600 {
-  color: #ffcb6b;
+  color: #d4a574;
 }
 
 .rounded-lg {
@@ -216,7 +216,7 @@
 }
 
 .border-blue-500 {
-  border-color: #ffcb6b;
+  border-color: #d4a574;
 }
 
 .border-gray-300 {
@@ -304,8 +304,8 @@
 }
 
 button:hover.hover\:bg-blue-600 {
-  background-color: #ffcb6b;
-  box-shadow: 0 0 0 2px rgba(255, 203, 107, 0.25);
+  background-color: #d4a574;
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.25);
 }
 
 button:hover.hover\:bg-red-600 {
@@ -356,11 +356,11 @@ button:disabled.disabled\:cursor-not-allowed {
 }
 
 .focus\:ring-2:focus {
-  box-shadow: 0 0 0 3px rgba(255, 203, 107, 0.4);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.4);
 }
 
 .focus\:ring-blue-400:focus {
-  --tw-ring-color: rgba(255, 203, 107, 0.4);
+  --tw-ring-color: rgba(212, 165, 116, 0.4);
 }
 
 .flex-wrap {
@@ -441,8 +441,20 @@ button:disabled.disabled\:cursor-not-allowed {
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: normal;
-  overflow: hidden; /* 画像がはみ出ないように */
+  overflow: visible; /* テキストが見切れないように */
   text-align: left; /* デフォルトは左寄せ */
+  /* パディングを設定してテキストが端に張り付かないように */
+  /* スライドコンテナのパディング（p-12 = 48px）に加えて、追加のパディングを設定 */
+  padding: 3rem !important;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 画像のオーバーフロー制御は個別に適用 */
+.prose img {
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .prose h1,
@@ -464,6 +476,34 @@ button:disabled.disabled\:cursor-not-allowed {
   margin-top: 0;
 }
 
+/* リストのスタイル */
+.prose ul,
+.prose ol {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 1.625em;
+  list-style-position: outside;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 0.375em;
+}
+
+.prose li::marker {
+  font-weight: normal;
+  color: inherit;
+}
+
 /* スクロールバー非表示 */
 .no-scrollbar {
   /* Chrome, Safari 対応 */
@@ -480,5 +520,58 @@ button:disabled.disabled\:cursor-not-allowed {
  -webkit-box-orient: vertical;
   line-clamp: 4;
  overflow: hidden;
+}
+
+/* コンサル風テーブルスタイル */
+.prose table {
+  border-collapse: separate;
+  border-spacing: 0.5rem 0.75rem;
+  width: 100%;
+  margin: 1.5em 0;
+}
+
+.prose thead {
+  border-bottom: none;
+}
+
+.prose th {
+  border: none;
+  border-bottom: 2px solid #374151;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  background: transparent;
+}
+
+.prose tbody tr {
+  border: none;
+}
+
+.prose td {
+  border: none;
+  padding: 1rem 1.25rem;
+  background-color: white;
+  color: #374151;
+  vertical-align: top;
+}
+
+/* 最初の列のスタイル（行ヘッダー） */
+.prose tbody td:first-child {
+  background-color: #e5e7eb;
+  color: #374151;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* テーブル内のリスト */
+.prose td ul,
+.prose td ol {
+  margin: 0;
+  padding-left: 1.25em;
+}
+
+.prose td li {
+  margin: 0.25em 0;
 }
 

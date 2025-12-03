@@ -98,17 +98,41 @@ export function formatCellValue(value: any, type: CellDataType, format?: CellFor
       const currencyValue = typeof value === 'number' ? value : parseFloat(String(value))
       if (isNaN(currencyValue)) return String(value)
       
-      const currencySymbol = format?.currencySymbol || '$'
+      const currencySymbol = format?.currencySymbol || '¥'
       const decimalPlaces = format?.decimalPlaces ?? 2
       const useThousandsSeparator = format?.useThousandsSeparator ?? true
+      const currencyScale = format?.currencyScale || 'none'
       
-      let formatted = Math.abs(currencyValue).toFixed(decimalPlaces)
-      if (useThousandsSeparator) {
+      // スケールに応じて値を調整
+      let scaledValue = Math.abs(currencyValue)
+      let scaleSuffix = ''
+      
+      switch (currencyScale) {
+        case 'thousand':
+          scaledValue = scaledValue / 1000
+          scaleSuffix = '千'
+          break
+        case 'million':
+          scaledValue = scaledValue / 1000000
+          scaleSuffix = '百万'
+          break
+        case 'billion':
+          scaledValue = scaledValue / 1000000000
+          scaleSuffix = '十億'
+          break
+        default:
+          // 'none': そのまま
+          break
+      }
+      
+      let formatted = scaledValue.toFixed(decimalPlaces)
+      if (useThousandsSeparator && currencyScale === 'none') {
         const parts = formatted.split('.')
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
         formatted = parts.join('.')
       }
-      return (currencyValue < 0 ? '-' : '') + currencySymbol + formatted
+      
+      return (currencyValue < 0 ? '-' : '') + currencySymbol + formatted + scaleSuffix
     }
     default:
       return String(value)
@@ -189,7 +213,8 @@ export function getDefaultCellFormat(type: CellDataType): CellFormat {
     case 'currency':
       return {
         type: 'currency',
-        currencySymbol: '$',
+        currencySymbol: '¥',
+        currencyScale: 'none',
         decimalPlaces: 2,
         useThousandsSeparator: true
       }

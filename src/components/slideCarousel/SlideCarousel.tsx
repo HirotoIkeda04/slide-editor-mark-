@@ -131,7 +131,7 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
                       width: `${slideWidth}px`,
                       height: `${slideHeight}px`,
                       borderWidth: idx === currentIndex ? '3px' : '1px',
-                      borderColor: idx === currentIndex ? '#FFCB6B' : '#d1d5db',
+                      borderColor: idx === currentIndex ? '#d4a574' : '#d1d5db',
                       backgroundColor: '#ffffff',
                       padding: 0
                     }}
@@ -156,7 +156,7 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
                     className="text-left text-sm w-full"
                     style={{ 
                       marginTop: '4px',
-                      color: idx === currentIndex ? '#FFCB6B' : '#6b7280',
+                      color: idx === currentIndex ? '#d4a574' : '#6b7280',
                       fontSize: '12px',
                       lineHeight: '1.4',
                       overflow: 'hidden',

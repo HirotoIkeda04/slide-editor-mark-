@@ -3,11 +3,12 @@ import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
-import type { Slide, SlideFormat, Tone, SlideLayout, Item } from '../../types'
+import type { Slide, SlideFormat, Tone, SlideLayout, Item, TableItem } from '../../types'
 import { CodeBlock } from '../code/CodeBlock'
+import { TableChart } from '../chart/TableChart'
 import { convertKeyMessageToHTML, splitContentByH2, hasMultipleH2, expandItemReferences, extractImagesFromContent } from '../../utils/markdown'
-import { getItemByName, itemToMarkdown } from '../../utils/items'
-import { formatConfigs } from '../../constants/formatConfigs'
+import { getItemByName, getItemById, itemToMarkdown } from '../../utils/items'
+import { formatConfigs, fontConfigs } from '../../constants/formatConfigs'
 import './Preview.css'
 
 interface PreviewProps {
@@ -21,6 +22,7 @@ interface PreviewProps {
   isThumbnail?: boolean // サムネイル表示かどうか
   thumbnailHeight?: number // サムネイルの高さ（ピクセル）
   onNavigate?: (direction: 'prev' | 'next') => void // スワイプナビゲーション用
+  onStartSlideShow?: () => void // スライドショー開始
 }
 
 const getLayoutClasses = (layout: SlideLayout | undefined): string => {
@@ -40,7 +42,7 @@ const getLayoutClasses = (layout: SlideLayout | undefined): string => {
   }
 }
 
-export const Preview = ({ slides, currentIndex, currentFormat, currentTone, previewRef, items, isSlideShow = false, isThumbnail = false, thumbnailHeight, onNavigate }: PreviewProps) => {
+export const Preview = ({ slides, currentIndex, currentFormat, currentTone, previewRef, items, isSlideShow = false, isThumbnail = false, thumbnailHeight, onNavigate, onStartSlideShow }: PreviewProps) => {
   const [scale, setScale] = useState(0.3) // 初期スケールを適切な値に設定（計算完了まで適度なサイズで表示）
   const containerRef = useRef<HTMLDivElement>(null)
   const slideRef = useRef<HTMLDivElement>(null)
@@ -57,6 +59,14 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
   const slideSize = formatConfigs[currentFormat]
   const fixedWidth = slideSize.width
   const fixedHeight = slideSize.height
+
+  // フォントサイズ設定を取得
+  const fontConfig = fontConfigs[currentFormat]
+  const baseFontSize = fontConfig.baseFontSize
+  const headingFontSize = baseFontSize * fontConfig.headingJumpRate
+  const keyMessageFontSize = baseFontSize * fontConfig.keyMessageJumpRate
+  const codeFontSize = baseFontSize * fontConfig.codeJumpRate
+  const fontFamily = fontConfig.fontFamily
 
   // スケーリング計算（通常プレビューとスライドショー両方で適用、サムネイルモードではスキップ）
   useEffect(() => {
@@ -435,9 +445,9 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
       
       console.log('[CustomImage] Display mode:', displayMode, 'for item:', imageAlt, 'isSlideShow:', isSlideShow, 'scale:', scale)
       
-      // スライドのパディング（p-8 = 32px * 2 = 64px）とマージンを考慮
+      // スライドのパディング（p-12 = 48px * 2 = 96px）とマージンを考慮
       // スライドショーの場合は、スケール後のサイズを考慮してmaxHeightを計算
-      const slidePadding = 64 // p-8 = 32px * 2
+      const slidePadding = 96 // p-12 = 48px * 2
       const imageMargin = 40 // 1.25em * 2 (上下マージン)
       
       let maxHeightValue: string
@@ -501,11 +511,58 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
     return <img src={src} alt={alt || ''} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
   }, [imageMap, items, isSlideShow, fixedHeight, scale])
   
+  // カスタムtable-chartコンポーネントを定義（テーブルをチャートとして表示）
+  const CustomTableChart = useCallback(({ id, name }: { id?: string; name?: string }) => {
+    console.log('[CustomTableChart] Called with id:', id, 'name:', name)
+    
+    // IDまたは名前でテーブルアイテムを検索
+    let tableItem: TableItem | undefined
+    if (id) {
+      const item = getItemById(items, id)
+      if (item && item.type === 'table') {
+        tableItem = item as TableItem
+      }
+    }
+    if (!tableItem && name) {
+      const item = getItemByName(items, name)
+      if (item && item.type === 'table') {
+        tableItem = item as TableItem
+      }
+    }
+    
+    if (!tableItem) {
+      console.warn('[CustomTableChart] Table not found:', id || name)
+      return (
+        <div style={{ 
+          padding: '1rem', 
+          color: '#ff7373', 
+          fontStyle: 'italic',
+          textAlign: 'center'
+        }}>
+          テーブル "{name || id}" が見つかりません
+        </div>
+      )
+    }
+    
+    return (
+      <div style={{ width: '100%', margin: '1rem 0', display: 'flex', justifyContent: 'center' }}>
+        <TableChart 
+          table={tableItem} 
+          tone={currentTone}
+          width={800}
+          height={300}
+        />
+      </div>
+    )
+  }, [items, currentTone])
+  
   // ReactMarkdownのcomponentsを定義
   const markdownComponents: Components = useMemo(() => ({
     code: CodeBlock,
     img: CustomImage,
-  }), [CustomImage])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'table-chart': CustomTableChart as any,
+  }), [CustomImage, CustomTableChart])
   
   // プレースホルダーをMarkdownの画像記法に置き換え（react-markdownが処理できる形式）
   const contentWithImages = useMemo(() => {
@@ -608,8 +665,14 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
     flexShrink: 0, // スケーリング時に縮小されないように
     border: isThumbnail ? 'none' : `${borderWidth}px solid ${getBorderColor()}`,
     borderRadius: isThumbnail ? '0' : '4px',
-    boxShadow: isThumbnail ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)'
-  }
+    boxShadow: isThumbnail ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)',
+    // CSS変数を設定してフォントサイズとフォントファミリーを動的に適用
+    '--base-font-size': `${baseFontSize}px`,
+    '--heading-font-size': `${headingFontSize}px`,
+    '--key-message-font-size': `${keyMessageFontSize}px`,
+    '--code-font-size': `${codeFontSize}px`,
+    '--font-family': fontFamily,
+  } as React.CSSProperties
 
   if (currentFormat === 'instapost') {
     return (
@@ -621,12 +684,19 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
           }
         }}
         className={`${isThumbnail ? '' : 'shadow-2xl'} overflow-hidden instapost-wrapper format-instapost ${isThumbnail ? 'instapost-wrapper-thumbnail' : ''} ${isThumbnail ? '' : (isSlideShow ? 'slideshow-slide' : 'h-5/6')}`}
-        style={slideContainerStyle}
+        style={{ ...slideContainerStyle, position: 'relative' }}
       >
         <div
           ref={slideRef}
           className={`instapost-frame ${isThumbnail ? 'instapost-frame-thumbnail' : ''}`}
-          style={slideStyle}
+          style={{
+            ...slideStyle,
+            '--base-font-size': `${baseFontSize}px`,
+            '--heading-font-size': `${headingFontSize}px`,
+            '--key-message-font-size': `${keyMessageFontSize}px`,
+            '--code-font-size': `${codeFontSize}px`,
+            '--font-family': fontFamily,
+          } as React.CSSProperties}
           data-slide-element="true"
         >
           <div 
@@ -648,6 +718,26 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
             </div>
           </div>
         </div>
+        
+        {/* YouTubeスタイルのフルスクリーンボタン */}
+        {onStartSlideShow && !isSlideShow && !isThumbnail && (
+          <button
+            className="preview-fullscreen-btn"
+            onClick={onStartSlideShow}
+            title="スライドショー"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {/* 左上 */}
+              <path d="M4 8V4H8" />
+              {/* 右上 */}
+              <path d="M16 4H20V8" />
+              {/* 左下 */}
+              <path d="M4 16V20H8" />
+              {/* 右下 */}
+              <path d="M16 20H20V16" />
+            </svg>
+          </button>
+        )}
       </div>
     )
   }
@@ -671,7 +761,7 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
         currentFormat === 'conference' ? 'format-conference' :
         ''
       }`}
-      style={slideContainerStyle}
+      style={{ ...slideContainerStyle, position: 'relative' }}
     >
       <div
         ref={slideRef}
@@ -680,7 +770,7 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
           currentTone === 'casual' ? 'bg-tone-casual' :
           currentTone === 'luxury' ? 'bg-tone-luxury' :
           'bg-tone-warm'
-        } p-8 ${
+        } p-12 ${
           layout === 'cover' || layout === 'section' ? 'flex items-start justify-center' : ''
         }`}
         style={slideStyle}
@@ -732,6 +822,26 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, prev
           </div>
         )}
       </div>
+      
+      {/* YouTubeスタイルのフルスクリーンボタン */}
+      {onStartSlideShow && !isSlideShow && !isThumbnail && (
+        <button
+          className="preview-fullscreen-btn"
+          onClick={onStartSlideShow}
+          title="スライドショー"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* 左上 */}
+            <path d="M4 8V4H8" />
+            {/* 右上 */}
+            <path d="M16 4H20V8" />
+            {/* 左下 */}
+            <path d="M4 16V20H8" />
+            {/* 右下 */}
+            <path d="M16 20H20V16" />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

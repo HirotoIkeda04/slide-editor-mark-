@@ -147,6 +147,7 @@ export function parseFormula(formula: string): FormulaToken[] {
           if (parenCount === 0) {
             if (argTokens.length > 0) {
               args.push(argTokens)
+              argTokens = [] // 重複追加を防ぐ
             }
             break
           }

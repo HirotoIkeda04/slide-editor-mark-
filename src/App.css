@@ -4,6 +4,13 @@
 
 /* Additional global styles not covered by component CSS */
 
+/* Global caret color - yellow for all editable elements */
+input,
+textarea,
+[contenteditable] {
+  caret-color: #d4a574;
+}
+
 /* Scrollbar styling for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
@@ -81,7 +88,7 @@
 }
 
 .toast-warning {
-  border-color: #ffcb6b;
+  border-color: #d4a574;
 }
 
 .toast-info {
@@ -150,7 +157,7 @@
   height: 3rem;
   background: #2a2a2a;
   border-radius: 0.5rem;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .export-option-icon .material-icons {
@@ -190,7 +197,7 @@
 .help-section h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: #FFCB6B;
+  color: #d4a574;
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
@@ -223,7 +230,7 @@
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   font-size: 0.8125rem;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .help-shortcuts {
@@ -247,7 +254,7 @@
   border-radius: 0.25rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #FFCB6B;
+  color: #d4a574;
   border: 1px solid #3a3a3a;
 }
 
@@ -298,8 +305,8 @@
 }
 
 .slide-carousel-item.active {
-  border-color: #FFCB6B;
-  box-shadow: 0 0 12px rgba(255, 203, 107, 0.3);
+  border-color: #d4a574;
+  box-shadow: 0 0 12px rgba(212, 165, 116, 0.3);
 }
 
 .slide-carousel-thumbnail {

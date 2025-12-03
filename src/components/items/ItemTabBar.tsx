@@ -10,6 +10,8 @@ interface ItemTabBarProps {
   onSelectItem: (itemId: string | null) => void
   onAddItem: () => void
   onUpdateItem?: (itemId: string, updates: Partial<Item>) => void
+  onInsert?: (item: Item) => void
+  onDelete?: (itemId: string) => void
   existingNames?: string[]
 }
 
@@ -19,6 +21,8 @@ export const ItemTabBar = ({
   onSelectItem, 
   onAddItem,
   onUpdateItem,
+  onInsert,
+  onDelete,
   existingNames = []
 }: ItemTabBarProps) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
@@ -26,8 +30,11 @@ export const ItemTabBar = ({
   const [nameError, setNameError] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const tooltipShowTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tooltipShowTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [actionPopupItemId, setActionPopupItemId] = useState<string | null>(null)
+  const [isEditingNameInPopup, setIsEditingNameInPopup] = useState(false)
+  const popupNameInputRef = useRef<HTMLInputElement>(null)
 
   const getItemIcon = (type: Item['type']): string => {
     switch (type) {
@@ -60,26 +67,15 @@ export const ItemTabBar = ({
     return true
   }
 
-  const handleNameDoubleClick = (item: Item, e: React.MouseEvent) => {
-    console.log('[ItemTabBar] Double click detected', { 
-      itemId: item.id, 
-      itemName: item.name,
-      onUpdateItem: !!onUpdateItem,
-      isMainSlide: item.id === MAIN_SLIDE_ITEM_ID
-    })
+  const handleIconDoubleClick = (item: Item, e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     if (item.id === MAIN_SLIDE_ITEM_ID) {
-      console.log('[ItemTabBar] Skipping main slide item')
       return
     }
-    if (!onUpdateItem) {
-      console.error('[ItemTabBar] onUpdateItem not available!')
-      alert('onUpdateItem is not available')
-      return
-    }
-    console.log('[ItemTabBar] Setting editing mode', { itemId: item.id })
-    setEditingItemId(item.id)
+    // アクションポップアップを表示
+    setActionPopupItemId(item.id)
+    setIsEditingNameInPopup(false)
     setEditingName(item.name)
     setNameError('')
   }
@@ -119,6 +115,58 @@ export const ItemTabBar = ({
     setEditingItemId(null)
     setNameError('')
   }, [items.map(i => i.id).join(',')])
+
+  // アクションポップアップを外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (actionPopupItemId) {
+        const target = e.target as HTMLElement
+        if (!target.closest('.item-tab-action-popup')) {
+          // 名前編集モードの場合は、変更を保存してから閉じる
+          if (isEditingNameInPopup) {
+            const actionItem = items.find(item => item.id === actionPopupItemId)
+            if (actionItem && validateName(editingName, actionItem) && editingName.trim() !== actionItem.name && onUpdateItem) {
+              onUpdateItem(actionItem.id, { name: editingName.trim() })
+            }
+          }
+          setActionPopupItemId(null)
+          setIsEditingNameInPopup(false)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [actionPopupItemId, isEditingNameInPopup, editingName, items, onUpdateItem])
+
+  // ポップアップ内の名前編集モードに入ったときにフォーカスを設定
+  useEffect(() => {
+    if (isEditingNameInPopup && popupNameInputRef.current) {
+      popupNameInputRef.current.focus()
+      popupNameInputRef.current.select()
+    }
+  }, [isEditingNameInPopup])
+
+  // ESCキーでアクションポップアップを閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && actionPopupItemId) {
+        if (isEditingNameInPopup) {
+          // 名前編集モードの場合は編集をキャンセル
+          setIsEditingNameInPopup(false)
+          const actionItem = items.find(item => item.id === actionPopupItemId)
+          if (actionItem) {
+            setEditingName(actionItem.name)
+            setNameError('')
+          }
+        } else {
+          // 通常モードの場合はポップアップを閉じる
+          setActionPopupItemId(null)
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [actionPopupItemId, isEditingNameInPopup, items])
 
   // 編集モードに入ったときにフォーカスを設定
   useEffect(() => {
@@ -195,7 +243,6 @@ export const ItemTabBar = ({
     const target = e.currentTarget
     const rect = target.getBoundingClientRect()
     const tooltipWidth = 200 // ツールチップの幅
-    const tooltipHalfWidth = tooltipWidth / 2
     const padding = 10 // 画面端からの余白
     const gap = 8 // ボタンとツールチップの間の余白
     
@@ -282,7 +329,11 @@ export const ItemTabBar = ({
           <button
             key={mainSlideItem.id}
             className={`item-tab-icon-button ${selectedItemId === mainSlideItem.id ? 'active' : ''}`}
-            onClick={() => onSelectItem(mainSlideItem.id)}
+            onClick={(e) => {
+              onSelectItem(mainSlideItem.id)
+              // マウスクリック後はフォーカスを削除して、ブラウザのデフォルトフォーカススタイルを防ぐ
+              e.currentTarget.blur()
+            }}
             onMouseEnter={(e) => handleTooltipMouseEnter(e, mainSlideItem.name)}
             onMouseLeave={handleTooltipMouseLeave}
           >
@@ -300,13 +351,14 @@ export const ItemTabBar = ({
               // 編集モード中はクリックで選択しない
               if (editingItemId !== item.id) {
                 onSelectItem(item.id)
+                // マウスクリック後はフォーカスを削除して、ブラウザのデフォルトフォーカススタイルを防ぐ
+                e.currentTarget.blur()
               }
             }}
             onDoubleClick={(e) => {
-              console.log('[ItemTabBar] Double click detected!', { itemId: item.id, itemName: item.name })
               e.preventDefault()
               e.stopPropagation()
-              handleNameDoubleClick(item, e)
+              handleIconDoubleClick(item, e)
             }}
             onMouseEnter={(e) => handleTooltipMouseEnter(e, item.name)}
             onMouseLeave={handleTooltipMouseLeave}
@@ -315,6 +367,117 @@ export const ItemTabBar = ({
           </button>
         ))}
       </div>
+
+      {/* アクションポップアップ（Insert/Delete） */}
+      {actionPopupItemId && (() => {
+        const actionItem = items.find(item => item.id === actionPopupItemId)
+        if (!actionItem) return null
+        
+        // ポップアップの位置を計算
+        const allItems = mainSlideItem ? [mainSlideItem, ...otherItems] : otherItems
+        const itemIndex = allItems.findIndex(item => item.id === actionPopupItemId)
+        const topPosition = itemIndex * 48 + 48 // 追加ボタンの高さ + アイテムの高さ * インデックス
+        
+        return (
+          <div 
+            className="item-tab-action-popup"
+            style={{ top: `${topPosition}px` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="item-tab-action-popup-content">
+              <div className="item-tab-action-popup-header">
+                <span className="item-tab-action-popup-title">{actionItem.name}</span>
+                <button
+                  className="item-tab-action-popup-close"
+                  onClick={() => {
+                    setActionPopupItemId(null)
+                    setIsEditingNameInPopup(false)
+                  }}
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="item-tab-action-popup-actions">
+                {/* アイテム名編集 */}
+                {isEditingNameInPopup ? (
+                  <div className="item-tab-action-popup-name-edit">
+                    <input
+                      ref={popupNameInputRef}
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => handleNameChange(e.target.value, actionItem)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (validateName(editingName, actionItem) && editingName.trim() !== actionItem.name && onUpdateItem) {
+                            onUpdateItem(actionItem.id, { name: editingName.trim() })
+                            setIsEditingNameInPopup(false)
+                            setNameError('')
+                          }
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault()
+                          setIsEditingNameInPopup(false)
+                          setEditingName(actionItem.name)
+                          setNameError('')
+                        }
+                      }}
+                      onBlur={() => {
+                        if (validateName(editingName, actionItem) && editingName.trim() !== actionItem.name && onUpdateItem) {
+                          onUpdateItem(actionItem.id, { name: editingName.trim() })
+                        }
+                        setIsEditingNameInPopup(false)
+                        setNameError('')
+                      }}
+                      className={`item-tab-action-popup-name-input ${nameError ? 'error' : ''}`}
+                    />
+                    {nameError && <div className="item-tab-action-popup-name-error">{nameError}</div>}
+                  </div>
+                ) : (
+                  <button
+                    className="item-tab-action-button edit-name"
+                    onClick={() => {
+                      setIsEditingNameInPopup(true)
+                      setEditingName(actionItem.name)
+                      setNameError('')
+                    }}
+                  >
+                    <span className="material-icons">edit</span>
+                    <span>名前を変更</span>
+                  </button>
+                )}
+                {onInsert && (
+                  <button
+                    className="item-tab-action-button insert"
+                    onClick={() => {
+                      onInsert(actionItem)
+                      setActionPopupItemId(null)
+                      setIsEditingNameInPopup(false)
+                    }}
+                  >
+                    <span className="material-icons">add_circle</span>
+                    <span>Insert</span>
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    className="item-tab-action-button delete"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this item?')) {
+                        onDelete(actionItem.id)
+                        setActionPopupItemId(null)
+                        setIsEditingNameInPopup(false)
+                      }
+                    }}
+                  >
+                    <span className="material-icons">delete</span>
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 編集モード時の名前入力（ポップアップ形式） */}
       {editingItemId && (() => {
@@ -341,7 +504,7 @@ export const ItemTabBar = ({
                 onKeyDown={(e) => handleNameKeyDown(e, editingItem)}
                 className={`item-tab-name-input ${nameError ? 'error' : ''}`}
                 onFocus={(e) => {
-                  e.target.style.borderColor = nameError ? '#FF5370' : '#FFCB6B'
+                  e.target.style.borderColor = nameError ? '#FF5370' : '#d4a574'
                   e.target.style.background = '#252525'
                   e.target.style.padding = '0.125rem 0.25rem'
                 }}

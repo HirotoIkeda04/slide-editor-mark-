@@ -2,7 +2,6 @@ import { toPng } from 'html-to-image'
 import PptxGenJS from 'pptxgenjs'
 import type { RefObject } from 'react'
 import type { SlideFormat } from '../types'
-import { formatConfigs } from '../constants/formatConfigs'
 
 export const getPptSizeForFormat = (format: SlideFormat): { w: number; h: number; layoutName: string } => {
   // sizes in inches
@@ -109,9 +108,10 @@ export const captureCurrentSlide = async (
     if (currentFormat === 'instapost') {
       // まず、親要素（instapost-frame）のスケール情報を取得
       const frameElement = container.querySelector('[data-slide-element="true"]')
-      if (!frameElement || !(frameElement instanceof HTMLElement)) return
+      if (!frameElement || !(frameElement instanceof HTMLElement)) {
+        throw new Error('Frame element not found')
+      }
       
-      const frameRect = frameElement.getBoundingClientRect()
       const frameComputedStyle = window.getComputedStyle(frameElement)
       const frameTransform = frameComputedStyle.transform
       let scaleX = 1
@@ -122,12 +122,6 @@ export const captureCurrentSlide = async (
         scaleX = matrix.a
         scaleY = matrix.d
       }
-      
-      // ボーダー幅を取得
-      const borderLeft = parseFloat(frameComputedStyle.borderLeftWidth) || 0
-      const borderRight = parseFloat(frameComputedStyle.borderRightWidth) || 0
-      const borderTop = parseFloat(frameComputedStyle.borderTopWidth) || 0
-      const borderBottom = parseFloat(frameComputedStyle.borderBottomWidth) || 0
       
       // 内側要素（ボーダーを含まない）を取得
       const innerElement = container.querySelector('[data-slide-content="true"]')
@@ -201,12 +195,6 @@ export const captureCurrentSlide = async (
         // スケール前のサイズ（実際の要素サイズ）
         const originalWidth = rect.width / scaleX
         const originalHeight = rect.height / scaleY
-        
-        // ボーダー幅を取得して、内側のサイズを計算
-        const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0
-        const borderRight = parseFloat(computedStyle.borderRightWidth) || 0
-        const borderTop = parseFloat(computedStyle.borderTopWidth) || 0
-        const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0
         
         // 要素を一時的に独立したコンテナに移動してキャプチャ
         const parent = slideElement.parentElement

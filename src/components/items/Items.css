@@ -71,8 +71,8 @@
 }
 .item-display-mode-button.active {
   background: #2a2a2a;
-  border-color: #FFCB6B;
-  color: #FFCB6B;
+  border-color: #d4a574;
+  color: #d4a574;
   font-weight: 600;
 }
 .item-display-mode-button .material-icons {
@@ -91,7 +91,7 @@
 }
 .item-display-mode-hint .material-icons {
   font-size: 1rem;
-  color: #FFCB6B;
+  color: #d4a574;
   flex-shrink: 0;
 }
 
@@ -104,11 +104,11 @@
   object-fit: contain;
 }
 .ReactCrop__crop-selection {
-  border: 2px solid #FFCB6B !important;
+  border: 2px solid #d4a574 !important;
   box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.5) !important;
 }
 .ReactCrop__drag-handle {
-  background-color: #FFCB6B !important;
+  background-color: #d4a574 !important;
   border: 2px solid #fff !important;
   width: 10px !important;
   height: 10px !important;
@@ -214,11 +214,11 @@
 .vertical-tabs {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: 0.25rem;
+  padding: 0.25rem;
   background: #1e1e1e;
   border-right: 1px solid #3a3a3a;
-  min-width: 60px;
+  min-width: 42px;
 }
 
 .vertical-tab {
@@ -238,12 +238,12 @@
 
 .vertical-tab:hover {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .vertical-tab.active {
   background: #3a3a3a;
-  color: #FFCB6B;
+  color: #d4a574;
   font-weight: 600;
 }
 
@@ -288,7 +288,7 @@
   gap: 0.5rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #FFCB6B;
+  color: #d4a574;
   margin: 0;
 }
 
@@ -303,17 +303,17 @@
   width: 2rem;
   height: 2rem;
   background: transparent; /* Outlinedスタイル: 背景を透明に */
-  border: 1.5px solid #FFCB6B; /* 黄色系のボーダー */
+  border: 1.5px solid #d4a574; /* 黄色系のボーダー */
   border-radius: 0.5rem; /* 既存のボタンと同じ丸みを帯びた四角形 */
-  color: #FFCB6B; /* 黄色系のアイコン色 */
+  color: #d4a574; /* 黄色系のアイコン色 */
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .item-add-button:hover {
-  background: rgba(255, 203, 107, 0.1); /* ホバー時に薄い黄色の背景 */
-  border-color: #FFD54F; /* ホバー時にボーダーを明るく */
-  color: #FFD54F; /* ホバー時にアイコンを明るく */
+  background: rgba(212, 165, 116, 0.1); /* ホバー時に薄い黄色の背景 */
+  border-color: #e0b485; /* ホバー時にボーダーを明るく */
+  color: #e0b485; /* ホバー時にアイコンを明るく */
   transform: scale(1.05);
 }
 
@@ -355,7 +355,7 @@
 
 .item-search-input:focus {
   outline: none;
-  border-color: #FFCB6B;
+  border-color: #d4a574;
   background: #252525;
 }
 
@@ -391,8 +391,8 @@
 
 .item-filter-button.active {
   background: #3a3a3a;
-  border-color: #FFCB6B;
-  color: #FFCB6B;
+  border-color: #d4a574;
+  color: #d4a574;
   font-weight: 600;
 }
 
@@ -432,7 +432,7 @@
 
 .item-list-empty-button {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #FFCB6B 0%, #FFB74D 100%);
+  background: linear-gradient(135deg, #d4a574 0%, #c99a63 100%);
   border: none;
   border-radius: 0.375rem;
   color: #1a1a1a;
@@ -443,7 +443,7 @@
 }
 
 .item-list-empty-button:hover {
-  background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
+  background: linear-gradient(135deg, #e0b485 0%, #d4a574 100%);
   transform: scale(1.05);
 }
 
@@ -478,7 +478,7 @@
   height: 2.5rem;
   background: #2a2a2a;
   border-radius: 0.375rem;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .item-card-icon .material-icons {
@@ -551,12 +551,12 @@
 }
 
 .item-card-action-button.insert {
-  color: #FFCB6B;
-  border-color: #FFCB6B;
+  color: #d4a574;
+  border-color: #d4a574;
 }
 
 .item-card-action-button.insert:hover {
-  background: #FFCB6B;
+  background: #d4a574;
   color: #1a1a1a;
 }
 
@@ -699,14 +699,14 @@
 }
 
 .modal-button.primary {
-  background: linear-gradient(135deg, #FFCB6B 0%, #FFB74D 100%);
+  background: linear-gradient(135deg, #d4a574 0%, #c99a63 100%);
   color: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(255, 203, 107, 0.3);
+  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
 }
 
 .modal-button.primary:hover {
-  background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
-  box-shadow: 0 4px 12px rgba(255, 203, 107, 0.5);
+  background: linear-gradient(135deg, #e0b485 0%, #d4a574 100%);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.5);
   transform: translateY(-1px);
 }
 
@@ -742,9 +742,9 @@
 .item-modal-field input[type="text"]:focus,
 .item-modal-field textarea:focus {
   outline: none;
-  border-color: #FFCB6B;
+  border-color: #d4a574;
   background: #252525;
-  box-shadow: 0 0 0 3px rgba(255, 203, 107, 0.1);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
 }
 
 .item-modal-field input[type="text"].error {
@@ -803,7 +803,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 203, 107, 0.1) 0%, rgba(255, 183, 77, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(212, 165, 116, 0.1) 0%, rgba(201, 154, 99, 0.1) 100%);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -822,10 +822,10 @@
 
 .item-type-button.active {
   background: #2a2a2a;
-  border-color: #FFCB6B;
-  color: #FFCB6B;
+  border-color: #d4a574;
+  color: #d4a574;
   font-weight: 600;
-  box-shadow: 0 0 0 3px rgba(255, 203, 107, 0.2);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.2);
 }
 
 .item-type-button.active::before {
@@ -869,7 +869,7 @@
   width: 1.125rem;
   height: 1.125rem;
   cursor: pointer;
-  accent-color: #FFCB6B;
+  accent-color: #d4a574;
 }
 
 .item-table-add-button {
@@ -889,8 +889,8 @@
 
 .item-table-add-button:hover {
   background: #3a3a3a;
-  border-color: #FFCB6B;
-  color: #FFCB6B;
+  border-color: #d4a574;
+  color: #d4a574;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
@@ -963,9 +963,9 @@
 
 .item-table-editor input[type="text"]:focus {
   outline: none;
-  border-color: #FFCB6B;
+  border-color: #d4a574;
   background: #2a2a2a;
-  box-shadow: 0 0 0 2px rgba(255, 203, 107, 0.1);
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.1);
 }
 
 .item-table-remove-button {
@@ -1008,7 +1008,7 @@
   justify-content: center;
   gap: 0.625rem;
   padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, #FFCB6B 0%, #FFB74D 100%);
+  background: linear-gradient(135deg, #d4a574 0%, #c99a63 100%);
   border: none;
   border-radius: 0.5rem;
   color: #1a1a1a;
@@ -1017,14 +1017,14 @@
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(255, 203, 107, 0.3);
+  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
   width: 100%;
 }
 
 .item-image-upload-button:hover {
-  background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
+  background: linear-gradient(135deg, #e0b485 0%, #d4a574 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 203, 107, 0.5);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.5);
 }
 
 .item-image-upload-button:active {
@@ -1074,7 +1074,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 203, 107, 0.05) 0%, rgba(255, 183, 77, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(212, 165, 116, 0.05) 0%, rgba(201, 154, 99, 0.05) 100%);
   pointer-events: none;
 }
 
@@ -1103,7 +1103,9 @@
 .item-tab-bar {
   display: flex;
   flex-direction: column;
+  align-items: center;
   height: 100%;
+  width: 42px;
   background: #1e1e1e;
   border-right: 1px solid #3a3a3a;
   position: relative;
@@ -1113,15 +1115,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   background: transparent; /* Outlinedスタイル: 背景を透明に */
   border: none;
-  color: #FFCB6B; /* 黄色系のアイコン色 */
+  color: #d4a574; /* 黄色系のアイコン色 */
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  margin-top: 0; /* 上に余白を追加 */
+  margin: 4px auto; /* 中央揃え + 上下余白 */
+  outline: none; /* ブラウザのデフォルトフォーカススタイルを無効化 */
 }
 
 /* 追加ボタンの下に短い横棒を追加 */
@@ -1140,25 +1143,25 @@
 .item-tab-add-button::before {
   content: '';
   position: absolute;
-  width: 18px; /* アイコンサイズに合わせて小さく */
-  height: 18px; /* アイコンサイズに合わせて小さく */
-  border: 2px solid #FFCB6B; /* 黄色系のボーダー（太く） */
-  border-radius: 0.25rem; /* より小さな丸み */
+  width: 16px; /* アイコンサイズに合わせて小さく */
+  height: 16px; /* アイコンサイズに合わせて小さく */
+  border: 1.5px solid #d4a574; /* 黄色系のボーダー */
+  border-radius: 0.2rem; /* より小さな丸み */
   transition: all 0.2s ease;
 }
 
 .item-tab-add-button:hover {
   background: transparent;
-  color: #FFD54F; /* ホバー時にアイコンを明るく */
+  color: #e0b485; /* ホバー時にアイコンを明るく */
 }
 
 .item-tab-add-button:hover::before {
-  border-color: #FFD54F; /* ホバー時にボーダーを明るく */
-  background: rgba(255, 203, 107, 0.1); /* ホバー時に薄い黄色の背景 */
+  border-color: #e0b485; /* ホバー時にボーダーを明るく */
+  background: rgba(212, 165, 116, 0.1); /* ホバー時に薄い黄色の背景 */
 }
 
 .item-tab-add-button .material-icons {
-  font-size: 1.25rem; /* 他のアイコンより少し小さく */
+  font-size: 0.875rem; /* 他のアイコンより少し小さく */
   font-weight: 300; /* プラスアイコンを細く */
   position: relative;
   z-index: 1; /* ボーダーの上に表示 */
@@ -1187,8 +1190,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   color: #888;
@@ -1196,16 +1199,17 @@
   transition: all 0.2s ease;
   position: relative;
   flex-shrink: 0;
+  outline: none; /* ブラウザのデフォルトフォーカススタイルを無効化 */
 }
 
 .item-tab-icon-button:hover {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .item-tab-icon-button.active {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .item-tab-icon-button.active::before {
@@ -1215,11 +1219,11 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #FFCB6B;
+  background: #d4a574;
 }
 
 .item-tab-icon-button .material-icons {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
 }
 
 .item-tab-name-edit-popup {
@@ -1256,7 +1260,148 @@
 .item-tab-name-edit-popup .item-tab-name-input:focus {
   color: #ffffff !important;
   background: #252525 !important;
-  border-color: #FFCB6B !important;
+  border-color: #d4a574 !important;
+}
+
+/* アクションポップアップ（Insert/Delete） */
+.item-tab-action-popup {
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  z-index: 1000;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.5rem;
+  padding: 0;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.item-tab-action-popup-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-tab-action-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.item-tab-action-popup-title {
+  font-size: 0.875rem;
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+.item-tab-action-popup-close {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.item-tab-action-popup-close:hover {
+  background: #3a3a3a;
+  color: #e5e7eb;
+}
+
+.item-tab-action-popup-close .material-icons {
+  font-size: 1.125rem;
+}
+
+.item-tab-action-popup-actions {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  gap: 0.5rem;
+}
+
+.item-tab-action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.item-tab-action-button:hover {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
+}
+
+.item-tab-action-button.insert {
+  color: #d4a574;
+}
+
+.item-tab-action-button.insert:hover {
+  background: #2a2a2a;
+  border-color: #d4a574;
+}
+
+.item-tab-action-button.delete {
+  color: #ff5370;
+}
+
+.item-tab-action-button.delete:hover {
+  background: #5a1e2a;
+  border-color: #ff5370;
+}
+
+.item-tab-action-button .material-icons {
+  font-size: 1.125rem;
+}
+
+/* ポップアップ内の名前編集 */
+.item-tab-action-popup-name-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #1e1e1e;
+  border-radius: 0.375rem;
+}
+
+.item-tab-action-popup-name-input {
+  width: 100%;
+  padding: 0.5rem;
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.25rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.item-tab-action-popup-name-input:focus {
+  outline: none;
+  border-color: #d4a574;
+  background: #2a2a2a;
+}
+
+.item-tab-action-popup-name-input.error {
+  border-color: #ff5370;
+}
+
+.item-tab-action-popup-name-error {
+  font-size: 0.75rem;
+  color: #ff5370;
+  padding: 0 0.25rem;
 }
 
 /* 後方互換性のため */
@@ -1281,7 +1426,7 @@
 
 .item-tab-item.active {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .item-tab-item.active::before {
@@ -1291,7 +1436,7 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #FFCB6B;
+  background: #d4a574;
 }
 
 .item-tab-item .item-tab-icon {
@@ -1305,7 +1450,7 @@
 }
 
 .item-tab-item .item-tab-icon .material-icons {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 }
 
 .item-tab-name {
@@ -1346,7 +1491,7 @@
 
 .item-tab-name-input:focus {
   outline: none;
-  border-color: #FFCB6B;
+  border-color: #d4a574;
   background: #252525;
   padding: 0.125rem 0.25rem;
 }
@@ -1393,8 +1538,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   color: #888;
@@ -1405,12 +1550,12 @@
 
 .item-tab-icon:hover {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .item-tab-icon.active {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .item-tab-icon.active::before {
@@ -1420,11 +1565,11 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #FFCB6B;
+  background: #d4a574;
 }
 
 .item-tab-icon .material-icons {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
 }
 
 /* ===== Item Detail Panel ===== */
@@ -1435,6 +1580,10 @@
   background: #2a2a2a;
   color: #e5e7eb;
   overflow: hidden;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .item-detail-panel.empty {
@@ -1483,7 +1632,7 @@
   height: 2.5rem;
   background: #1e1e1e;
   border-radius: 0.375rem;
-  color: #FFCB6B;
+  color: #d4a574;
   flex-shrink: 0;
 }
 
@@ -1540,7 +1689,10 @@
 .item-detail-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: auto;
   padding: 1rem;
+  min-width: 0;
+  contain: inline-size;
 }
 
 .item-detail-name-header {
@@ -1581,7 +1733,7 @@
 
 .item-detail-name-input:focus {
   outline: none;
-  border-color: #FFCB6B;
+  border-color: #d4a574;
   background: #252525;
 }
 
@@ -1678,12 +1830,12 @@
 }
 
 .item-detail-action-button.insert {
-  color: #FFCB6B;
-  border-color: #FFCB6B;
+  color: #d4a574;
+  border-color: #d4a574;
 }
 
 .item-detail-action-button.insert:hover {
-  background: #FFCB6B;
+  background: #d4a574;
   color: #1a1a1a;
 }
 
@@ -1783,7 +1935,7 @@
 .item-detail-edit-field input[type="text"]:focus,
 .item-detail-edit-field textarea:focus {
   outline: none;
-  border-color: #FFCB6B;
+  border-color: #d4a574;
   background: #252525;
 }
 
@@ -1806,10 +1958,63 @@
 
 /* ===== Modern Table Editor (Spreadsheet Style) ===== */
 .table-editor-modern {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: block;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  position: relative;
+  overflow-x: auto;
+}
+
+/* テーブルスクロールコンテナ */
+.table-scroll-container {
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.table-scroll-viewport {
+  display: block;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  position: relative;
+  padding-bottom: 0.25rem;
+}
+
+.table-scroll-viewport::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll-viewport::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.table-scroll-viewport::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+.table-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* テーブルグリッドコンテナ */
+.table-scroll-viewport .table-spreadsheet-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: 0;
+  width: fit-content;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
 }
 
 /* ヘッダートグル */
@@ -1854,7 +2059,7 @@
 }
 
 .table-header-toggle input:checked + .toggle-switch {
-  background: #FFCB6B;
+  background: #d4a574;
 }
 
 .table-header-toggle input:checked + .toggle-switch::after {
@@ -1870,20 +2075,35 @@
 /* 数式バー */
 .table-formula-bar {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: stretch;
   margin-bottom: 0.5rem;
-  padding: 0.5rem;
   background: #1a1a1a;
   border: 1px solid #3a3a3a;
   border-radius: 0.375rem;
+  overflow: visible;
+}
+
+.table-formula-fx-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  color: #888;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-style: italic;
+  font-family: 'Times New Roman', serif;
+  user-select: none;
+  min-width: 40px;
+  border-right: 1px solid #3a3a3a;
 }
 
 .table-formula-input {
   flex: 1;
-  padding: 0.375rem 0.5rem;
-  background: #252525;
-  border: 1px solid #3a3a3a;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: none;
   border-radius: 0.25rem;
   color: #e5e7eb;
   font-size: 0.8125rem;
@@ -1893,8 +2113,8 @@
 }
 
 .table-formula-input:focus {
-  border-color: #FFCB6B;
-  box-shadow: 0 0 0 2px rgba(255, 203, 107, 0.2);
+  border-color: #d4a574;
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.2);
 }
 
 .table-formula-input:disabled {
@@ -1908,19 +2128,13 @@
 }
 
 /* スプレッドシートラッパー */
-/* テーブルグリッドコンテナ */
-.table-spreadsheet-grid {
-  display: inline-grid;
-  grid-template-columns: max-content max-content;
-  grid-template-rows: max-content max-content;
-  gap: 0;
-}
 
 /* スプレッドシートコンテナ */
 .table-spreadsheet-container {
   grid-column: 1;
   grid-row: 1;
-  overflow: auto;
+  display: inline-block;
+  overflow: visible;
   border-radius: 0.5rem 0 0 0;
   border: 1px solid #3a3a3a;
   border-right: none;
@@ -1929,8 +2143,8 @@
 }
 
 .table-spreadsheet {
-  min-width: max-content;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 /* セル共通 */
@@ -1959,10 +2173,11 @@
 
 .table-col-header {
   position: relative;
-  width: 50px;
+  width: 75px;
+  min-width: 75px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #888;
+  color: #666;
   text-transform: uppercase;
   background: #252525;
 }
@@ -2004,7 +2219,7 @@
 
 .table-add-col-btn:hover {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .table-add-col-btn .material-icons {
@@ -2024,7 +2239,7 @@
   background: #252525;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #888;
+  color: #666;
   text-align: center;
 }
 
@@ -2035,19 +2250,20 @@
 
 .table-header-row .table-row-number {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
   font-weight: 600;
 }
 
 .table-header-cell {
-  width: 50px;
+  width: 75px;
+  min-width: 75px;
   background: #1e1e1e;
   padding: 0;
 }
 
 .table-header-input {
   font-weight: 600 !important;
-  color: #FFCB6B !important;
+  color: #d4a574 !important;
 }
 
 .table-header-input::placeholder {
@@ -2061,13 +2277,18 @@
 }
 
 .table-data-row:hover {
-  background: rgba(255, 203, 107, 0.03);
+  background: rgba(212, 165, 116, 0.03);
 }
 
 .table-data-cell {
-  width: 50px;
+  width: 75px;
+  min-width: 75px;
   background: transparent;
   padding: 0;
+  user-select: none; /* テキスト選択を防ぐ */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* 入力フィールド */
@@ -2084,9 +2305,23 @@
   outline: none;
 }
 
+/* データ型が設定されているセルや数式セルの入力テキストを透明に（フォーマット済み値を表示するため） */
+.table-input-number:not(:focus),
+.table-input-currency:not(:focus),
+.table-input-percentage:not(:focus),
+.table-input-date:not(:focus),
+.table-input-formula:not(:focus) {
+  color: transparent;
+  caret-color: transparent;
+}
+
 .table-input:focus {
   background: #252525;
-  box-shadow: inset 0 0 0 2px #FFCB6B;
+  box-shadow: inset 0 0 0 2px #d4a574;
+  z-index: 10;
+  position: relative;
+  color: #e5e7eb !important;
+  caret-color: #e5e7eb !important;
 }
 
 .table-input::placeholder {
@@ -2095,13 +2330,22 @@
 
 /* 選択中のセル */
 .table-cell-selected .table-input {
-  background: rgba(255, 203, 107, 0.1) !important;
-  box-shadow: inset 0 0 0 2px #FFCB6B !important;
+  background: rgba(212, 165, 116, 0.1) !important;
+  box-shadow: inset 0 0 0 2px #d4a574 !important;
 }
 
 .table-cell-selected .table-input:focus {
-  background: rgba(255, 203, 107, 0.15) !important;
-  box-shadow: inset 0 0 0 2px #FFCB6B !important;
+  background: rgba(212, 165, 116, 0.15) !important;
+  box-shadow: inset 0 0 0 2px #d4a574 !important;
+}
+
+/* 範囲選択中のセル */
+.table-cell-range-selected {
+  background: rgba(212, 165, 116, 0.15) !important;
+}
+
+.table-cell-range-selected .table-input {
+  background: rgba(212, 165, 116, 0.15) !important;
 }
 
 
@@ -2133,7 +2377,7 @@
 
 .table-add-row-btn:hover {
   background: #2a2a2a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 .table-add-row-btn .material-icons {
@@ -2188,7 +2432,7 @@
 
 .table-grip-icon:hover {
   background: #3a3a3a;
-  color: #FFCB6B;
+  color: #d4a574;
 }
 
 /* 行番号セル - グリップアイコン用のスペース確保 */
@@ -2274,5 +2518,735 @@
   height: 1px;
   background: #3a3a3a;
   margin: 4px 0;
+}
+
+.table-context-menu-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.table-context-menu-label {
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table-context-menu-item.active {
+  background: rgba(212, 165, 116, 0.1);
+  color: #d4a574;
+}
+
+/* セルラッパー */
+.table-cell-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: cell;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.table-cell-formatted-value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.375rem;
+  pointer-events: none;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: 1;
+  background: transparent;
+}
+
+.table-cell-formula-result {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.375rem;
+  pointer-events: none;
+  color: #4FC3F7;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: transparent;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+/* 入力フィールドにフォーカスがある場合、フォーマット済みの値を非表示 */
+.table-cell-wrapper:has(.table-input:focus) .table-cell-formatted-value,
+.table-cell-wrapper:has(.table-input:focus) .table-cell-formula-result {
+  display: none;
+}
+
+.table-cell-error-icon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #FF5370;
+  font-size: 0.875rem;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.table-cell-error-icon .material-icons {
+  font-size: 0.875rem;
+}
+
+.table-cell-type-badge {
+  display: none; /* 列ヘッダーにデータ型が表示されるため、セル内のバッジは非表示 */
+}
+
+.table-cell-error {
+  border: 1px solid #FF5370 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 83, 112, 0.3) !important;
+}
+
+.table-input-number {
+  text-align: right;
+}
+
+.table-input-date,
+.table-input-percentage,
+.table-input-currency {
+  text-align: right;
+}
+
+/* セル結合のスタイル */
+.table-data-cell[rowspan],
+.table-data-cell[colspan] {
+  background: rgba(212, 165, 116, 0.05);
+}
+
+.table-data-cell[rowspan]:hover,
+.table-data-cell[colspan]:hover {
+  background: rgba(212, 165, 116, 0.1);
+}
+
+/* 拡大ボタン */
+.table-expand-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.table-expand-button:hover {
+  background: #3a3a3a;
+  border-color: #d4a574;
+  color: #d4a574;
+}
+
+/* セル結合ボタン */
+.table-merge-button,
+.table-merge-execute-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-merge-button:hover,
+.table-merge-execute-button:hover {
+  background: #3a3a3a;
+  border-color: #d4a574;
+  color: #d4a574;
+}
+
+.table-merge-execute-button {
+  background: rgba(212, 165, 116, 0.1);
+  border-color: #d4a574;
+  color: #d4a574;
+}
+
+.table-merge-execute-button:hover {
+  background: rgba(212, 165, 116, 0.2);
+}
+
+/* 数式バーの結合コントロール */
+.table-merge-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-left: 1px solid #3a3a3a;
+}
+
+.table-merge-action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: none;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.table-merge-action-button:hover {
+  background: #252525;
+}
+
+.table-merge-action-button.merge {
+  color: #d4a574;
+}
+
+.table-merge-action-button.unmerge {
+  color: #FF5370;
+}
+
+.table-merge-action-button.merge:hover {
+  background: #252525;
+}
+
+.table-merge-action-button.unmerge:hover {
+  background: #252525;
+}
+
+.table-merge-action-button .material-icons {
+  font-size: 1rem;
+}
+
+.table-expand-button .material-icons {
+  font-size: 1.125rem;
+}
+
+/* 拡大表示オーバーレイ */
+.table-expand-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.table-expand-content {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  right: 2rem;
+  bottom: 2rem;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+
+.table-expand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #3a3a3a;
+  flex-shrink: 0;
+}
+
+.table-expand-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.table-expand-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-expand-close:hover {
+  background: #3a3a3a;
+  border-color: #FF5370;
+  color: #FF5370;
+}
+
+.table-expand-close .material-icons {
+  font-size: 1.125rem;
+}
+
+.table-expand-content .table-editor-modern {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.5rem;
+  min-height: 0;
+}
+
+.table-expand-content .table-editor-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 1rem;
+}
+
+.table-expand-content .table-spreadsheet-grid {
+  margin-right: 1.5rem;
+}
+
+.table-expand-content .table-spreadsheet-container {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.table-expand-content .table-formula-bar {
+  flex-shrink: 0;
+  margin-bottom: 1rem;
+}
+
+.table-expand-content .table-add-row-container {
+  flex-shrink: 0;
+}
+
+.table-expand-content .table-add-col-container {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+/* 列のデータ型バッジ */
+.table-col-type-badge {
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 0.625rem;
+  color: #888;
+}
+
+/* データ型セレクター */
+.table-cell-type-selector {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-left: 1px solid #3a3a3a;
+}
+
+/* カスタムドロップダウン */
+.table-type-dropdown {
+  position: relative;
+}
+
+.table-type-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: none;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 80px;
+}
+
+.table-type-dropdown-trigger:hover {
+  background: #252525;
+}
+
+.table-type-dropdown-trigger .material-icons {
+  font-size: 1.125rem;
+  color: #888;
+}
+
+.table-type-dropdown-trigger .material-icons:first-child {
+  color: #d4a574;
+}
+
+.table-type-dropdown-arrow {
+  margin-left: auto;
+  font-size: 1rem !important;
+  color: #666 !important;
+}
+
+.table-type-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  min-width: 140px;
+  padding: 0.25rem;
+  animation: fadeIn 0.15s ease;
+}
+
+.table-type-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.1s ease;
+}
+
+.table-type-dropdown-item:hover {
+  background: #2a2a2a;
+}
+
+.table-type-dropdown-item.selected {
+  background: rgba(212, 165, 116, 0.1);
+}
+
+.table-type-dropdown-item .material-icons {
+  font-size: 1.125rem;
+  color: #888;
+}
+
+.table-type-dropdown-item:hover .material-icons,
+.table-type-dropdown-item.selected .material-icons {
+  color: #d4a574;
+}
+
+.table-type-check {
+  margin-left: auto;
+  font-size: 1rem !important;
+  color: #d4a574 !important;
+}
+
+.table-format-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: none;
+  border-left: 1px solid #3a3a3a;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-format-button:hover {
+  background: #252525;
+  color: #d4a574;
+}
+
+.table-format-button .material-icons {
+  font-size: 1rem;
+}
+
+/* フォーマット設定ダイアログ */
+.table-format-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.table-format-dialog {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.5rem;
+  width: 400px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-format-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.table-format-dialog-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.table-format-dialog-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.table-format-dialog-close:hover {
+  background: #3a3a3a;
+  color: #e5e7eb;
+}
+
+.table-format-dialog-close .material-icons {
+  font-size: 1.25rem;
+}
+
+.table-format-dialog-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-y: auto;
+}
+
+/* フォーマットダイアログのセクション */
+.table-format-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.table-format-section-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+
+/* セクション区切り線 */
+.table-format-divider {
+  height: 1px;
+  background: #3a3a3a;
+  margin: 0.25rem 0;
+}
+
+/* データ型選択UI */
+.table-datatype-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* 自動推測ボタン */
+.table-auto-infer-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px solid #d4a574;
+  border-radius: 0.375rem;
+  color: #d4a574;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 0.75rem;
+}
+
+.table-auto-infer-button:hover {
+  background: rgba(212, 165, 116, 0.1);
+}
+
+.table-auto-infer-button .material-icons {
+  font-size: 1rem;
+}
+
+.table-datatype-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2a2a2a;
+  color: #e5e7eb;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+  position: relative;
+}
+
+.table-datatype-button:last-child {
+  border-bottom: none;
+}
+
+.table-datatype-button:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.table-datatype-button.active {
+  background: transparent;
+  color: #d4a574;
+}
+
+.table-datatype-button.active::after {
+  content: '✓';
+  position: absolute;
+  right: 1rem;
+  color: #d4a574;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.table-datatype-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  min-width: 1.5rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.table-datatype-icon.material-icons {
+  font-size: 1.125rem;
+}
+
+.table-datatype-label {
+  flex: 1;
+  font-weight: 400;
+}
+
+.table-format-dialog-content label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #d1d5db;
+  margin-bottom: 0.375rem;
+}
+
+.table-format-dialog-content input[type="number"] {
+  width: 120px;
+  padding: 0.5rem 0.75rem;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.table-format-dialog-content select {
+  width: 100%;
+  max-width: 280px;
+  padding: 0.5rem 0.75rem;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.375rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.table-format-dialog-content input[type="number"]:focus,
+.table-format-dialog-content select:focus {
+  border-color: #d4a574;
+}
+
+.table-format-dialog-content input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: #d4a574;
+  cursor: pointer;
+}
+
+/* 非表示行・列のスタイル（エディターで薄く表示） */
+.hidden-row,
+.hidden-column {
+  opacity: 0.4;
+  position: relative;
+}
+
+.hidden-row::after,
+.hidden-column::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.03) 4px,
+    rgba(255, 255, 255, 0.03) 8px
+  );
+  pointer-events: none;
+}
+
+.table-row-number.hidden-row,
+.table-col-header.hidden-column {
+  background-color: rgba(100, 100, 100, 0.2);
+}
+
+.table-data-cell.hidden-row,
+.table-data-cell.hidden-column,
+.table-header-cell.hidden-column {
+  background-color: rgba(80, 80, 80, 0.3);
+}
+
+/* 非表示行・列の両方が適用される場合 */
+.table-data-cell.hidden-row.hidden-column {
+  opacity: 0.25;
 }
 
