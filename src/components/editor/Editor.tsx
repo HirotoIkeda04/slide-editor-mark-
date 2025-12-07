@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, type JSX } from 'react'
 import type { ConsoleMessage, EditorLine, EditorSelection } from '../../types'
 import './Editor.css'
 
@@ -307,7 +307,6 @@ export const Editor = ({
     if ((e.metaKey || e.ctrlKey) && e.key === 'b' && selectionStart !== selectionEnd && !selection) {
       e.preventDefault()
       const indent = getLeadingWhitespace(lines[lineIndex].text)
-      const indentLength = indent.length
       const selectedText = value.slice(selectionStart || 0, selectionEnd || 0)
       
       // Check if already bold (surrounded by **)
