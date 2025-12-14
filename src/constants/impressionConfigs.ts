@@ -1,4 +1,5 @@
 import type { ImpressionCode, ImpressionPreset, ImpressionRange } from '../types'
+import { getMatchingBiomeName } from './tonmanaBiomes'
 
 // ============================================
 // 軸の定義
@@ -495,17 +496,10 @@ export function getImpressionName(code: ImpressionCode): { name: string; nameJa:
 
 /**
  * 印象コードから表示用の名称を取得
- * プリセットに一致すれば日本語名を、そうでなければ625パターン名を返す
+ * バイオームマッチングで最も近いトンマナの名称を返す
  */
 export function getDisplayName(code: ImpressionCode): { name: string; nameJa: string } {
-  // まずプリセットを確認
-  const preset = findMatchingPreset(code)
-  if (preset) {
-    return { name: preset.name, nameJa: preset.nameJa }
-  }
-  
-  // プリセットになければ625パターン名を生成
-  return getImpressionName(code)
+  return getMatchingBiomeName(code)
 }
 
 // ============================================

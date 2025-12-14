@@ -63,26 +63,26 @@ export const ExportModal = ({
     >
       <div 
         className="rounded-lg shadow-xl p-6"
-        style={{ backgroundColor: '#2b2b2b', border: '1px solid #3a3a3a', minWidth: '400px' }}
+        style={{ backgroundColor: 'var(--app-bg-tertiary)', border: '1px solid var(--app-border-primary)', minWidth: '400px' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold" style={{ color: '#e5e7eb' }}>保存</h2>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--app-text-primary)' }}>保存</h2>
           <button
             onClick={onClose}
             className="rounded-lg transition-colors flex items-center justify-center"
             style={{ 
               width: '32px', 
               height: '32px', 
-              backgroundColor: '#3a3a3a', 
-              color: '#e5e7eb',
-              border: '1px solid #4a4a4a'
+              backgroundColor: 'var(--app-border-primary)', 
+              color: 'var(--app-text-primary)',
+              border: '1px solid var(--app-border-hover)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#4a4a4a'
+              e.currentTarget.style.backgroundColor = 'var(--app-border-hover)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#3a3a3a'
+              e.currentTarget.style.backgroundColor = 'var(--app-border-primary)'
             }}
           >
             <span className="material-icons text-lg">close</span>
@@ -92,7 +92,7 @@ export const ExportModal = ({
           <button
             onClick={handleSave}
             className="px-4 py-3 rounded-lg transition-colors border hover:opacity-80 flex items-center gap-3 text-left"
-            style={{ backgroundColor: '#3a3a3a', borderColor: '#4a4a4a', color: '#e5e7eb' }}
+            style={{ backgroundColor: 'var(--app-border-primary)', borderColor: 'var(--app-border-hover)', color: 'var(--app-text-primary)' }}
           >
             <span className="material-icons">save</span>
             <div className="flex-1">
@@ -104,7 +104,7 @@ export const ExportModal = ({
             onClick={handleExportImage}
             disabled={slides.length === 0 || isBulkExporting}
             className="px-4 py-3 rounded-lg transition-colors border hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 text-left"
-            style={{ backgroundColor: '#3a3a3a', borderColor: '#4a4a4a', color: '#e5e7eb' }}
+            style={{ backgroundColor: 'var(--app-border-primary)', borderColor: 'var(--app-border-hover)', color: 'var(--app-text-primary)' }}
           >
             <span className="material-icons">image</span>
             <div className="flex-1">
@@ -116,7 +116,7 @@ export const ExportModal = ({
             onClick={handleExportAllImages}
             disabled={slides.length === 0 || isBulkExporting}
             className="px-4 py-3 rounded-lg transition-colors border hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 text-left"
-            style={{ backgroundColor: '#3a3a3a', borderColor: '#4a4a4a', color: '#e5e7eb' }}
+            style={{ backgroundColor: 'var(--app-border-primary)', borderColor: 'var(--app-border-hover)', color: 'var(--app-text-primary)' }}
           >
             <span className="material-icons">folder</span>
             <div className="flex-1">
@@ -128,7 +128,7 @@ export const ExportModal = ({
             onClick={handleExportPptx}
             disabled={slides.length === 0 || isPptExporting}
             className="px-4 py-3 rounded-lg transition-colors border hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 text-left"
-            style={{ backgroundColor: '#3a3a3a', borderColor: '#4a4a4a', color: '#e5e7eb' }}
+            style={{ backgroundColor: 'var(--app-border-primary)', borderColor: 'var(--app-border-hover)', color: 'var(--app-text-primary)' }}
           >
             <span className="material-icons">description</span>
             <div className="flex-1">

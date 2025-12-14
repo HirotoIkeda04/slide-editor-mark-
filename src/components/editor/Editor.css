@@ -5,8 +5,8 @@
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  background-color: #1e1e1e;
-  border: 1px solid #3a3a3a;
+  background-color: var(--editor-bg);
+  border: 1px solid var(--editor-border);
   font-family: 'M PLUS 1 Code', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
   font-size: 12px;
   line-height: 18px;
@@ -25,11 +25,11 @@
   min-width: 3ch;  /* 3桁分の幅 */
   width: fit-content;  /* 4桁以上になったら自動で広がる */
   padding: 8px 6px 8px 8px;
-  background-color: #222;
-  border-right: 1px solid #3a3a3a;
+  background-color: var(--editor-bg-line-number);
+  border-right: 1px solid var(--editor-border);
   text-align: right;
   user-select: none;
-  color: #666;
+  color: var(--editor-text-line-number);
 }
 
 .editor-line-number {
@@ -61,7 +61,7 @@
 }
 
 .editor-line.current {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--editor-bg-current-line);
 }
 
 /* Indent Display (leading whitespace) */
@@ -75,29 +75,29 @@
 /* Attribute Display (inline, next to text) */
 .editor-attribute {
   flex-shrink: 0;
-  color: #888;
+  color: var(--app-text-muted);
   user-select: none;
   white-space: pre;
 }
 
 /* シンタックスハイライト: 見出し記号 */
 .editor-attribute-heading {
-  color: #e5c07b; /* 黄色/ベージュ */
+  color: var(--color-syntax-yellow);
 }
 
 /* シンタックスハイライト: レイアウトタイプ（属性表示部分では使用しないが、将来の拡張用） */
 .editor-text-layout-type {
-  color: #c678dd; /* 紫 */
+  color: var(--color-syntax-purple);
 }
 
 /* シンタックスハイライト: 比率・配置指定 */
 .editor-text-ratio-spec {
-  color: #d19a66; /* オレンジ */
+  color: var(--color-syntax-orange);
 }
 
 /* シンタックスハイライト: キーメッセージ */
 .editor-attribute-key-message {
-  color: #e5c07b; /* 黄色 */
+  color: var(--color-syntax-yellow);
 }
 
 /* シンタックスハイライト: テキスト内容のオーバーレイ */
@@ -113,23 +113,23 @@
   white-space: pre;
   font-family: inherit;
   font-size: inherit;
-  color: #e5e7eb; /* デフォルトのテキスト色 */
+  color: var(--editor-text);
   overflow: hidden;
 }
 
 /* シンタックスハイライト: レイアウトタイプ */
 .editor-syntax-layout-type {
-  color: #c678dd; /* 紫 */
+  color: var(--color-syntax-purple);
 }
 
 /* シンタックスハイライト: 比率・配置指定 */
 .editor-syntax-ratio-spec {
-  color: #d19a66; /* オレンジ */
+  color: var(--color-syntax-orange);
 }
 
 /* シンタックスハイライト: アイテム参照 */
 .editor-syntax-item-ref {
-  color: #98c379; /* 緑 */
+  color: var(--color-syntax-green);
 }
 
 /* Text Input Wrapper */
@@ -144,7 +144,7 @@
   position: absolute;
   top: 0;
   height: 18px;
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: var(--app-selection);
   pointer-events: none;
   z-index: 0;
 }
@@ -162,7 +162,7 @@
   color: transparent; /* テキストを透明にして、オーバーレイの色だけを表示 */
   font-family: inherit;
   font-size: inherit;
-  caret-color: #F5E6D3;
+  caret-color: var(--editor-caret);
   position: relative;
   z-index: 2; /* シンタックスハイライトの上に表示 */
 }
@@ -172,7 +172,7 @@
 }
 
 .editor-text-input::selection {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: var(--app-selection);
 }
 
 /* Legacy styles for compatibility */
@@ -196,7 +196,7 @@
   font-family: monospace;
   line-height: 18px;
   box-sizing: border-box;
-  background-color: #222 !important;
+  background-color: var(--editor-bg-line-number) !important;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -223,12 +223,12 @@
 
 .editor-file-header .material-icons {
   font-size: 1rem;
-  color: #888;
+  color: var(--app-text-muted);
 }
 
 .editor-file-header span:not(.material-icons) {
   font-size: 0.875rem;
-  color: #9ca3af; /* グレー */
+  color: var(--app-text-secondary);
   font-weight: 500;
   user-select: none;
 }

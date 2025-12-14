@@ -83,7 +83,7 @@
   background-color: #25b7c0;
 }
 .bg-tone-luxury {
-  background-color: #2a2a2a;
+  background-color: var(--app-bg-tertiary);
 }
 .bg-tone-warm {
   background-color: #FAF9F5;
@@ -126,7 +126,7 @@
 /* トンマナ: ラグジュアリー */
 .tone-luxury {
   --tone-primary: #C9A962;
-  background-color: #2a2a2a;
+  background-color: var(--app-bg-tertiary);
   color: #FFFFFF;
 }
 .tone-luxury .prose {
@@ -208,8 +208,8 @@
 
 .tone-chip.active {
   background: rgba(196, 165, 132, 0.18);
-  border-color: #C4A584;
-  color: #F5E6D3;
+  border-color: var(--app-accent);
+  color: var(--app-accent-light);
   box-shadow: 0 2px 8px rgba(196, 165, 132, 0.2);
 }
 
@@ -224,7 +224,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  background-color: #1e1e1e !important; /* 外側コンテナの背景色を固定 */
+  background-color: var(--app-bg-primary) !important; /* 外側コンテナの背景色を固定 */
 }
 /* サムネイルでは余白を削除 */
 .instapost-wrapper-thumbnail,
@@ -233,13 +233,13 @@
   margin: 0 !important;
 }
 .tone-casual.instapost-wrapper {
-  background-color: #1e1e1e !important; /* 上書きを防ぐ */
+  background-color: var(--app-bg-primary) !important; /* 上書きを防ぐ */
 }
 .tone-warm.instapost-wrapper {
-  background-color: #1e1e1e !important; /* 上書きを防ぐ */
+  background-color: var(--app-bg-primary) !important; /* 上書きを防ぐ */
 }
 .tone-luxury.instapost-wrapper {
-  background-color: #1e1e1e !important; /* 上書きを防ぐ */
+  background-color: var(--app-bg-primary) !important; /* 上書きを防ぐ */
 }
 .instapost-frame {
   /* widthとheightはPreview.tsxのslideStyleで設定されるため、ここでは設定しない */
@@ -257,7 +257,7 @@
   margin: 0 !important;
 }
 .tone-luxury .instapost-frame {
-  background-color: #2a2a2a;
+  background-color: var(--app-bg-tertiary);
   color: #f5f5f5;
 }
 .instapost-inner {

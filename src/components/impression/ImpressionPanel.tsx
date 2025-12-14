@@ -1,13 +1,13 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { ImpressionCode, ImpressionRange, ImpressionStyleVars, StylePins, ImpressionSubAttributes } from '../../types'
 import { 
-  impressionPresets, 
   getDisplayName,
   impressionCodeToString,
   stringToImpressionCode,
   DEFAULT_IMPRESSION_RANGE,
   impressionCodesEqual,
 } from '../../constants/impressionConfigs'
+import { tonmanaBiomes, findMatchingBiome, getBiomesByCategory } from '../../constants/tonmanaBiomes'
 import { generateStyleVars } from '../../utils/impressionStyle'
 import { ImpressionSamples } from './ImpressionSamples'
 import { ImpressionSliders } from './ImpressionSliders'
@@ -64,15 +64,11 @@ export const ImpressionPanel = ({
   // 現在の表示名を取得
   const currentDisplayName = useMemo(() => getDisplayName(code), [code])
   
-  // 現在のプリセットを確認（プリセットチップのactive表示用）
-  const currentPresetId = useMemo(() => {
-    return impressionPresets.find(p => 
-      p.code.energy === code.energy &&
-      p.code.formality === code.formality &&
-      p.code.classicModern === code.classicModern &&
-      p.code.decoration === code.decoration
-    )?.id
-  }, [code])
+  // 現在マッチしているバイオームを取得
+  const currentBiome = useMemo(() => findMatchingBiome(code), [code])
+  
+  // カテゴリごとにグループ化されたバイオーム
+  const biomesByCategory = useMemo(() => getBiomesByCategory(), [])
   
   // 見本を選択
   const handleSelect = useCallback((newCode: ImpressionCode) => {
@@ -116,13 +112,20 @@ export const ImpressionPanel = ({
     setRange(DEFAULT_IMPRESSION_RANGE)
   }, [])
   
-  // プリセットを選択
-  const handlePresetClick = useCallback((presetId: string) => {
-    const preset = impressionPresets.find(p => p.id === presetId)
-    if (preset) {
-      handleSelect(preset.code)
-      // テックプリセットの場合はデフォルトで「寒色」を設定
-      if (presetId === 'tech') {
+  // バイオームを選択
+  const handleBiomeClick = useCallback((biomeId: string) => {
+    const biome = tonmanaBiomes.find(b => b.id === biomeId)
+    if (biome) {
+      // バイオームの領域の中心点をコードとして設定
+      const centerCode: ImpressionCode = {
+        energy: Math.round((biome.region.energy[0] + biome.region.energy[1]) / 2),
+        formality: Math.round((biome.region.formality[0] + biome.region.formality[1]) / 2),
+        classicModern: Math.round((biome.region.classicModern[0] + biome.region.classicModern[1]) / 2),
+        decoration: Math.round((biome.region.decoration[0] + biome.region.decoration[1]) / 2),
+      }
+      handleSelect(centerCode)
+      // テック系の場合はデフォルトで「寒色」を設定
+      if (biome.category === 'テック系') {
         setSubAttributes(prev => ({ ...prev, colorTemperature: 'cool' }))
       }
     }
@@ -311,17 +314,24 @@ export const ImpressionPanel = ({
           </button>
         </div>
         
-        {/* プリセットチップ */}
-        <div className="impression-presets" style={{ marginTop: '0.75rem' }}>
-          {impressionPresets.map(preset => (
-            <button
-              key={preset.id}
-              className={`impression-preset-chip ${currentPresetId === preset.id ? 'active' : ''}`}
-              onClick={() => handlePresetClick(preset.id)}
-              title={preset.description}
-            >
-              {preset.nameJa}
-            </button>
+        {/* バイオームチップ（カテゴリごとにグループ化） */}
+        <div className="impression-biomes" style={{ marginTop: '0.75rem' }}>
+          {Array.from(biomesByCategory.entries()).map(([category, biomes]) => (
+            <div key={category} className="impression-biome-category">
+              <div className="impression-biome-category-label">{category}</div>
+              <div className="impression-biome-chips">
+                {biomes.map(biome => (
+                  <button
+                    key={biome.id}
+                    className={`impression-preset-chip ${currentBiome.id === biome.id ? 'active' : ''}`}
+                    onClick={() => handleBiomeClick(biome.id)}
+                    title={`${biome.name} - E:${biome.region.energy[0]}-${biome.region.energy[1]} F:${biome.region.formality[0]}-${biome.region.formality[1]} C:${biome.region.classicModern[0]}-${biome.region.classicModern[1]} D:${biome.region.decoration[0]}-${biome.region.decoration[1]}`}
+                  >
+                    {biome.nameJa}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>

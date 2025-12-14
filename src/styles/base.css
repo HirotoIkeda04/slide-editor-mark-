@@ -1,54 +1,54 @@
 /* Tailwindが効かない場合の基本スタイル */
 .bg-gray-50 {
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
 }
 
 .bg-white {
-  background-color: #f5f5f5;
+  background-color: var(--color-gray-100);
 }
 
 .bg-gray-800 {
-  background-color: #1f2937;
+  background-color: var(--color-gray-900);
 }
 
 .bg-gray-100 {
-  background-color: #f3f4f6;
+  background-color: var(--color-gray-150);
 }
 
 .bg-blue-500 {
-  background-color: #C4A584;
+  background-color: var(--app-accent);
 }
 
 .bg-red-500 {
-  background-color: #ff5370;
+  background-color: var(--app-error);
 }
 
 .bg-purple-500 {
-  background-color: #8b5cf6;
+  background-color: var(--color-purple-400);
 }
 
 .bg-green-500 {
-  background-color: #c3e88d;
+  background-color: var(--app-success);
 }
 
 .bg-gray-500 {
-  background-color: #6b7280;
+  background-color: var(--color-gray-500);
 }
 
 .text-white {
-  color: #f5f5f5;
+  color: var(--color-gray-100);
 }
 
 .text-gray-600 {
-  color: #4b5563;
+  color: var(--color-gray-600);
 }
 
 .text-gray-700 {
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .text-blue-600 {
-  color: #F5E6D3;
+  color: var(--app-accent-light);
 }
 
 .rounded-lg {
@@ -56,11 +56,11 @@
 }
 
 .shadow-sm {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: var(--app-shadow-sm);
 }
 
 .shadow-2xl {
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.25);
 }
 
 .px-4 {
@@ -116,7 +116,7 @@
 
 .border-b {
   border-bottom-width: 1px;
-  border-color: #e5e7eb;
+  border-color: var(--app-border-primary);
 }
 
 .aspect-video {
@@ -208,7 +208,7 @@
 
 .border {
   border-width: 1px;
-  border-color: #e5e7eb;
+  border-color: var(--app-border-primary);
 }
 
 .border-2 {
@@ -216,19 +216,19 @@
 }
 
 .border-blue-500 {
-  border-color: #F5E6D3;
+  border-color: var(--app-accent-light);
 }
 
 .border-gray-300 {
-  border-color: #d1d5db;
+  border-color: var(--color-gray-300);
 }
 
 .bg-blue-50 {
-  background-color: #eff6ff;
+  background-color: oklch(0.97 0.02 230);
 }
 
 .bg-gray-200 {
-  background-color: #e5e7eb;
+  background-color: var(--color-gray-200);
 }
 
 .bg-black {
@@ -236,7 +236,7 @@
 }
 
 .bg-opacity-50 {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: oklch(0 0 0 / 0.5);
 }
 
 .grid {
@@ -304,42 +304,42 @@
 }
 
 button:hover.hover\:bg-blue-600 {
-  background-color: #C4A584;
-  box-shadow: 0 0 0 2px rgba(196, 165, 132, 0.25);
+  background-color: var(--app-accent);
+  box-shadow: 0 0 0 2px oklch(0.75 0.10 85 / 0.25);
 }
 
 button:hover.hover\:bg-red-600 {
-  background-color: #ff5370;
-  box-shadow: 0 0 0 2px rgba(255, 83, 112, 0.25);
+  background-color: var(--app-error);
+  box-shadow: 0 0 0 2px oklch(0.65 0.20 25 / 0.25);
 }
 
 button:hover.hover\:bg-purple-600 {
-  background-color: #7c3aed;
+  background-color: var(--color-purple-500);
 }
 
 button:hover.hover\:bg-green-600 {
-  background-color: #c3e88d;
-  box-shadow: 0 0 0 2px rgba(195, 232, 141, 0.25);
+  background-color: var(--app-success);
+  box-shadow: 0 0 0 2px oklch(0.80 0.15 145 / 0.25);
 }
 
 button:hover.hover\:bg-gray-600 {
-  background-color: #4b5563;
+  background-color: var(--color-gray-600);
 }
 
 button:hover.hover\:bg-gray-100 {
-  background-color: #f3f4f6;
+  background-color: var(--color-gray-150);
 }
 
 button:hover.hover\:bg-gray-300 {
-  background-color: #d1d5db;
+  background-color: var(--color-gray-300);
 }
 
 button:hover.hover\:bg-gray-50 {
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
 }
 
 button:hover.hover\:border-gray-400 {
-  border-color: #9ca3af;
+  border-color: var(--color-gray-400);
 }
 
 button:disabled.disabled\:opacity-50 {
@@ -356,11 +356,11 @@ button:disabled.disabled\:cursor-not-allowed {
 }
 
 .focus\:ring-2:focus {
-  box-shadow: 0 0 0 3px rgba(245, 230, 211, 0.4);
+  box-shadow: 0 0 0 3px oklch(0.95 0.03 85 / 0.4);
 }
 
 .focus\:ring-blue-400:focus {
-  --tw-ring-color: rgba(245, 230, 211, 0.4);
+  --tw-ring-color: oklch(0.95 0.03 85 / 0.4);
 }
 
 .flex-wrap {
@@ -400,11 +400,11 @@ button:disabled.disabled\:cursor-not-allowed {
 }
 
 .shadow {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 3px 0 oklch(0 0 0 / 0.1);
 }
 
 .text-gray-400 {
-  color: #9ca3af;
+  color: var(--color-gray-400);
 }
 
 .rounded-md {
@@ -432,6 +432,10 @@ button:disabled.disabled\:cursor-not-allowed {
   max-width: none;
 }
 
+/* ============================================
+ * Prose styles (スライドコンテンツ用)
+ * --tone-* 変数はトンマナシステムから提供される
+ * ============================================ */
 .prose {
   color: var(--tone-text, #374151) !important;
   /* 固定フォントサイズ（1920x1080px基準） */
@@ -536,12 +540,13 @@ button:disabled.disabled\:cursor-not-allowed {
  overflow: hidden;
 }
 
-/* コンサル風テーブルスタイル */
+/* コンサル風テーブルスタイル - スライドコンテンツ用 */
 .prose table {
   border-collapse: separate;
   border-spacing: 0.5rem 0.75rem;
   width: 100%;
   margin: 1.5em 0;
+  font-size: inherit; /* 本文と同じフォントサイズ */
 }
 
 .prose thead {
@@ -550,11 +555,12 @@ button:disabled.disabled\:cursor-not-allowed {
 
 .prose th {
   border: none;
-  border-bottom: 2px solid #374151;
+  border-bottom: 2px solid var(--tone-table-header-border, #374151);
   font-weight: 600;
   padding: 0.75rem 1rem;
   text-align: center;
-  background: transparent;
+  background: var(--tone-table-cell-bg, white);
+  color: var(--tone-table-text, #374151);
 }
 
 .prose tbody tr {
@@ -564,15 +570,15 @@ button:disabled.disabled\:cursor-not-allowed {
 .prose td {
   border: none;
   padding: 1rem 1.25rem;
-  background-color: white;
-  color: #374151;
+  background-color: var(--tone-table-cell-bg, white);
+  color: var(--tone-table-text, #374151);
   vertical-align: top;
 }
 
 /* 最初の列のスタイル（行ヘッダー） */
 .prose tbody td:first-child {
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: var(--tone-table-row-header-bg, oklch(0.92 0 0));
+  color: var(--tone-table-text, #374151);
   font-weight: 600;
   text-align: center;
   vertical-align: middle;
@@ -588,4 +594,3 @@ button:disabled.disabled\:cursor-not-allowed {
 .prose td li {
   margin: 0.25em 0;
 }
-

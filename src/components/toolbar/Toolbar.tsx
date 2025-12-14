@@ -1,3 +1,4 @@
+import { useThemeContext } from '../../contexts/ThemeContext'
 import './Toolbar.css'
 
 interface ToolbarProps {
@@ -19,6 +20,7 @@ export const Toolbar = ({
   canUndo,
   canRedo
 }: ToolbarProps) => {
+  const { isDark, toggleTheme } = useThemeContext()
   return (
     <div className="toolbar-container">
       <div className="mark-logo">
@@ -57,6 +59,15 @@ export const Toolbar = ({
           </button>
           <button onClick={onShowHelp} className="toolbar-button" data-tooltip="使い方">
             <span className="material-icons toolbar-icon">help_outline</span>
+          </button>
+          <button 
+            onClick={toggleTheme} 
+            className="toolbar-button" 
+            data-tooltip={isDark ? 'ライトモード' : 'ダークモード'}
+          >
+            <span className="material-icons toolbar-icon">
+              {isDark ? 'light_mode' : 'dark_mode'}
+            </span>
           </button>
         </div>
         <button onClick={onShowExport} className="toolbar-button toolbar-button-primary" data-tooltip="保存">

@@ -6,7 +6,7 @@ import type { Components } from 'react-markdown'
 import type { Slide, SlideFormat, Tone, SlideLayout, Item, TableItem, ImpressionCode, ImpressionStyleVars, GradientConfig } from '../../types'
 import { CodeBlock } from '../code/CodeBlock'
 import { TableChart } from '../chart/TableChart'
-import { convertKeyMessageToHTML, splitContentByH2, hasMultipleH2, expandItemReferences, extractImagesFromContent, extractSectionHeadings, generateTableOfContents } from '../../utils/markdown'
+import { convertKeyMessageToHTML, splitContentByH2, hasMultipleH2, expandItemReferences, extractImagesFromContent, extractSectionHeadings, generateTableOfContents, wrapConsecutiveH3InGrid } from '../../utils/markdown'
 import { getItemByName, getItemById, itemToMarkdown } from '../../utils/items'
 import { formatConfigs, fontConfigs } from '../../constants/formatConfigs'
 import { generateStyleVars } from '../../utils/impressionStyle'
@@ -641,7 +641,10 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
   }, [contentWithPlaceholders, images, isSlideShow])
   
   const convertedContent = useMemo(() => {
-    const result = convertKeyMessageToHTML(contentWithImages)
+    // まずキーメッセージを変換
+    const keyMessageConverted = convertKeyMessageToHTML(contentWithImages)
+    // 連続するH3をグリッドレイアウトで囲む
+    const result = wrapConsecutiveH3InGrid(keyMessageConverted)
     console.log('[Preview] Converted content length:', result.length)
     console.log('[Preview] Converted content preview:', result.substring(0, 500))
     return result
@@ -658,8 +661,8 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
   const isH1SplitFormat = formatConfigs[currentFormat].slideSplitLevel === 1
   const shouldUseGridLayout = isH1SplitFormat && hasMultipleH2(contentWithPlaceholders) && layout === 'normal'
   const splitResult = shouldUseGridLayout ? splitContentByH2(contentWithPlaceholders) : null
-  const h1SectionContent = splitResult ? convertKeyMessageToHTML(splitResult.h1Section) : null
-  const h2SectionsContent = splitResult && splitResult.h2Sections.length >= 2 ? splitResult.h2Sections.map(sec => convertKeyMessageToHTML(sec)) : null
+  const h1SectionContent = splitResult ? wrapConsecutiveH3InGrid(convertKeyMessageToHTML(splitResult.h1Section)) : null
+  const h2SectionsContent = splitResult && splitResult.h2Sections.length >= 2 ? splitResult.h2Sections.map(sec => wrapConsecutiveH3InGrid(convertKeyMessageToHTML(sec))) : null
   const h2Ratios = splitResult?.h2Ratios ?? []
   const h2Alignments = splitResult?.h2Alignments ?? []
   
@@ -737,7 +740,7 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     justifyContent: 'center',
     overflow: 'hidden',
     position: 'relative', // スケーリング時の位置調整のため
-    backgroundColor: '#1e1e1e' // 外側コンテナの背景色を固定
+    backgroundColor: 'var(--app-bg-primary)' // 外側コンテナの背景色を固定
   }
 
   // スライドのスタイル（固定サイズとスケーリング適用）

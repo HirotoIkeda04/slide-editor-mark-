@@ -1,5 +1,6 @@
-import type { ImpressionCode, ImpressionStyleVars, ImpressionSubAttributes, GradientConfig } from '../types'
-import { tonmanaStyles, type TonmanaStyleEntry } from '../constants/tonmanaStyles'
+
+import type { ImpressionCode, ImpressionStyleVars, ImpressionSubAttributes, GradientConfig, TonmanaStyle } from '../types'
+import { findMatchingBiome } from '../constants/tonmanaBiomes'
 
 // ============================================
 // グラデーションパーサー
@@ -175,63 +176,65 @@ export function muteOklch(oklchStr: string): string {
   return `oklch(${adjustedL.toFixed(2)} ${c.toFixed(2)} ${h})`
 }
 
+/**
+ * oklch色が明るい（ライトテーマ向け）かどうかを判定
+ * 輝度が0.6以上なら明るい色とみなす
+ */
+export function isLightColor(colorStr: string): boolean {
+  const color = colorStr.startsWith('linear-gradient(') 
+    ? extractFirstColor(colorStr) 
+    : colorStr
+  
+  const match = color.match(/oklch\(([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\)/)
+  if (!match) {
+    if (color.startsWith('#')) {
+      const hex = color.slice(1)
+      const r = parseInt(hex.slice(0, 2), 16) / 255
+      const g = parseInt(hex.slice(2, 4), 16) / 255
+      const b = parseInt(hex.slice(4, 6), 16) / 255
+      const luminance = 0.299 * r + 0.587 * g + 0.114 * b
+      return luminance > 0.5
+    }
+    if (color === 'white' || color === '#fff' || color === '#ffffff') {
+      return true
+    }
+    return true
+  }
+  
+  const l = parseFloat(match[1])
+  return l >= 0.6
+}
+
 // ============================================
 // スタイル生成ロジック
 // ============================================
 
 /**
- * 印象コードからCSSスタイル変数を生成（625パターンルックアップテーブル版）
+ * 印象コードからCSSスタイル変数を生成（バイオーム方式）
  * 
- * 新しい4軸モデル:
+ * 4軸モデル:
  * - E (Energy): 落ち着いた(1) 〜 エネルギッシュ(5)
  * - F (Formality): 親しみやすい(1) 〜 格式高い(5)
  * - C (Classic-Modern): 伝統的(1) 〜 現代的(5)
  * - D (Decoration): シンプル(1) 〜 装飾的(5)
+ * 
+ * 印象コードに最もマッチするバイオームを検索し、そのスタイルを返す
  */
 export function generateStyleVars(
   code: ImpressionCode,
   _subAttributes?: ImpressionSubAttributes
 ): ImpressionStyleVars {
-  // ルックアップキーを生成
-  const key = `E${code.energy}F${code.formality}C${code.classicModern}D${code.decoration}`
-  const entry = tonmanaStyles[key]
+  // バイオームマッチングでスタイルを取得
+  const biome = findMatchingBiome(code)
   
-  if (!entry) {
-    // フォールバック: デフォルトスタイル
-    return getDefaultStyleVars()
-  }
-  
-  // TonmanaStyleEntryからImpressionStyleVarsを構築
-  return buildStyleVarsFromEntry(entry, code)
+  // TonmanaStyleからImpressionStyleVarsを構築
+  return buildStyleVarsFromEntry(biome.style, code)
 }
 
 /**
- * デフォルトのスタイル変数を返す（フォールバック用）
+ * TonmanaStyleからImpressionStyleVarsを構築
  */
-function getDefaultStyleVars(): ImpressionStyleVars {
-  return {
-    primary: '#888888',
-    primaryLight: '#aaaaaa',
-    primaryDark: '#666666',
-    background: '#ffffff',
-    backgroundAlt: '#f5f5f5',
-    text: '#1f2937',
-    textMuted: '#6b7280',
-    accent: '#3b82f6',
-    fontFamily: '"Noto Sans JP", sans-serif',
-    fontFamilyHeading: '"Noto Sans JP", sans-serif',
-    fontWeight: 400,
-    fontWeightHeading: 600,
-    letterSpacing: '0',
-    borderRadius: '8px',
-    spacing: '1rem',
-  }
-}
-
-/**
- * TonmanaStyleEntryからImpressionStyleVarsを構築
- */
-function buildStyleVarsFromEntry(entry: TonmanaStyleEntry, code: ImpressionCode): ImpressionStyleVars {
+function buildStyleVarsFromEntry(entry: TonmanaStyle, code: ImpressionCode): ImpressionStyleVars {
   const decorationRatio = (code.decoration - 1) / 4
   const formalityRatio = (code.formality - 1) / 4
   
@@ -390,6 +393,15 @@ export function suggestGradient(code: ImpressionCode, type: 'background' | 'text
  * ImpressionStyleVarsをCSSカスタムプロパティのオブジェクトに変換
  */
 export function styleVarsToCSSProperties(vars: ImpressionStyleVars): Record<string, string> {
+  // 背景色が明るいかどうかで表の色を決定
+  const bgIsLight = isLightColor(vars.background)
+  
+  // 表セル用の色（常に読みやすいコントラストを確保）
+  const tableCellBg = bgIsLight ? 'oklch(1.00 0 0)' : 'oklch(0.98 0 0)'
+  const tableRowHeaderBg = bgIsLight ? 'oklch(0.92 0 0)' : 'oklch(0.90 0 0)'
+  const tableTextColor = 'oklch(0.25 0.01 250)' // 常に暗いテキスト
+  const tableHeaderBorder = 'oklch(0.30 0.01 250)' // 暗いボーダー
+  
   return {
     '--tone-primary': vars.primary,
     '--tone-primary-light': vars.primaryLight,
@@ -406,6 +418,11 @@ export function styleVarsToCSSProperties(vars: ImpressionStyleVars): Record<stri
     '--tone-letter-spacing': vars.letterSpacing,
     '--tone-border-radius': vars.borderRadius,
     '--tone-spacing': vars.spacing,
+    // 表用の色変数
+    '--tone-table-cell-bg': tableCellBg,
+    '--tone-table-row-header-bg': tableRowHeaderBg,
+    '--tone-table-text': tableTextColor,
+    '--tone-table-header-border': tableHeaderBorder,
   }
 }
 

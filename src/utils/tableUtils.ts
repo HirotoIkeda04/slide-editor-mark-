@@ -263,3 +263,146 @@ export function inferCellDataType(value: string): CellDataType {
   return 'text'
 }
 
+// ============================================
+// Markdownテーブルパース機能
+// ============================================
+
+/**
+ * パースされたMarkdownテーブルの結果
+ */
+export interface ParsedMarkdownTable {
+  headers: string[]
+  data: string[][]
+  hasHeaders: boolean
+}
+
+/**
+ * 行がMarkdownテーブルのセパレータ行かどうかを判定
+ * セパレータ行は --- や :---: のようなパターンで構成される
+ */
+function isSeparatorRow(cells: string[]): boolean {
+  if (cells.length === 0) return false
+  
+  // すべてのセルがセパレータパターンにマッチするかチェック
+  const separatorPattern = /^:?-+:?$/
+  return cells.every(cell => {
+    const trimmed = cell.trim()
+    return trimmed === '' || separatorPattern.test(trimmed)
+  })
+}
+
+/**
+ * Markdownテーブル行をセルに分割
+ */
+function parseTableRow(line: string): string[] {
+  // 行の前後の | を除去してから分割
+  let trimmed = line.trim()
+  
+  // 先頭の | を除去
+  if (trimmed.startsWith('|')) {
+    trimmed = trimmed.substring(1)
+  }
+  // 末尾の | を除去
+  if (trimmed.endsWith('|')) {
+    trimmed = trimmed.substring(0, trimmed.length - 1)
+  }
+  
+  // | で分割し、各セルをトリム
+  return trimmed.split('|').map(cell => cell.trim())
+}
+
+/**
+ * Markdownテーブル形式のテキストを解析してTableItem用のデータに変換
+ * 
+ * @param text - Markdownテーブル形式のテキスト
+ * @returns パース結果、または無効な場合はnull
+ * 
+ * @example
+ * const result = parseMarkdownTable(`
+ * | 変数 | Model 1 | Model 2 |
+ * |-----|:---:|:---:|
+ * | データ1 | .036** | — |
+ * | データ2 | .160 | .126 |
+ * `)
+ * // result = {
+ * //   headers: ['変数', 'Model 1', 'Model 2'],
+ * //   data: [['データ1', '.036**', '—'], ['データ2', '.160', '.126']],
+ * //   hasHeaders: true
+ * // }
+ */
+export function parseMarkdownTable(text: string): ParsedMarkdownTable | null {
+  if (!text || text.trim() === '') {
+    return null
+  }
+  
+  // 行に分割し、空行を除去
+  const lines = text.split('\n').filter(line => line.trim() !== '')
+  
+  if (lines.length === 0) {
+    return null
+  }
+  
+  // テーブル行（|を含む行）のみをフィルタ
+  const tableLines = lines.filter(line => line.includes('|'))
+  
+  if (tableLines.length === 0) {
+    return null
+  }
+  
+  // 各行をセルに分割
+  const rows = tableLines.map(line => parseTableRow(line))
+  
+  if (rows.length === 0) {
+    return null
+  }
+  
+  // 列数を最初の行から決定
+  const colCount = rows[0].length
+  
+  if (colCount === 0) {
+    return null
+  }
+  
+  // 2行目がセパレータ行かどうかを判定
+  const hasHeaders = rows.length >= 2 && isSeparatorRow(rows[1])
+  
+  let headers: string[] = []
+  let data: string[][] = []
+  
+  if (hasHeaders) {
+    // ヘッダー行あり
+    headers = rows[0]
+    // セパレータ行（2行目）をスキップしてデータ行を取得
+    data = rows.slice(2).map(row => {
+      // 列数を揃える
+      const normalizedRow = [...row]
+      while (normalizedRow.length < colCount) {
+        normalizedRow.push('')
+      }
+      return normalizedRow.slice(0, colCount)
+    })
+  } else {
+    // ヘッダー行なし（すべてデータ行）
+    headers = []
+    data = rows.map(row => {
+      // 列数を揃える
+      const normalizedRow = [...row]
+      while (normalizedRow.length < colCount) {
+        normalizedRow.push('')
+      }
+      return normalizedRow.slice(0, colCount)
+    })
+  }
+  
+  // データがない場合はnull
+  if (data.length === 0 && headers.length === 0) {
+    return null
+  }
+  
+  return {
+    headers,
+    data,
+    hasHeaders
+  }
+}
+

@@ -78,17 +78,17 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
           style={{ 
             width: '36px', 
             height: '36px', 
-            backgroundColor: '#3a3a3a', 
-            color: '#e5e7eb',
-            border: '1px solid #4a4a4a'
+            backgroundColor: 'var(--app-border-primary)', 
+            color: 'var(--app-text-primary)',
+            border: '1px solid var(--app-border-hover)'
           }}
           onMouseEnter={(e) => {
             if (!e.currentTarget.disabled) {
-              e.currentTarget.style.backgroundColor = '#4a4a4a'
+              e.currentTarget.style.backgroundColor = 'var(--app-border-hover)'
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#3a3a3a'
+            e.currentTarget.style.backgroundColor = 'var(--app-border-primary)'
           }}
         >
           <span className="material-icons text-lg">chevron_left</span>
@@ -133,7 +133,7 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
                       width: `${slideWidth}px`,
                       height: `${slideHeight}px`,
                       borderWidth: idx === currentIndex ? '3px' : '1px',
-                      borderColor: idx === currentIndex ? '#C4A584' : '#d1d5db',
+                      borderColor: idx === currentIndex ? 'var(--app-accent)' : 'var(--color-gray-300)',
                       backgroundColor: '#ffffff',
                       padding: 0
                     }}
@@ -160,7 +160,7 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
                     className="text-left text-sm w-full"
                     style={{ 
                       marginTop: '4px',
-                      color: idx === currentIndex ? '#F5E6D3' : '#6b7280',
+                      color: idx === currentIndex ? 'var(--app-accent-light)' : 'var(--app-text-disabled)',
                       fontSize: '12px',
                       lineHeight: '1.4',
                       overflow: 'hidden',
@@ -184,17 +184,17 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
           style={{ 
             width: '36px', 
             height: '36px', 
-            backgroundColor: '#3a3a3a', 
-            color: '#e5e7eb',
-            border: '1px solid #4a4a4a'
+            backgroundColor: 'var(--app-border-primary)', 
+            color: 'var(--app-text-primary)',
+            border: '1px solid var(--app-border-hover)'
           }}
           onMouseEnter={(e) => {
             if (!e.currentTarget.disabled) {
-              e.currentTarget.style.backgroundColor = '#4a4a4a'
+              e.currentTarget.style.backgroundColor = 'var(--app-border-hover)'
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#3a3a3a'
+            e.currentTarget.style.backgroundColor = 'var(--app-border-primary)'
           }}
         >
           <span className="material-icons text-lg">chevron_right</span>

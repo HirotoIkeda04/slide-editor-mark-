@@ -36,22 +36,22 @@ export const Toast = ({ messages }: ToastProps) => {
     switch (currentMessage.type) {
       case 'warning':
         return {
-          backgroundColor: '#2b2b2b',
-          borderColor: '#F5E6D3',
-          color: '#F5E6D3',
+          backgroundColor: 'var(--app-bg-tertiary)',
+          borderColor: 'var(--app-accent-light)',
+          color: 'var(--app-accent-light)',
         }
       case 'error':
         return {
-          backgroundColor: '#2b2b2b',
-          borderColor: '#ff7373',
-          color: '#ff7373',
+          backgroundColor: 'var(--app-bg-tertiary)',
+          borderColor: 'var(--app-error-light)',
+          color: 'var(--app-error-light)',
         }
       case 'info':
       default:
         return {
-          backgroundColor: '#2b2b2b',
-          borderColor: '#82aaff',
-          color: '#82aaff',
+          backgroundColor: 'var(--app-bg-tertiary)',
+          borderColor: 'var(--color-blue-400)',
+          color: 'var(--color-blue-400)',
         }
     }
   }
@@ -73,8 +73,9 @@ export const Toast = ({ messages }: ToastProps) => {
       {hasMultiple && (
         <button
           onClick={handlePrevious}
-          className="font-semibold text-[#e5e7eb] transition-colors hover:text-white"
+          className="font-semibold transition-colors hover:text-white"
           style={{
+            color: 'var(--app-text-primary)',
             background: 'transparent',
             border: 'none',
             lineHeight: 1,
@@ -89,7 +90,7 @@ export const Toast = ({ messages }: ToastProps) => {
 
       {/* 問題番号と総数 */}
       {hasMultiple && (
-        <span style={{ minWidth: '24px', textAlign: 'center', color: '#e5e7eb', fontSize: '8px' }}>
+        <span style={{ minWidth: '24px', textAlign: 'center', color: 'var(--app-text-primary)', fontSize: '8px' }}>
           {currentIndex + 1}/{messages.length}
         </span>
       )}
@@ -98,8 +99,9 @@ export const Toast = ({ messages }: ToastProps) => {
       {hasMultiple && (
         <button
           onClick={handleNext}
-          className="font-semibold text-[#e5e7eb] transition-colors hover:text-white"
+          className="font-semibold transition-colors hover:text-white"
           style={{
+            color: 'var(--app-text-primary)',
             background: 'transparent',
             border: 'none',
             lineHeight: 1,

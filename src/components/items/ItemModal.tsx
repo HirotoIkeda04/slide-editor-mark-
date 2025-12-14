@@ -3,6 +3,7 @@ import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import type { Item, ItemType, TableItem, ImageItem, TextItem, ImageDisplayMode } from '../../types'
 import { cropImage } from '../../utils/imageProcessing'
+import { parseMarkdownTable } from '../../utils/tableUtils'
 
 interface ItemModalProps {
   isOpen: boolean
@@ -21,6 +22,11 @@ export const ItemModal = ({ isOpen, onClose, onSave, editingItem, existingNames 
   const [tableData, setTableData] = useState<string[][]>([['', ''], ['', '']])
   const [tableHeaders, setTableHeaders] = useState<string[]>(['', ''])
   const [useHeaders, setUseHeaders] = useState(false)
+  
+  // Markdown import state
+  const [showMarkdownImport, setShowMarkdownImport] = useState(false)
+  const [markdownInput, setMarkdownInput] = useState('')
+  const [markdownImportError, setMarkdownImportError] = useState('')
   
   // Image specific state
   const [imageDataUrl, setImageDataUrl] = useState('')
@@ -75,6 +81,9 @@ export const ItemModal = ({ isOpen, onClose, onSave, editingItem, existingNames 
     setCrop(undefined)
     setCompletedCrop(undefined)
     setTextContent('')
+    setShowMarkdownImport(false)
+    setMarkdownInput('')
+    setMarkdownImportError('')
   }
 
   const validateName = (value: string): boolean => {
@@ -170,6 +179,41 @@ export const ItemModal = ({ isOpen, onClose, onSave, editingItem, existingNames 
     if (tableData[0]?.length <= 1) return
     setTableData(tableData.map(row => row.filter((_, i) => i !== index)))
     setTableHeaders(tableHeaders.filter((_, i) => i !== index))
+  }
+
+  // Markdownテーブルからインポート
+  const handleMarkdownImport = () => {
+    const parsed = parseMarkdownTable(markdownInput)
+    
+    if (!parsed) {
+      setMarkdownImportError('有効なMarkdownテーブルが見つかりません。| で区切られた形式で入力してください。')
+      return
+    }
+    
+    // パースに成功した場合、データを適用
+    const newData = parsed.data.length > 0 ? parsed.data : [['', '']]
+    const newHeaders = parsed.hasHeaders ? parsed.headers : []
+    const newUseHeaders = parsed.hasHeaders
+    
+    // 列数を揃える
+    const colCount = parsed.hasHeaders ? parsed.headers.length : (parsed.data[0]?.length || 2)
+    const normalizedHeaders = [...newHeaders]
+    while (normalizedHeaders.length < colCount) {
+      normalizedHeaders.push('')
+    }
+    
+    // データがない場合は空行を1つ追加
+    const normalizedData = newData.length > 0 ? newData : [Array(colCount).fill('')]
+    
+    // 状態を更新
+    setTableData(normalizedData)
+    setTableHeaders(normalizedHeaders)
+    setUseHeaders(newUseHeaders)
+    
+    // ダイアログを閉じる
+    setShowMarkdownImport(false)
+    setMarkdownInput('')
+    setMarkdownImportError('')
   }
 
   const handleSave = () => {
@@ -317,7 +361,67 @@ export const ItemModal = ({ isOpen, onClose, onSave, editingItem, existingNames 
                   <span className="material-icons">add</span>
                   Add Column
                 </button>
+                <button
+                  onClick={() => {
+                    setShowMarkdownImport(true)
+                    setMarkdownInput('')
+                    setMarkdownImportError('')
+                  }}
+                  className="item-table-add-button table-markdown-import-button-modal"
+                >
+                  <span className="material-icons">upload_file</span>
+                  Markdownからインポート
+                </button>
               </div>
+
+              {/* Markdownインポートダイアログ */}
+              {showMarkdownImport && (
+                <div className="table-markdown-import-inline">
+                  <div className="table-markdown-import-inline-header">
+                    <span>Markdownからインポート</span>
+                    <button
+                      className="table-markdown-import-inline-close"
+                      onClick={() => setShowMarkdownImport(false)}
+                    >
+                      <span className="material-icons">close</span>
+                    </button>
+                  </div>
+                  <p className="table-markdown-import-hint">
+                    Markdownテーブル形式のテキストを貼り付けてください。
+                  </p>
+                  <textarea
+                    className="table-markdown-import-textarea"
+                    value={markdownInput}
+                    onChange={(e) => {
+                      setMarkdownInput(e.target.value)
+                      setMarkdownImportError('')
+                    }}
+                    placeholder={`| 変数 | Model 1 | Model 2 |\n|-----|:---:|:---:|\n| データ1 | .036** | — |\n| データ2 | .160 | .126 |`}
+                    rows={8}
+                  />
+                  {markdownImportError && (
+                    <div className="table-markdown-import-error">
+                      <span className="material-icons">error</span>
+                      {markdownImportError}
+                    </div>
+                  )}
+                  <div className="table-markdown-import-inline-actions">
+                    <button
+                      className="table-markdown-import-cancel"
+                      onClick={() => setShowMarkdownImport(false)}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      className="table-markdown-import-submit"
+                      onClick={handleMarkdownImport}
+                      disabled={!markdownInput.trim()}
+                    >
+                      インポート
+                    </button>
+                  </div>
+                </div>
+              )}
               
               <div className="item-table-editor">
                 <table>

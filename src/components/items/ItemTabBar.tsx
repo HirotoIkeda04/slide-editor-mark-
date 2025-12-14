@@ -523,8 +523,8 @@ export const ItemTabBar = ({
                 onKeyDown={(e) => handleNameKeyDown(e, editingItem)}
                 className={`item-tab-name-input ${nameError ? 'error' : ''}`}
                 onFocus={(e) => {
-                  e.target.style.borderColor = nameError ? '#FF5370' : '#F5E6D3'
-                  e.target.style.background = '#252525'
+                  e.target.style.borderColor = nameError ? 'var(--app-error)' : 'var(--app-accent-light)'
+                  e.target.style.background = 'var(--app-bg-secondary)'
                   e.target.style.padding = '0.125rem 0.25rem'
                 }}
                 onBlur={(e) => {

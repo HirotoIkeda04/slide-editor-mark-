@@ -21,7 +21,7 @@ export const fontConfigs: Record<SlideFormat, {
   codeJumpRate: number // コードブロックのジャンプ率
   fontFamily: string // フォントファミリー
 }> = {
-  webinar: { baseFontSize: 34, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
+  webinar: { baseFontSize: 28, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
   meeting: { baseFontSize: 34, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
   seminar: { baseFontSize: 43, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic", sans-serif' },
   conference: { baseFontSize: 67, headingJumpRate: 1.5, keyMessageJumpRate: 2.0, codeJumpRate: 0.8, fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", "Yu Gothic Medium", sans-serif' },

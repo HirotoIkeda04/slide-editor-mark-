@@ -369,6 +369,102 @@ export const hasMultipleH2 = (content: string): boolean => {
   return false
 }
 
+/**
+ * 連続するH3セクションをグリッドレイアウト用のHTMLで囲む
+ * 
+ * 例:
+ * ### Title 1
+ * content 1
+ * 
+ * ### Title 2
+ * content 2
+ * 
+ * ↓
+ * 
+ * <div class="h3-grid-layout">
+ * <div class="h3-grid-item">
+ * 
+ * ### Title 1
+ * content 1
+ * 
+ * </div>
+ * <div class="h3-grid-item">
+ * 
+ * ### Title 2
+ * content 2
+ * 
+ * </div>
+ * </div>
+ */
+export const wrapConsecutiveH3InGrid = (content: string): string => {
+  const lines = content.split('\n')
+  const result: string[] = []
+  let h3Sections: string[][] = []  // 現在収集中のH3セクション群
+  let currentH3Section: string[] = []  // 現在のH3セクション
+  let inH3Sequence = false
+  
+  const flushH3Sections = () => {
+    if (h3Sections.length >= 2) {
+      // 2つ以上のH3がある場合はグリッドで囲む
+      result.push('<div class="h3-grid-layout">')
+      for (const section of h3Sections) {
+        result.push('<div class="h3-grid-item">')
+        result.push('')
+        result.push(...section)
+        result.push('')
+        result.push('</div>')
+      }
+      result.push('</div>')
+    } else if (h3Sections.length === 1) {
+      // 1つだけの場合はそのまま出力
+      result.push(...h3Sections[0])
+    }
+    h3Sections = []
+    currentH3Section = []
+    inH3Sequence = false
+  }
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+    
+    // H3の検出（### で始まる行）
+    if (trimmed.match(/^###\s+/)) {
+      if (inH3Sequence && currentH3Section.length > 0) {
+        // 既存のH3セクションを保存
+        h3Sections.push([...currentH3Section])
+        currentH3Section = []
+      }
+      inH3Sequence = true
+      currentH3Section.push(line)
+    } else if (inH3Sequence) {
+      // H1, H2, H4+ に遭遇したらH3シーケンスを終了
+      if (trimmed.match(/^#{1,2}\s+/) || trimmed.match(/^#{4,}\s+/)) {
+        if (currentH3Section.length > 0) {
+          h3Sections.push([...currentH3Section])
+          currentH3Section = []
+        }
+        flushH3Sections()
+        result.push(line)
+      } else {
+        // 通常の行はH3セクションに追加
+        currentH3Section.push(line)
+      }
+    } else {
+      // H3シーケンス外の行はそのまま出力
+      result.push(line)
+    }
+  }
+  
+  // 最後のH3セクションを処理
+  if (currentH3Section.length > 0) {
+    h3Sections.push([...currentH3Section])
+  }
+  flushH3Sections()
+  
+  return result.join('\n')
+}
+
 // アイテム挿入記法を展開する関数
 // @アイテム名 または [[sheet:xxx]] 形式でアイテムを参照
 export const expandItemReferences = (

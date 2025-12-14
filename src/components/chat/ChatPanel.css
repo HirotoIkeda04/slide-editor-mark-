@@ -3,16 +3,16 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(to bottom, #1a1a1a 0%, #1e1e1e 100%);
-  border-left: 1px solid #2a2a2a;
-  color: #e5e7eb;
+  background: linear-gradient(to bottom, var(--color-gray-1000) 0%, var(--color-gray-975) 100%);
+  border-left: 1px solid var(--color-gray-925);
+  color: var(--app-text-primary);
 }
 
 /* ヘッダー */
 .chat-header {
   padding: 0.75rem 1rem; /* editor-file-headerと同じパディング */
-  border-bottom: 1px solid #3a3a3a; /* editor-file-headerと同じボーダー色 */
-  background: #1e1e1e; /* editor-file-headerと同じ背景色 */
+  border-bottom: 1px solid var(--app-border-primary); /* editor-file-headerと同じボーダー色 */
+  background: var(--app-bg-primary); /* editor-file-headerと同じ背景色 */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -22,7 +22,7 @@
 
 .chat-ai-icon {
   font-size: 1rem; /* editor-file-headerのアイコンと同じサイズ */
-  color: #F5E6D3; /* アクセントカラー */
+  color: var(--app-accent-light); /* アクセントカラー */
   line-height: 1;
   display: flex;
   align-items: center;
@@ -34,7 +34,7 @@
 }
 
 .chat-header-title {
-  color: #9ca3af; /* グレー */
+  color: var(--app-text-secondary); /* グレー */
   font-size: 0.875rem; /* editor-file-headerのテキストと同じサイズ */
   font-weight: 500; /* editor-file-headerのテキストと同じ太さ */
   line-height: 1;
@@ -54,7 +54,7 @@
   border-radius: 0.375rem;
   background: transparent;
   border: none; /* 枠線を削除 */
-  color: #555;  /* より控えめなグレー */
+  color: var(--color-gray-700);  /* より控えめなグレー */
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -65,8 +65,8 @@
 }
 
 .chat-model-button:hover {
-  background: #2a2a2a;
-  color: #e5e7eb;
+  background: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
 }
 
 .chat-model-label {
@@ -93,10 +93,10 @@
   left: 0;
   margin-bottom: 0.375rem;
   min-width: 200px;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--app-shadow-lg);
   z-index: 1000;
   overflow: hidden;
 }
@@ -110,35 +110,35 @@
   text-align: left;
   background: transparent;
   border: none;
-  color: #e5e7eb;
+  color: var(--app-text-primary);
   cursor: pointer;
   transition: background 0.15s ease;
   gap: 0.75rem;
 }
 
 .chat-model-option:hover {
-  background: #3a3a3a;
+  background: var(--app-border-primary);
 }
 
 .chat-model-option.active {
-  background: #3a3a3a;
+  background: var(--app-border-primary);
 }
 
 .chat-model-option.active .chat-model-option-label {
-  color: #F5E6D3;
+  color: var(--app-accent-light);
 }
 
 .chat-model-option-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #e5e7eb;
+  color: var(--app-text-primary);
   white-space: nowrap;
   min-width: 80px;
 }
 
 .chat-model-option-desc {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   white-space: nowrap;
 }
 
@@ -152,13 +152,13 @@
 }
 
 .chat-model-option.active .chat-model-option-check svg {
-  color: #F5E6D3;
+  color: var(--app-accent-light);
   opacity: 1;
 }
 
 /* メッセージエリア */
 .chat-messages {
-  background: #1e1e1e;
+  background: var(--app-bg-primary);
 }
 
 .chat-empty-state {
@@ -170,19 +170,19 @@
 .chat-empty-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: #F5E6D3; /* アクセントカラー */
+  color: var(--app-accent-light); /* アクセントカラー */
   opacity: 0.3;
 }
 
 .chat-empty-text {
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .chat-empty-subtext {
-  color: #6b7280;
+  color: var(--app-text-disabled);
   font-size: 0.75rem;
 }
 
@@ -209,20 +209,20 @@
   padding: 0.625rem 1rem;
   font-size: 0.75rem; /* エディタと同じフォントサイズ */
   line-height: 1.6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--app-shadow-md);
 }
 
 .chat-message-user {
-  background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+  background: linear-gradient(135deg, var(--color-gray-800) 0%, var(--color-gray-850) 100%);
   color: #ffffff;
   border-bottom-right-radius: 0.25rem;
   font-size: 0.75rem; /* エディタと同じフォントサイズ */
 }
 
 .chat-message-assistant {
-  background: linear-gradient(135deg, #2a2a2a 0%, #252525 100%);
-  color: #e5e7eb;
-  border: 1px solid #3a3a3a;
+  background: linear-gradient(135deg, var(--color-gray-925) 0%, var(--color-gray-950) 100%);
+  color: var(--app-text-primary);
+  border: 1px solid var(--app-border-primary);
   border-bottom-left-radius: 0.25rem;
   font-size: 0.75rem; /* エディタと同じフォントサイズ */
 }
@@ -234,11 +234,11 @@
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   border-radius: 1rem;
-  background: linear-gradient(135deg, #2a2a2a 0%, #252525 100%);
-  color: #9ca3af;
+  background: linear-gradient(135deg, var(--color-gray-925) 0%, var(--color-gray-950) 100%);
+  color: var(--app-text-secondary);
   font-size: 0.75rem; /* エディタと同じフォントサイズ */
-  border: 1px solid #3a3a3a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--app-border-primary);
+  box-shadow: var(--app-shadow-md);
 }
 
 .chat-loading-dots {
@@ -250,7 +250,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #C4A584;
+  background: var(--app-accent);
   animation: bounce 1.4s infinite ease-in-out both;
 }
 
@@ -280,21 +280,21 @@
   border-radius: 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #C4A584 0%, #b39474 100%);
-  color: #1a1a1a;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
   border: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(196, 165, 132, 0.3);
+  box-shadow: var(--app-shadow-accent);
 }
 
 .chat-apply-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(196, 165, 132, 0.4);
-  background: linear-gradient(135deg, #d4b594 0%, #C4A584 100%);
+  box-shadow: 0 4px 12px oklch(0.72 0.05 70 / 0.4);
+  background: linear-gradient(135deg, var(--color-beige-400) 0%, var(--color-beige-500) 100%);
 }
 
 .chat-apply-button:active {
@@ -304,8 +304,8 @@
 /* 適用済み状態（Outlinedスタイル） */
 .chat-apply-button-applied {
   background: transparent;
-  color: #888;
-  border: 1px solid #4a4a4a;
+  color: var(--app-text-muted);
+  border: 1px solid var(--app-border-hover);
   box-shadow: none;
   cursor: default;
 }
@@ -314,7 +314,7 @@
   transform: none;
   box-shadow: none;
   background: transparent;
-  color: #888;
+  color: var(--app-text-muted);
 }
 
 .chat-apply-button-applied:active {
@@ -322,7 +322,7 @@
 }
 
 .chat-apply-button-applied .chat-apply-icon {
-  color: #888;
+  color: var(--app-text-muted);
 }
 
 .chat-apply-icon {
@@ -360,18 +360,18 @@
 
 /* 削除行（赤色） */
 .diff-delete {
-  background-color: rgba(239, 68, 68, 0.08);
-  border-left: 2px solid rgba(239, 68, 68, 0.4);
-  color: #e5e7eb;
+  background-color: oklch(0.65 0.20 25 / 0.08);
+  border-left: 2px solid oklch(0.65 0.20 25 / 0.4);
+  color: var(--app-text-primary);
 }
 
 .diff-delete .diff-prefix {
-  color: rgba(239, 68, 68, 0.6);
+  color: oklch(0.65 0.20 25 / 0.6);
 }
 
 .diff-delete-inline {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #e5e7eb;
+  background-color: oklch(0.65 0.20 25 / 0.15);
+  color: var(--app-text-primary);
   text-decoration: line-through;
   padding: 0.125rem 0.25rem;
   border-radius: 0.125rem;
@@ -379,41 +379,41 @@
 
 /* 追加行（緑色） */
 .diff-add {
-  background-color: rgba(34, 197, 94, 0.08);
-  border-left: 2px solid rgba(34, 197, 94, 0.4);
-  color: #e5e7eb;
+  background-color: oklch(0.75 0.18 160 / 0.08);
+  border-left: 2px solid oklch(0.75 0.18 160 / 0.4);
+  color: var(--app-text-primary);
 }
 
 .diff-add .diff-prefix {
-  color: rgba(34, 197, 94, 0.6);
+  color: oklch(0.75 0.18 160 / 0.6);
 }
 
 .diff-add-inline {
-  background-color: rgba(34, 197, 94, 0.15);
-  color: #e5e7eb;
+  background-color: oklch(0.75 0.18 160 / 0.15);
+  color: var(--app-text-primary);
   padding: 0.125rem 0.25rem;
   border-radius: 0.125rem;
 }
 
 /* 変更行（削除と追加の組み合わせ） */
 .diff-modify {
-  background-color: rgba(59, 130, 246, 0.06);
-  border-left: 2px solid rgba(59, 130, 246, 0.4);
-  color: #e5e7eb;
+  background-color: oklch(0.65 0.18 250 / 0.06);
+  border-left: 2px solid oklch(0.65 0.18 250 / 0.4);
+  color: var(--app-text-primary);
 }
 
 .diff-modify .diff-prefix {
-  color: rgba(59, 130, 246, 0.6);
+  color: oklch(0.65 0.18 250 / 0.6);
 }
 
 .diff-arrow {
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   margin: 0 0.25rem;
 }
 
 /* 通常行 */
 .diff-normal {
-  color: #e5e7eb;
+  color: var(--app-text-primary);
 }
 
 .diff-empty {
@@ -423,11 +423,11 @@
 /* 入力エリア */
 .chat-input-area {
   padding: 0.75rem 1rem;
-  background: #1e1e1e;
+  background: var(--app-bg-primary);
 }
 
 .chat-input-container {
-  background: #252525;
+  background: var(--app-bg-secondary);
   border-radius: 0.5rem;
   padding: 0.5rem 0.875rem; /* 上下を0.625remから0.5remに変更 */
   display: flex;
@@ -437,8 +437,8 @@
 }
 
 .chat-input-container:focus-within {
-  background: #2a2a2a;
-  box-shadow: 0 0 0 2px rgba(245, 230, 211, 0.15);
+  background: var(--app-bg-tertiary);
+  box-shadow: 0 0 0 2px oklch(0.95 0.03 85 / 0.15);
 }
 
 .chat-textarea {
@@ -448,7 +448,7 @@
   padding: 0;
   font-size: 0.75rem; /* エディタと同じフォントサイズ */
   background: transparent;
-  color: #e5e7eb;
+  color: var(--app-text-primary);
   min-height: 24px;
   max-height: 160px;
   transition: all 0.2s ease;
@@ -459,7 +459,7 @@
 }
 
 .chat-textarea::placeholder {
-  color: #555;  /* 他の要素と統一 */
+  color: var(--color-gray-700);  /* 他の要素と統一 */
   font-size: 0.75rem;
 }
 
@@ -469,7 +469,7 @@
   flex-wrap: wrap;
   margin-bottom: 0.5rem;
   padding: 0.5rem;
-  background: #252525;
+  background: var(--app-bg-secondary);
   border-radius: 0.5rem;
 }
 
@@ -479,7 +479,7 @@
   height: 80px;
   border-radius: 0.375rem;
   overflow: hidden;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--app-border-primary);
 }
 
 .chat-image-preview img {
@@ -494,7 +494,7 @@
   right: 0;
   width: 20px;
   height: 20px;
-  background: rgba(0, 0, 0, 0.7);
+  background: oklch(0 0 0 / 0.7);
   color: #fff;
   border: none;
   border-radius: 0 0 0 0.375rem;
@@ -508,7 +508,7 @@
 }
 
 .chat-image-remove:hover {
-  background: rgba(255, 0, 0, 0.8);
+  background: oklch(0.5 0.2 25 / 0.8);
 }
 
 .chat-image-button {
@@ -519,14 +519,14 @@
   background: transparent;
   border: none; /* 枠線を削除 */
   border-radius: 0.375rem;
-  color: #555;  /* より控えめなグレー */
+  color: var(--color-gray-700);  /* より控えめなグレー */
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .chat-image-button:hover {
-  background: #2a2a2a;
-  color: #9ca3af; /* ホバー時も控えめに */
+  background: var(--app-bg-tertiary);
+  color: var(--app-text-secondary); /* ホバー時も控えめに */
 }
 
 .chat-input-buttons {
@@ -560,8 +560,8 @@
   padding: 0.25rem 0.5rem;
   border-radius: 9999px; /* 完全に丸く */
   background: transparent;
-  border: 1px solid #3a3a3a;
-  color: #555;  /* より控えめなグレー */
+  border: 1px solid var(--app-border-primary);
+  color: var(--color-gray-700);  /* より控えめなグレー */
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -572,9 +572,9 @@
 }
 
 .chat-mode-button:hover {
-  background: #2a2a2a;
-  border-color: #4a4a4a;
-  color: #e5e7eb;
+  background: var(--app-bg-tertiary);
+  border-color: var(--app-border-hover);
+  color: var(--app-text-primary);
 }
 
 .chat-mode-icon {
@@ -618,10 +618,10 @@
   bottom: 100%;
   left: 0;
   margin-bottom: 0.375rem;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--app-shadow-lg);
   min-width: 220px;
   z-index: 1000;
   overflow: visible;
@@ -635,7 +635,7 @@
   padding: 0.625rem 0.875rem;
   background: transparent;
   border: none;
-  color: #e5e7eb;
+  color: var(--app-text-primary);
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -654,12 +654,12 @@
 }
 
 .chat-mode-option:hover {
-  background: #3a3a3a;
+  background: var(--app-border-primary);
 }
 
 .chat-mode-option.active {
-  background: #3a3a3a;
-  color: #F5E6D3;
+  background: var(--app-border-primary);
+  color: var(--app-accent-light);
 }
 
 .chat-mode-option.unimplemented {
@@ -677,8 +677,8 @@
   right: 100%;
   top: 50%;
   transform: translateY(-50%) translateX(-10px);
-  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
-  color: #e5e7eb;
+  background: var(--modal-bg);
+  color: var(--app-text-primary);
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.75rem;
@@ -688,8 +688,8 @@
   visibility: hidden;
   transition: all 0.2s ease;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border: 1px solid #3a3a3a;
+  box-shadow: var(--app-shadow-lg);
+  border: 1px solid var(--app-border-primary);
   z-index: 1001;
 }
 
@@ -718,8 +718,8 @@
   font-size: 0.625rem;
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  background: rgba(245, 230, 211, 0.15);
-  color: #F5E6D3;
+  background: oklch(0.95 0.03 85 / 0.15);
+  color: var(--app-accent-light);
   font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
@@ -731,15 +731,15 @@
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  background: linear-gradient(135deg, #C4A584 0%, #b39474 100%);
-  color: #1a1a1a;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--app-shadow-sm);
   width: 28px;
   height: 28px;
   flex-shrink: 0;
@@ -747,8 +747,8 @@
 
 .chat-send-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(196, 165, 132, 0.5);
-  background: linear-gradient(135deg, #d4b594 0%, #C4A584 100%);
+  box-shadow: 0 4px 12px oklch(0.72 0.05 70 / 0.5);
+  background: linear-gradient(135deg, var(--color-beige-400) 0%, var(--color-beige-500) 100%);
 }
 
 .chat-send-button:active:not(:disabled) {
@@ -758,7 +758,7 @@
 .chat-send-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #3a3a3a;
+  background: var(--app-border-primary);
   box-shadow: none;
 }
 
@@ -773,7 +773,7 @@
 /* ストリーミングカーソル */
 .streaming-cursor {
   animation: blink 1s infinite;
-  color: #F5E6D3;
+  color: var(--app-accent-light);
   margin-left: 2px;
 }
 
@@ -784,8 +784,8 @@
 
 /* ツール使用の表示 */
 .tool-use-display {
-  background: linear-gradient(135deg, #2a2a2a 0%, #252525 100%);
-  border: 1px solid #3a3a3a;
+  background: linear-gradient(135deg, var(--color-gray-925) 0%, var(--color-gray-950) 100%);
+  border: 1px solid var(--app-border-primary);
   border-radius: 0.75rem;
   overflow: hidden;
   margin-bottom: 0.5rem;
@@ -796,24 +796,24 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 0.875rem;
-  background: rgba(245, 230, 211, 0.06);
-  border-bottom: 1px solid #3a3a3a;
+  background: oklch(0.95 0.03 85 / 0.06);
+  border-bottom: 1px solid var(--app-border-primary);
 }
 
 .tool-use-icon {
   font-size: 1rem;
-  color: #F5E6D3; /* アクセントカラー */
+  color: var(--app-accent-light); /* アクセントカラー */
 }
 
 .tool-use-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #F5E6D3;
+  color: var(--app-accent-light);
 }
 
 .tool-use-streaming {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   margin-left: auto;
   animation: pulse 1.5s infinite;
 }
@@ -828,7 +828,7 @@
 
 .tool-use-preview-label {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   margin-bottom: 0.375rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -836,8 +836,8 @@
 
 .tool-use-preview-content {
   font-size: 0.75rem;
-  color: #e5e7eb;
-  background: #1e1e1e;
+  color: var(--app-text-primary);
+  background: var(--app-bg-primary);
   padding: 0.5rem;
   border-radius: 0.375rem;
   overflow-x: auto;
@@ -852,7 +852,7 @@
 .tool-use-diff {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
   font-size: 0.75rem;
-  background: #1e1e1e;
+  background: var(--app-bg-primary);
   border-radius: 0.375rem;
   overflow: hidden;
 }
@@ -862,9 +862,9 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.375rem 0.5rem;
-  background: rgba(239, 68, 68, 0.08);
-  color: #fca5a5;
-  border-left: 2px solid rgba(239, 68, 68, 0.5);
+  background: oklch(0.65 0.20 25 / 0.08);
+  color: oklch(0.85 0.15 25);
+  border-left: 2px solid oklch(0.65 0.20 25 / 0.5);
 }
 
 .tool-use-diff-add {
@@ -872,9 +872,9 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.375rem 0.5rem;
-  background: rgba(34, 197, 94, 0.08);
-  color: #86efac;
-  border-left: 2px solid rgba(34, 197, 94, 0.5);
+  background: oklch(0.75 0.18 160 / 0.08);
+  color: oklch(0.85 0.15 145);
+  border-left: 2px solid oklch(0.75 0.18 160 / 0.5);
 }
 
 .tool-use-diff .diff-prefix {
@@ -889,4 +889,3 @@
   width: 100%;
   justify-content: center;
 }
-

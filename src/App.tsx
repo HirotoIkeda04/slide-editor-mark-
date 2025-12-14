@@ -9,6 +9,7 @@ import { saveItemsToLocalStorage, loadItemsFromLocalStorage } from './utils/file
 import { contentToLines, linesToContent, linesToAttributeMap } from './utils/attributes'
 import { DEFAULT_IMPRESSION_CODE, findMatchingPreset } from './constants/impressionConfigs'
 import type { SlideItem } from './types'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 const MAIN_SLIDE_ITEM_ID = 'main-slide'
 import { Toolbar } from './components/toolbar/Toolbar'
@@ -129,6 +130,7 @@ function App() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(MAIN_SLIDE_ITEM_ID)
   const [showItemModal, setShowItemModal] = useState(false)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
+  const [isCreatingItem, setIsCreatingItem] = useState(false)
   
   // Line-based editor state
   const [lines, setLines] = useState<EditorLine[]>(() => contentToLines(DEFAULT_CONTENT))
@@ -433,7 +435,9 @@ function App() {
   // アイテム管理のハンドラー
   const handleAddItem = () => {
     setEditingItem(null)
-    setShowItemModal(true)
+    setIsCreatingItem(true)
+    setSelectedItemId(null)  // 選択を解除して作成フォームを表示
+    setIsTonmanaSelected(false)
   }
 
   const handleEditItem = (item: Item) => {
@@ -442,6 +446,22 @@ function App() {
     }
     setEditingItem(item)
     setShowItemModal(true)
+  }
+
+  const handleCancelCreate = () => {
+    setIsCreatingItem(false)
+    setSelectedItemId(MAIN_SLIDE_ITEM_ID)
+  }
+
+  const handleCreateItem = (itemData: Partial<Item>) => {
+    const newItem = createItem(
+      itemData.name!,
+      itemData.type!,
+      itemData
+    )
+    setItems(prev => [...prev, newItem])
+    setIsCreatingItem(false)
+    setSelectedItemId(newItem.id)  // 作成したアイテムを選択
   }
 
   const handleUpdateItem = (itemId: string, updates: Partial<Item>) => {
@@ -495,6 +515,7 @@ function App() {
   }, [])
 
   return (
+    <ThemeProvider>
     <div className="h-screen max-h-screen flex flex-col overflow-hidden">
       <Toolbar
         onLoad={() => loadPresentation(handleSetEditorContent, setCurrentIndex)}
@@ -565,8 +586,8 @@ function App() {
             style={{ 
               paddingTop: 0, 
               marginTop: '-1px', 
-              borderTop: '1.5px solid #e5e7eb', 
-              backgroundColor: '#1e1e1e',
+              borderTop: '1.5px solid var(--app-border-primary)', 
+              backgroundColor: 'var(--app-bg-primary)',
               minWidth: 0,
               minHeight: 0
             }}
@@ -611,10 +632,10 @@ function App() {
             if (isTonmanaSelected) {
               const preset = findMatchingPreset(impressionCode)
               return (
-                <div className="editor-file-header" style={{ borderBottom: '1px solid #3a3a3a', backgroundColor: '#1e1e1e' }}>
+                <div className="editor-file-header" style={{ borderBottom: '1px solid var(--app-border-primary)', backgroundColor: 'var(--app-bg-primary)' }}>
                   <div className="flex items-center gap-2">
-                    <span className="material-icons" style={{ fontSize: '1rem', color: '#FFCB6B' }}>palette</span>
-                    <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: 500 }}>
+                    <span className="material-icons" style={{ fontSize: '1rem', color: 'var(--app-highlight)' }}>palette</span>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--app-text-secondary)', fontWeight: 500 }}>
                       トンマナ{preset ? ` - ${preset.nameJa}` : ''}
                     </span>
                   </div>
@@ -699,9 +720,9 @@ function App() {
             }
 
             return (
-              <div className="editor-file-header" style={{ borderBottom: '1px solid #3a3a3a', backgroundColor: '#1e1e1e' }}>
+              <div className="editor-file-header" style={{ borderBottom: '1px solid var(--app-border-primary)', backgroundColor: 'var(--app-bg-primary)' }}>
                 <div className="flex items-center gap-2">
-                  <span className="material-icons" style={{ fontSize: '1rem', color: '#FFCB6B' }}>{getItemIcon(selectedItem.type)}</span>
+                  <span className="material-icons" style={{ fontSize: '1rem', color: 'var(--app-highlight)' }}>{getItemIcon(selectedItem.type)}</span>
                   {editingHeaderItemId === selectedItem.id ? (
                     <div style={{ position: 'relative', flex: 1 }}>
                       <input
@@ -712,10 +733,10 @@ function App() {
                         onKeyDown={(e) => handleHeaderNameKeyDown(e, selectedItem)}
                         style={{
                           fontSize: '0.875rem',
-                          color: '#e5e7eb',
+                          color: 'var(--app-text-primary)',
                           fontWeight: 500,
                           background: 'transparent',
-                          border: headerNameError ? '1px solid #FF5370' : '1px solid transparent',
+                          border: headerNameError ? '1px solid var(--app-error)' : '1px solid transparent',
                           borderRadius: '0.25rem',
                           padding: 0,
                           margin: 0,
@@ -726,8 +747,8 @@ function App() {
                           fontFamily: 'inherit'
                         }}
                         onFocus={(e) => {
-                          e.target.style.border = headerNameError ? '1px solid #FF5370' : '1px solid #FFCB6B'
-                          e.target.style.background = '#252525'
+                          e.target.style.border = headerNameError ? '1px solid var(--app-error)' : '1px solid var(--app-highlight)'
+                          e.target.style.background = 'var(--app-bg-secondary)'
                           e.target.style.padding = '0.125rem 0.25rem'
                         }}
                         onBlur={(e) => {
@@ -744,7 +765,7 @@ function App() {
                           left: 0,
                           marginTop: '0.25rem',
                           fontSize: '0.625rem',
-                          color: '#FF5370',
+                          color: 'var(--app-error)',
                           whiteSpace: 'nowrap'
                         }}>
                           {headerNameError}
@@ -753,7 +774,7 @@ function App() {
                     </div>
                   ) : (
                     <span 
-                      style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: 500, cursor: selectedItem.id === MAIN_SLIDE_ITEM_ID ? 'default' : 'text' }}
+                      style={{ fontSize: '0.875rem', color: 'var(--app-text-secondary)', fontWeight: 500, cursor: selectedItem.id === MAIN_SLIDE_ITEM_ID ? 'default' : 'text' }}
                       onDoubleClick={(e) => handleHeaderNameDoubleClick(selectedItem, e)}
                       title={selectedItem.id === MAIN_SLIDE_ITEM_ID ? '' : 'Double-click to edit name'}
                     >
@@ -778,6 +799,17 @@ function App() {
                 stylePins={stylePins}
                 onStylePinChange={handleStylePinChange}
               />
+            ) : isCreatingItem ? (
+              /* アイテム作成モード：ItemDetailPanelを作成モードで表示 */
+              <ItemDetailPanel
+                item={null}
+                onEdit={handleEditItem}
+                onUpdateItem={handleUpdateItem}
+                isCreatingItem={true}
+                onCreateItem={handleCreateItem}
+                onCancelCreate={handleCancelCreate}
+                existingNames={items.map(item => item.name)}
+              />
             ) : selectedItemId && selectedItemId !== MAIN_SLIDE_ITEM_ID ? (
               /* その他のアイテム選択時：ItemDetailPanelを表示 */
               <ItemDetailPanel
@@ -800,13 +832,14 @@ function App() {
       </div>
 
             {/* アイテムタブバー（常時表示） */}
-            <div className="flex flex-col" style={{ width: '36px', minHeight: 0, borderLeft: '1px solid #3a3a3a' }}>
+            <div className="flex flex-col" style={{ width: '36px', minHeight: 0, borderLeft: '1px solid var(--app-border-primary)' }}>
               <ItemTabBar
                 items={items}
                 selectedItemId={selectedItemId}
                 onSelectItem={(itemId) => {
                   setSelectedItemId(itemId)
                   setIsTonmanaSelected(false)
+                  setIsCreatingItem(false)  // 作成モードを解除
                 }}
                 onAddItem={handleAddItem}
                 onUpdateItem={handleUpdateItem}
@@ -815,13 +848,14 @@ function App() {
                 onSelectTonmana={() => {
                   setIsTonmanaSelected(true)
                   setSelectedItemId(null)
+                  setIsCreatingItem(false)  // 作成モードを解除
                 }}
               />
             </div>
           </div>
           {/* Toast - FloatingNavBarの上に表示（エディタ選択時のみ） */}
           {/* 行番号カラム(60px)を除いたテキスト部分の中央に配置 */}
-          {!isTonmanaSelected && (!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
+          {!isTonmanaSelected && !isCreatingItem && (!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
             <div
               className="pointer-events-none fixed z-40"
               style={{ 
@@ -839,7 +873,7 @@ function App() {
           )}
           {/* FloatingNavBar - エディタ領域の最下部（エディタ選択時のみ） */}
           {/* 行番号カラム(60px)を除いたテキスト部分の中央に配置 */}
-          {!isTonmanaSelected && (!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
+          {!isTonmanaSelected && !isCreatingItem && (!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
             <div
               className="pointer-events-none fixed z-40"
               style={{ 
@@ -891,6 +925,7 @@ function App() {
         existingNames={items.map(item => item.name)}
       />
     </div>
+    </ThemeProvider>
   )
 }
 

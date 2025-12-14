@@ -1,10 +1,10 @@
 /* コンソール */
 .console-panel {
-  background-color: #141414;
-  border: 1px solid #333;
+  background-color: var(--color-gray-1000);
+  border: 1px solid var(--app-bg-elevated);
   border-radius: 0.75rem;
   padding: 1rem;
-  color: #e5e5e5;
+  color: var(--app-text-primary);
   min-height: 120px;
   display: flex;
   flex-direction: column;
@@ -19,7 +19,7 @@
 }
 .console-count {
   font-size: 0.75rem;
-  color: rgba(245, 245, 245, 0.6);
+  color: oklch(0.96 0 0 / 0.6);
 }
 .console-body {
   display: flex;
@@ -30,7 +30,7 @@
 }
 .console-empty {
   font-size: 0.8rem;
-  color: rgba(245, 245, 245, 0.4);
+  color: oklch(0.96 0 0 / 0.4);
 }
 .console-entry {
   display: flex;
@@ -42,18 +42,17 @@
 }
 .console-entry .console-line {
   font-family: monospace;
-  color: rgba(245, 245, 245, 0.6);
+  color: oklch(0.96 0 0 / 0.6);
 }
 .console-entry.error {
-  border-color: #ff5370;
-  color: #ff5370;
+  border-color: var(--app-error);
+  color: var(--app-error);
 }
 .console-entry.warning {
-  border-color: #F5E6D3;
-  color: #F5E6D3;
+  border-color: var(--app-accent-light);
+  color: var(--app-accent-light);
 }
 .console-entry.info {
-  border-color: #c3e88d;
-  color: #c3e88d;
+  border-color: var(--app-success);
+  color: var(--app-success);
 }
-

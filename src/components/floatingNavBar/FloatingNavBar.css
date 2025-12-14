@@ -11,10 +11,10 @@
   align-items: center;
   gap: 2px;
   padding: 6px 10px;
-  background-color: #2b2b2b;
-  border: 1px solid #3a3a3a;
+  background-color: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--app-shadow-lg);
   animation: fadeIn 0.2s ease-out;
   pointer-events: auto;
 }
@@ -33,7 +33,7 @@
 .floating-nav-bar-divider {
   width: 1px;
   height: 20px;
-  background-color: #4a4a4a;
+  background-color: var(--app-border-hover);
   margin: 0 4px;
 }
 
@@ -47,7 +47,7 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
   font-size: 12px;
@@ -56,17 +56,17 @@
 }
 
 .floating-nav-bar-btn:hover {
-  background-color: #3a3a3a;
-  color: #e5e7eb;
+  background-color: var(--app-border-primary);
+  color: var(--app-text-primary);
 }
 
 .floating-nav-bar-btn.active {
-  background-color: #C4A584;
-  color: #1a1a1a;
+  background-color: var(--app-accent);
+  color: var(--color-gray-1000);
 }
 
 .floating-nav-bar-btn.active:hover {
-  background-color: #d4b594;
+  background-color: var(--color-beige-400);
 }
 
 .floating-nav-bar-btn:disabled {
@@ -86,7 +86,7 @@
 
 .floating-nav-bar-label {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--app-text-disabled);
   margin-right: 4px;
   white-space: nowrap;
 }
@@ -104,10 +104,10 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-  background-color: #2b2b2b;
-  border: 1px solid #3a3a3a;
+  background-color: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--app-shadow-lg);
   min-width: 120px;
   z-index: 100;
   animation: overflowFadeIn 0.15s ease-out;
@@ -132,7 +132,7 @@
 }
 
 .floating-nav-bar-menu-group:not(:last-child) {
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--app-border-primary);
   padding-bottom: 6px;
   margin-bottom: 2px;
 }
@@ -140,13 +140,12 @@
 /* ツールチップ */
 .floating-nav-bar-tooltip {
   padding: 6px 10px;
-  background-color: #2b2b2b;
-  border: 1px solid #3a3a3a;
+  background-color: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  color: #e5e7eb;
+  color: var(--app-text-primary);
   font-size: 12px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--app-shadow-md);
   pointer-events: none;
 }
-

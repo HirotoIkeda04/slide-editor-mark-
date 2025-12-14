@@ -1,0 +1,363 @@
+/* ============================================
+ * OKLCH Color Token System
+ * ============================================
+ * Claude公式カラーパレットを参考
+ * スライドのトンマナ（--tone-* 変数）とは独立して管理
+ */
+
+:root {
+  /* ============================================
+   * Primitive Tokens - Claude Official Colors
+   * HEXからOKLCHへ変換
+   * ============================================ */
+
+  /* Claude Grayscale (公式) */
+  /* #000000 → Black */
+  --color-black: oklch(0 0 0);
+  /* #191919 → Charcoal (Dark mode primary) */
+  --color-charcoal: oklch(0.178 0.002 60);
+  /* #1E1E1E → Black-90 */
+  --color-black-90: oklch(0.195 0.002 60);
+  /* #383838 → Black-80 */
+  --color-black-80: oklch(0.303 0.002 60);
+  /* #4A4A4A → Black-70 */
+  --color-black-70: oklch(0.370 0.002 60);
+  /* #595959 → Black-60 */
+  --color-black-60: oklch(0.423 0.002 60);
+  /* #787878 → Black-50 */
+  --color-black-50: oklch(0.530 0.002 60);
+  /* #A3A3A3 → Black-40 */
+  --color-black-40: oklch(0.690 0.002 60);
+  /* #C7C7C7 → Black-30 */
+  --color-black-30: oklch(0.815 0.002 60);
+  /* #DDDDE0 → Black-20 */
+  --color-black-20: oklch(0.895 0.003 270);
+  /* #F0F0F0 → Black-10 */
+  --color-black-10: oklch(0.953 0.002 60);
+  /* #FFFFFF → White */
+  --color-white: oklch(1 0 0);
+  
+  /* Claude特有のウォームブラウン */
+  /* #2D2B2A → 主要ダークモード背景 */
+  --color-claude-bg: oklch(0.250 0.008 55);
+  /* #141413 → 最も暗い背景 */
+  --color-claude-deep: oklch(0.155 0.005 60);
+  /* #faf9f5 → Vanilla (ライトテキスト) */
+  --color-vanilla: oklch(0.980 0.008 90);
+  /* #FFFAEE → Vanilla light */
+  --color-vanilla-light: oklch(0.985 0.012 90);
+
+  /* ライトテーマ用グレースケール */
+  --color-gray-25: var(--color-white);
+  --color-gray-50: var(--color-vanilla-light);
+  --color-gray-100: var(--color-vanilla);
+  --color-gray-150: oklch(0.965 0.006 90);
+  --color-gray-200: var(--color-black-10);
+  --color-gray-300: var(--color-black-20);
+  --color-gray-400: var(--color-black-40);
+  --color-gray-500: var(--color-black-50);
+  --color-gray-600: var(--color-black-60);
+
+  /* ダークテーマ用グレースケール */
+  --color-dark-500: var(--color-black-60);
+  --color-dark-600: var(--color-black-70);
+  --color-dark-700: var(--color-black-80);
+  --color-dark-800: oklch(0.265 0.006 55);
+  --color-dark-850: var(--color-claude-bg);
+  --color-dark-900: oklch(0.220 0.006 55);
+  --color-dark-925: oklch(0.200 0.005 55);
+  --color-dark-950: var(--color-charcoal);
+  --color-dark-975: oklch(0.165 0.004 60);
+  --color-dark-1000: var(--color-claude-deep);
+
+  /* サンド/トープ系（ベージュアクセント - オレンジの代わり） */
+  --color-sand-50: oklch(0.970 0.012 70);
+  --color-sand-100: oklch(0.955 0.018 70);
+  --color-sand-200: oklch(0.920 0.028 70);
+  --color-sand-300: oklch(0.870 0.040 70);
+  --color-sand-400: oklch(0.780 0.055 70);
+  --color-sand-500: oklch(0.720 0.060 70);
+  --color-sand-600: oklch(0.660 0.055 70);
+  --color-sand-700: oklch(0.600 0.050 70);
+  --color-sand-800: oklch(0.540 0.042 70);
+  --color-sand-900: oklch(0.480 0.035 70);
+
+  /* ストーン系（ハイライト） */
+  --color-stone-50: oklch(0.965 0.010 60);
+  --color-stone-100: oklch(0.945 0.015 60);
+  --color-stone-200: oklch(0.900 0.022 60);
+  --color-stone-300: oklch(0.850 0.032 60);
+  --color-stone-400: oklch(0.780 0.045 60);
+  --color-stone-500: oklch(0.720 0.050 60);
+  --color-stone-600: oklch(0.660 0.048 60);
+  --color-stone-700: oklch(0.600 0.042 60);
+  --color-stone-800: oklch(0.540 0.036 60);
+  --color-stone-900: oklch(0.480 0.030 60);
+
+  /* レガシー互換 */
+  --color-beige-50: var(--color-sand-50);
+  --color-beige-100: var(--color-sand-100);
+  --color-beige-200: var(--color-sand-200);
+  --color-beige-300: var(--color-sand-300);
+  --color-beige-400: var(--color-sand-400);
+  --color-beige-500: var(--color-sand-500);
+  --color-beige-600: var(--color-sand-600);
+  --color-beige-700: var(--color-sand-700);
+  --color-beige-800: var(--color-sand-800);
+  --color-beige-900: var(--color-sand-900);
+
+  --color-gold-50: var(--color-stone-50);
+  --color-gold-100: var(--color-stone-100);
+  --color-gold-200: var(--color-stone-200);
+  --color-gold-300: var(--color-stone-300);
+  --color-gold-400: var(--color-stone-400);
+  --color-gold-500: var(--color-stone-500);
+  --color-gold-600: var(--color-stone-600);
+  --color-gold-700: var(--color-stone-700);
+  --color-gold-800: var(--color-stone-800);
+  --color-gold-900: var(--color-stone-900);
+
+  /* アンバー系（警告） */
+  --color-amber-300: oklch(0.850 0.090 70);
+  --color-amber-400: oklch(0.800 0.105 70);
+  --color-amber-500: oklch(0.750 0.110 70);
+
+  /* グリーン（成功） */
+  --color-green-400: oklch(0.720 0.120 155);
+  --color-green-500: oklch(0.660 0.140 155);
+  --color-green-600: oklch(0.600 0.130 155);
+
+  /* レッド（エラー） */
+  --color-red-400: oklch(0.660 0.160 25);
+  --color-red-500: oklch(0.600 0.175 25);
+  --color-red-600: oklch(0.540 0.165 25);
+  --color-red-900: oklch(0.340 0.100 25);
+  --color-red-950: oklch(0.270 0.070 25);
+
+  /* ブルー（情報） */
+  --color-blue-300: oklch(0.740 0.090 240);
+  --color-blue-400: oklch(0.660 0.115 240);
+  --color-blue-500: oklch(0.580 0.140 240);
+
+  /* パープル */
+  --color-purple-400: oklch(0.630 0.160 295);
+  --color-purple-500: oklch(0.560 0.175 295);
+
+  /* シンタックスハイライト */
+  --color-syntax-yellow: oklch(0.820 0.080 65);
+  --color-syntax-purple: oklch(0.680 0.140 295);
+  --color-syntax-orange: oklch(0.730 0.100 55);
+  --color-syntax-green: oklch(0.720 0.110 155);
+
+  /* ============================================
+   * Semantic Tokens - Dark Mode (Claude Dark)
+   * #2D2B2A ベースのダークテーマ
+   * ============================================ */
+
+  /* 背景 - Claude公式 #2D2B2A ベース */
+  --app-bg-primary: var(--color-claude-bg);
+  --app-bg-secondary: var(--color-dark-900);
+  --app-bg-tertiary: var(--color-dark-800);
+  --app-bg-elevated: var(--color-dark-700);
+  --app-bg-deep: var(--color-dark-950);
+
+  /* テキスト - #faf9f5 ベース */
+  --app-text-primary: var(--color-vanilla);
+  --app-text-secondary: var(--color-black-40);
+  --app-text-muted: var(--color-black-50);
+  --app-text-disabled: var(--color-black-60);
+
+  /* ボーダー */
+  --app-border-primary: var(--color-dark-700);
+  --app-border-secondary: var(--color-dark-600);
+  --app-border-hover: var(--color-dark-500);
+
+  /* アクセント（ベージュ系） */
+  --app-accent: var(--color-sand-500);
+  --app-accent-light: var(--color-sand-200);
+  --app-accent-hover: var(--color-sand-400);
+  --app-accent-dark: var(--color-sand-600);
+
+  /* ハイライト */
+  --app-highlight: var(--color-stone-400);
+  --app-highlight-light: var(--color-stone-300);
+
+  /* セマンティック */
+  --app-success: var(--color-green-400);
+  --app-error: var(--color-red-400);
+  --app-error-light: oklch(0.700 0.140 25);
+  --app-warning: var(--color-amber-400);
+  --app-info: var(--color-blue-400);
+
+  /* セマンティック背景 */
+  --app-success-bg: oklch(0.250 0.030 155 / 0.4);
+  --app-error-bg: oklch(0.250 0.040 25 / 0.4);
+  --app-warning-bg: oklch(0.250 0.035 70 / 0.4);
+  --app-info-bg: oklch(0.250 0.030 240 / 0.4);
+
+  /* インタラクション */
+  --app-hover-overlay: oklch(1 0 0 / 0.05);
+  --app-active-overlay: oklch(1 0 0 / 0.08);
+  --app-focus-ring: var(--color-sand-400);
+  --app-selection: oklch(0.72 0.06 70 / 0.20);
+
+  /* シャドウ */
+  --app-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.20);
+  --app-shadow-md: 0 4px 8px oklch(0 0 0 / 0.30);
+  --app-shadow-lg: 0 8px 24px oklch(0 0 0 / 0.40);
+  --app-shadow-accent: 0 0 12px oklch(0.72 0.06 70 / 0.15);
+}
+
+/* ============================================
+ * Light Theme - Claude Light (#FFFAEE base)
+ * テキストコントラスト改善版
+ * ============================================ */
+[data-theme="light"] {
+  /* 背景 - #FFFAEE ベース */
+  --app-bg-primary: var(--color-vanilla-light);
+  --app-bg-secondary: var(--color-vanilla);
+  --app-bg-tertiary: var(--color-gray-150);
+  --app-bg-elevated: var(--color-white);
+  --app-bg-deep: var(--color-gray-200);
+
+  /* テキスト - コントラスト改善 */
+  --app-text-primary: var(--color-charcoal);
+  --app-text-secondary: var(--color-black-70);
+  --app-text-muted: var(--color-black-60);
+  --app-text-disabled: var(--color-black-50);
+
+  /* ボーダー */
+  --app-border-primary: var(--color-black-20);
+  --app-border-secondary: var(--color-black-30);
+  --app-border-hover: var(--color-black-50);
+
+  /* アクセント - ライトモードではより濃く */
+  --app-accent: var(--color-sand-700);
+  --app-accent-light: var(--color-sand-300);
+  --app-accent-hover: var(--color-sand-600);
+  --app-accent-dark: var(--color-sand-800);
+
+  /* ハイライト - ライトモードではより濃く */
+  --app-highlight: var(--color-stone-700);
+  --app-highlight-light: var(--color-stone-500);
+
+  /* セマンティック */
+  --app-success: var(--color-green-600);
+  --app-error: var(--color-red-600);
+  --app-error-light: var(--color-red-500);
+  --app-warning: var(--color-amber-500);
+  --app-info: var(--color-blue-500);
+
+  /* セマンティック背景 */
+  --app-success-bg: oklch(0.920 0.025 155 / 0.5);
+  --app-error-bg: oklch(0.920 0.035 25 / 0.5);
+  --app-warning-bg: oklch(0.920 0.035 70 / 0.5);
+  --app-info-bg: oklch(0.920 0.025 240 / 0.5);
+
+  /* インタラクション */
+  --app-hover-overlay: oklch(0 0 0 / 0.03);
+  --app-active-overlay: oklch(0 0 0 / 0.06);
+  --app-selection: oklch(0.72 0.06 70 / 0.15);
+
+  /* シャドウ */
+  --app-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04);
+  --app-shadow-md: 0 4px 12px oklch(0 0 0 / 0.07);
+  --app-shadow-lg: 0 8px 32px oklch(0 0 0 / 0.10);
+  --app-shadow-accent: 0 0 12px oklch(0.72 0.06 70 / 0.10);
+}
+
+/* ============================================
+ * Component-specific tokens
+ * ============================================ */
+:root {
+  /* エディター */
+  --editor-bg: var(--app-bg-primary);
+  --editor-bg-line-number: var(--color-dark-900);
+  --editor-bg-current-line: var(--app-hover-overlay);
+  --editor-text: var(--app-text-primary);
+  --editor-text-line-number: var(--color-black-50);
+  --editor-border: var(--app-border-primary);
+  --editor-caret: var(--app-accent-light);
+
+  /* ツールバー */
+  --toolbar-bg: var(--color-dark-900);
+  --toolbar-border: var(--color-dark-700);
+  --toolbar-text: var(--app-text-secondary);
+  --toolbar-text-hover: var(--app-text-primary);
+  --toolbar-button-primary-bg: linear-gradient(135deg, var(--color-sand-500) 0%, var(--color-sand-600) 100%);
+  --toolbar-button-primary-text: var(--color-dark-950);
+
+  /* サイドパネル */
+  --panel-bg: var(--app-bg-primary);
+  --panel-header-bg: var(--app-bg-secondary);
+  --panel-border: var(--app-border-primary);
+
+  /* モーダル/トースト */
+  --modal-bg: var(--color-dark-800);
+  --modal-border: var(--app-border-primary);
+  --toast-bg: var(--modal-bg);
+  --toast-border: var(--app-border-primary);
+
+  /* ボタン */
+  --button-primary-bg: var(--toolbar-button-primary-bg);
+  --button-primary-text: var(--toolbar-button-primary-text);
+  --button-secondary-bg: var(--app-bg-tertiary);
+  --button-secondary-text: var(--app-text-primary);
+  --button-secondary-border: var(--app-border-primary);
+
+  /* 入力フィールド */
+  --input-bg: var(--app-bg-primary);
+  --input-border: var(--app-border-primary);
+  --input-border-focus: var(--app-accent);
+  --input-text: var(--app-text-primary);
+  --input-placeholder: var(--app-text-muted);
+
+  /* タブ */
+  --tab-bg: var(--app-bg-primary);
+  --tab-bg-active: var(--app-bg-tertiary);
+  --tab-text: var(--app-text-muted);
+  --tab-text-active: var(--app-accent-light);
+  --tab-border-active: var(--app-accent);
+
+  /* スクロールバー */
+  --scrollbar-track: var(--app-bg-primary);
+  --scrollbar-thumb: var(--color-dark-600);
+  --scrollbar-thumb-hover: var(--color-dark-500);
+
+  /* カルーセル */
+  --carousel-bg: var(--color-dark-950);
+  --carousel-border: var(--color-dark-800);
+  --carousel-item-bg: var(--color-dark-900);
+  --carousel-item-border-active: var(--app-accent);
+}
+
+[data-theme="light"] {
+  /* エディター - コントラスト改善 */
+  --editor-bg: var(--app-bg-primary);
+  --editor-bg-line-number: var(--color-vanilla);
+  --editor-text-line-number: var(--color-black-60);
+  --editor-caret: var(--app-accent-dark);
+
+  /* ツールバー */
+  --toolbar-bg: var(--color-vanilla);
+  --toolbar-border: var(--color-black-20);
+  --toolbar-button-primary-bg: linear-gradient(135deg, var(--color-sand-600) 0%, var(--color-sand-700) 100%);
+  --toolbar-button-primary-text: white;
+
+  /* モーダル/トースト */
+  --modal-bg: var(--color-white);
+  --toast-bg: var(--modal-bg);
+
+  /* スクロールバー */
+  --scrollbar-track: var(--color-vanilla);
+  --scrollbar-thumb: var(--color-black-40);
+  --scrollbar-thumb-hover: var(--color-black-50);
+
+  /* カルーセル */
+  --carousel-bg: var(--color-vanilla);
+  --carousel-border: var(--color-black-30);
+  --carousel-item-bg: var(--color-white);
+
+  /* タブ - ライトモードでは濃いアクセント */
+  --tab-text-active: var(--app-accent-dark);
+}

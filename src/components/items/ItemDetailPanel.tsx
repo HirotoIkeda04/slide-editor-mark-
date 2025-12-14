@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import type { Item, TableItem, ImageItem, TextItem, ImageDisplayMode, CellDataType, CellFormat, TableDisplayFormat } from '../../types'
+import type { Item, ItemType, TableItem, ImageItem, TextItem, ImageDisplayMode, CellDataType, CellFormat, TableDisplayFormat } from '../../types'
 import { cropImage } from '../../utils/imageProcessing'
 import { 
   getCellKey, 
@@ -9,7 +9,8 @@ import {
   formatCellValue, 
   validateCellValue, 
   inferCellDataType,
-  getDefaultCellFormat
+  getDefaultCellFormat,
+  parseMarkdownTable
 } from '../../utils/tableUtils'
 import { FormulaEvaluator } from '../../utils/formulaEvaluator'
 import { FloatingNavBar } from '../floatingNavBar/FloatingNavBar'
@@ -20,14 +21,28 @@ interface ItemDetailPanelProps {
   item: Item | null
   onEdit: (item: Item) => void
   onUpdateItem?: (itemId: string, updates: Partial<Item>) => void
+  // 作成モード用のプロパティ
+  isCreatingItem?: boolean
+  onCreateItem?: (itemData: Partial<Item>) => void
+  onCancelCreate?: () => void
+  existingNames?: string[]
 }
 
 export const ItemDetailPanel = ({ 
   item, 
   onEdit, 
   onUpdateItem,
+  isCreatingItem = false,
+  onCreateItem,
+  onCancelCreate,
+  existingNames = [],
 }: ItemDetailPanelProps) => {
   const [, setDisplayMode] = useState<ImageDisplayMode>('contain')
+  
+  // 作成モード用の状態
+  const [createName, setCreateName] = useState('')
+  const [createType, setCreateType] = useState<ItemType>('table')
+  const [createNameError, setCreateNameError] = useState('')
 
   // Table specific state
   const [tableData, setTableData] = useState<string[][]>([['', ''], ['', '']])
@@ -47,6 +62,11 @@ export const ItemDetailPanel = ({
   const [hiddenRows, setHiddenRows] = useState<number[]>([])
   const [hiddenColumns, setHiddenColumns] = useState<number[]>([])
   const tableScrollViewportRef = useRef<HTMLDivElement | null>(null)
+  
+  // Markdown import state
+  const [showMarkdownImport, setShowMarkdownImport] = useState(false)
+  const [markdownInput, setMarkdownInput] = useState('')
+  const [markdownImportError, setMarkdownImportError] = useState('')
   
   // Image specific state
   const [imageDataUrl, setImageDataUrl] = useState('')
@@ -1091,6 +1111,60 @@ export const ItemDetailPanel = ({
     }
   }
 
+  // Markdownテーブルからインポート
+  const handleMarkdownImport = () => {
+    if (!item || !onUpdateItem || item.type !== 'table') return
+    
+    const parsed = parseMarkdownTable(markdownInput)
+    
+    if (!parsed) {
+      setMarkdownImportError('有効なMarkdownテーブルが見つかりません。| で区切られた形式で入力してください。')
+      return
+    }
+    
+    // パースに成功した場合、データを適用
+    const newData = parsed.data.length > 0 ? parsed.data : [['', '']]
+    const newHeaders = parsed.hasHeaders ? parsed.headers : []
+    const newUseHeaders = parsed.hasHeaders
+    
+    // 列数を揃える
+    const colCount = parsed.hasHeaders ? parsed.headers.length : (parsed.data[0]?.length || 2)
+    const normalizedHeaders = [...newHeaders]
+    while (normalizedHeaders.length < colCount) {
+      normalizedHeaders.push('')
+    }
+    
+    // データがない場合は空行を1つ追加
+    const normalizedData = newData.length > 0 ? newData : [Array(colCount).fill('')]
+    
+    // 状態を更新
+    setTableData(normalizedData)
+    setTableHeaders(normalizedHeaders)
+    setUseHeaders(newUseHeaders)
+    // セルタイプとフォーマットをリセット
+    setCellTypes({})
+    setCellFormats({})
+    setMergedCells([])
+    setHiddenRows([])
+    setHiddenColumns([])
+    
+    // 保存
+    onUpdateItem(item.id, {
+      data: normalizedData,
+      headers: newUseHeaders ? normalizedHeaders : undefined,
+      cellTypes: {},
+      cellFormats: {},
+      mergedCells: [],
+      hiddenRows: [],
+      hiddenColumns: []
+    } as Partial<TableItem>)
+    
+    // ダイアログを閉じる
+    setShowMarkdownImport(false)
+    setMarkdownInput('')
+    setMarkdownImportError('')
+  }
+
   const handleTextContentChange = (value: string) => {
     setTextContent(value)
   }
@@ -1125,6 +1199,402 @@ export const ItemDetailPanel = ({
       setDisplayMode(mode)
       onUpdateItem(item.id, { displayMode: mode } as Partial<ImageItem>)
     }
+  }
+
+  // 作成モードのバリデーション
+  const validateCreateName = (value: string): boolean => {
+    if (!value.trim()) {
+      setCreateNameError('名前を入力してください')
+      return false
+    }
+    const isDuplicate = existingNames.some(n => n === value)
+    if (isDuplicate) {
+      setCreateNameError('この名前は既に使用されています')
+      return false
+    }
+    setCreateNameError('')
+    return true
+  }
+
+  // 作成モードの保存ハンドラー
+  const handleCreate = () => {
+    if (!onCreateItem) return
+    if (!validateCreateName(createName)) return
+
+    const baseItem: Partial<Item> = {
+      name: createName.trim(),
+      type: createType
+    }
+
+    let itemData: Partial<Item>
+    switch (createType) {
+      case 'table':
+        itemData = {
+          ...baseItem,
+          data: tableData,
+          headers: useHeaders ? tableHeaders : undefined
+        } as Partial<TableItem>
+        break
+      case 'image':
+        if (!imageDataUrl) {
+          alert('画像をアップロードしてください')
+          return
+        }
+        itemData = {
+          ...baseItem,
+          dataUrl: imageDataUrl,
+          alt: imageAlt,
+          displayMode: imageDisplayMode
+        } as Partial<ImageItem>
+        break
+      case 'text':
+        if (!textContent.trim()) {
+          alert('テキストを入力してください')
+          return
+        }
+        itemData = {
+          ...baseItem,
+          content: textContent
+        } as Partial<TextItem>
+        break
+      default:
+        return
+    }
+
+    onCreateItem(itemData)
+    // 状態をリセット
+    setCreateName('')
+    setCreateType('table')
+    setTableData([['', ''], ['', '']])
+    setTableHeaders(['', ''])
+    setUseHeaders(false)
+    setImageDataUrl('')
+    setImageAlt('')
+    setTextContent('')
+  }
+
+  // 作成モードのキャンセル
+  const handleCancelCreateMode = () => {
+    if (onCancelCreate) {
+      onCancelCreate()
+    }
+    // 状態をリセット
+    setCreateName('')
+    setCreateType('table')
+    setCreateNameError('')
+    setTableData([['', ''], ['', '']])
+    setTableHeaders(['', ''])
+    setUseHeaders(false)
+    setImageDataUrl('')
+    setImageAlt('')
+    setTextContent('')
+  }
+
+  // 作成モード時のUI
+  if (isCreatingItem) {
+    return (
+      <div className="item-detail-panel">
+        <div className="item-create-form">
+          <div className="item-create-header">
+            <h2>新しいアイテムを作成</h2>
+          </div>
+
+          <div className="item-create-content">
+            {/* 名前入力 */}
+            <div className="item-create-field">
+              <label htmlFor="create-item-name">名前 *</label>
+              <input
+                id="create-item-name"
+                type="text"
+                value={createName}
+                onChange={(e) => {
+                  setCreateName(e.target.value)
+                  validateCreateName(e.target.value)
+                }}
+                placeholder="アイテム名を入力"
+                className={createNameError ? 'error' : ''}
+                autoFocus
+              />
+              {createNameError && <div className="item-create-error">{createNameError}</div>}
+            </div>
+
+            {/* タイプ選択 */}
+            <div className="item-create-field">
+              <label>タイプ *</label>
+              <div className="item-type-selector">
+                <button
+                  className={`item-type-button ${createType === 'table' ? 'active' : ''}`}
+                  onClick={() => setCreateType('table')}
+                >
+                  <span className="material-icons">table_chart</span>
+                  Table
+                </button>
+                <button
+                  className={`item-type-button ${createType === 'text' ? 'active' : ''}`}
+                  onClick={() => setCreateType('text')}
+                >
+                  <span className="material-icons">notes</span>
+                  Text
+                </button>
+                <button
+                  className={`item-type-button ${createType === 'image' ? 'active' : ''}`}
+                  onClick={() => setCreateType('image')}
+                >
+                  <span className="material-icons">image</span>
+                  Image
+                </button>
+              </div>
+            </div>
+
+            {/* タイプ別コンテンツ */}
+            {createType === 'table' && (
+              <div className="item-create-field">
+                <label>テーブルデータ</label>
+                <div className="item-table-controls">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={useHeaders}
+                      onChange={(e) => setUseHeaders(e.target.checked)}
+                    />
+                    ヘッダー行を使用
+                  </label>
+                  <button onClick={() => {
+                    const colCount = tableData[0]?.length || 2
+                    setTableData([...tableData, Array(colCount).fill('')])
+                  }} className="item-table-add-button">
+                    <span className="material-icons">add</span>
+                    行を追加
+                  </button>
+                  <button onClick={() => {
+                    setTableData(tableData.map(row => [...row, '']))
+                    setTableHeaders([...tableHeaders, ''])
+                  }} className="item-table-add-button">
+                    <span className="material-icons">add</span>
+                    列を追加
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMarkdownImport(true)
+                      setMarkdownInput('')
+                      setMarkdownImportError('')
+                    }}
+                    className="item-table-add-button table-markdown-import-button-modal"
+                  >
+                    <span className="material-icons">upload_file</span>
+                    Markdownからインポート
+                  </button>
+                </div>
+
+                {/* Markdownインポート */}
+                {showMarkdownImport && (
+                  <div className="table-markdown-import-inline">
+                    <div className="table-markdown-import-inline-header">
+                      <span>Markdownからインポート</span>
+                      <button
+                        className="table-markdown-import-inline-close"
+                        onClick={() => setShowMarkdownImport(false)}
+                      >
+                        <span className="material-icons">close</span>
+                      </button>
+                    </div>
+                    <p className="table-markdown-import-hint">
+                      Markdownテーブル形式のテキストを貼り付けてください。
+                    </p>
+                    <textarea
+                      className="table-markdown-import-textarea"
+                      value={markdownInput}
+                      onChange={(e) => {
+                        setMarkdownInput(e.target.value)
+                        setMarkdownImportError('')
+                      }}
+                      placeholder={`| 変数 | Model 1 | Model 2 |\n|-----|:---:|:---:|\n| データ1 | .036** | — |`}
+                      rows={6}
+                    />
+                    {markdownImportError && (
+                      <div className="table-markdown-import-error">
+                        <span className="material-icons">error</span>
+                        {markdownImportError}
+                      </div>
+                    )}
+                    <div className="table-markdown-import-inline-actions">
+                      <button
+                        className="table-markdown-import-cancel"
+                        onClick={() => setShowMarkdownImport(false)}
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        className="table-markdown-import-submit"
+                        onClick={() => {
+                          const parsed = parseMarkdownTable(markdownInput)
+                          if (!parsed) {
+                            setMarkdownImportError('有効なMarkdownテーブルが見つかりません')
+                            return
+                          }
+                          const colCount = parsed.hasHeaders ? parsed.headers.length : (parsed.data[0]?.length || 2)
+                          const normalizedHeaders = [...(parsed.hasHeaders ? parsed.headers : [])]
+                          while (normalizedHeaders.length < colCount) {
+                            normalizedHeaders.push('')
+                          }
+                          const normalizedData = parsed.data.length > 0 ? parsed.data : [Array(colCount).fill('')]
+                          setTableData(normalizedData)
+                          setTableHeaders(normalizedHeaders)
+                          setUseHeaders(parsed.hasHeaders)
+                          setShowMarkdownImport(false)
+                          setMarkdownInput('')
+                        }}
+                        disabled={!markdownInput.trim()}
+                      >
+                        インポート
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="item-table-editor">
+                  <table>
+                    {useHeaders && (
+                      <thead>
+                        <tr>
+                          {tableHeaders.map((header, colIndex) => (
+                            <th key={colIndex}>
+                              <input
+                                type="text"
+                                value={header}
+                                onChange={(e) => {
+                                  const newHeaders = [...tableHeaders]
+                                  newHeaders[colIndex] = e.target.value
+                                  setTableHeaders(newHeaders)
+                                }}
+                                placeholder={`ヘッダー ${colIndex + 1}`}
+                              />
+                              <button
+                                onClick={() => {
+                                  if (tableData[0]?.length <= 1) return
+                                  setTableData(tableData.map(row => row.filter((_, i) => i !== colIndex)))
+                                  setTableHeaders(tableHeaders.filter((_, i) => i !== colIndex))
+                                }}
+                                className="item-table-remove-button"
+                                title="列を削除"
+                              >
+                                <span className="material-icons">close</span>
+                              </button>
+                            </th>
+                          ))}
+                          <th></th>
+                        </tr>
+                      </thead>
+                    )}
+                    <tbody>
+                      {tableData.map((row, rowIndex) => (
+                        <tr key={rowIndex}>
+                          {row.map((cell, colIndex) => (
+                            <td key={colIndex}>
+                              <input
+                                type="text"
+                                value={cell}
+                                onChange={(e) => {
+                                  const newData = [...tableData]
+                                  newData[rowIndex][colIndex] = e.target.value
+                                  setTableData(newData)
+                                }}
+                                placeholder={`${rowIndex + 1},${colIndex + 1}`}
+                              />
+                            </td>
+                          ))}
+                          <td>
+                            <button
+                              onClick={() => {
+                                if (tableData.length <= 1) return
+                                setTableData(tableData.filter((_, i) => i !== rowIndex))
+                              }}
+                              className="item-table-remove-button"
+                              title="行を削除"
+                            >
+                              <span className="material-icons">close</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {createType === 'text' && (
+              <div className="item-create-field">
+                <label htmlFor="create-text-content">テキスト *</label>
+                <textarea
+                  id="create-text-content"
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  placeholder="テキストを入力..."
+                  rows={10}
+                />
+              </div>
+            )}
+
+            {createType === 'image' && (
+              <div className="item-create-field">
+                <label>画像 *</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert('画像サイズは5MB以下にしてください')
+                      return
+                    }
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      setImageDataUrl(reader.result as string)
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`item-image-upload-button ${imageDataUrl ? 'item-image-change-button' : ''}`}
+                >
+                  <span className="material-icons">upload</span>
+                  {imageDataUrl ? '画像を変更' : '画像をアップロード'}
+                </button>
+
+                {imageDataUrl && (
+                  <div className="item-image-preview">
+                    <img src={imageDataUrl} alt="Preview" />
+                  </div>
+                )}
+
+                <label htmlFor="create-image-alt">代替テキスト</label>
+                <input
+                  id="create-image-alt"
+                  type="text"
+                  value={imageAlt}
+                  onChange={(e) => setImageAlt(e.target.value)}
+                  placeholder="代替テキスト（オプション）"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="item-create-footer">
+            <button onClick={handleCancelCreateMode} className="modal-button secondary">
+              キャンセル
+            </button>
+            <button onClick={handleCreate} className="modal-button primary">
+              作成
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!item) {
@@ -1164,7 +1634,7 @@ export const ItemDetailPanel = ({
       case 'table':
         const tableEditorContent = (
           <div className="table-editor-modern">
-            {/* ヘッダー切り替えトグル */}
+            {/* ヘッダー切り替えトグルとインポートボタン */}
             <div className="table-editor-toolbar">
               <label className="table-header-toggle">
                 <input
@@ -1175,6 +1645,18 @@ export const ItemDetailPanel = ({
                 <span className="toggle-switch"></span>
                 <span className="toggle-label">ヘッダー行を使用</span>
               </label>
+              <button
+                className="table-markdown-import-button"
+                onClick={() => {
+                  setShowMarkdownImport(true)
+                  setMarkdownInput('')
+                  setMarkdownImportError('')
+                }}
+                title="Markdownからインポート"
+              >
+                <span className="material-icons">upload_file</span>
+                <span>Markdownからインポート</span>
+              </button>
             </div>
 
             {/* 数式バーとデータ型選択 */}
@@ -1834,6 +2316,60 @@ export const ItemDetailPanel = ({
                       }
                       return null
                     })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Markdownインポートダイアログ */}
+            {showMarkdownImport && (
+              <div className="table-markdown-import-overlay" onClick={() => setShowMarkdownImport(false)}>
+                <div className="table-markdown-import-dialog" onClick={(e) => e.stopPropagation()}>
+                  <div className="table-markdown-import-header">
+                    <h3>Markdownからインポート</h3>
+                    <button
+                      className="table-markdown-import-close"
+                      onClick={() => setShowMarkdownImport(false)}
+                    >
+                      <span className="material-icons">close</span>
+                    </button>
+                  </div>
+                  <div className="table-markdown-import-content">
+                    <p className="table-markdown-import-hint">
+                      Markdownテーブル形式のテキストを貼り付けてください。<br />
+                      例: <code>| 列1 | 列2 |</code>
+                    </p>
+                    <textarea
+                      className="table-markdown-import-textarea"
+                      value={markdownInput}
+                      onChange={(e) => {
+                        setMarkdownInput(e.target.value)
+                        setMarkdownImportError('')
+                      }}
+                      placeholder={`| 変数 | Model 1 | Model 2 |\n|-----|:---:|:---:|\n| データ1 | .036** | — |\n| データ2 | .160 | .126 |`}
+                      rows={10}
+                    />
+                    {markdownImportError && (
+                      <div className="table-markdown-import-error">
+                        <span className="material-icons">error</span>
+                        {markdownImportError}
+                      </div>
+                    )}
+                  </div>
+                  <div className="table-markdown-import-footer">
+                    <button
+                      className="table-markdown-import-cancel"
+                      onClick={() => setShowMarkdownImport(false)}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      className="table-markdown-import-submit"
+                      onClick={handleMarkdownImport}
+                      disabled={!markdownInput.trim()}
+                    >
+                      インポート
+                    </button>
                   </div>
                 </div>
               </div>

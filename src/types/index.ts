@@ -47,6 +47,41 @@ export interface ImpressionRange {
 }
 
 /**
+ * トンマナのスタイル定義
+ */
+export interface TonmanaStyle {
+  name: string
+  hue: string
+  bgNormal: string
+  bgCover: string
+  headingColor: string
+  textColor: string
+  fontHeading: string
+  fontBody: string
+  letterSpacing: string
+}
+
+/**
+ * バイオーム型トンマナ定義
+ * マインクラフトのバイオームのように、4軸空間の「領域」として定義される
+ */
+export interface TonmanaBiome {
+  id: string
+  name: string          // 英語名（例: "minimal", "business"）
+  nameJa: string        // 日本語名（例: "ミニマル", "ビジネス"）
+  category: string      // カテゴリ（例: "シンプル系", "ビジネス系"）
+  // 4軸空間での領域（各軸のmin-max）
+  region: {
+    energy: [number, number]       // 例: [1, 2] = 落ち着いた寄り
+    formality: [number, number]    // 例: [4, 5] = 格式高い寄り
+    classicModern: [number, number]
+    decoration: [number, number]
+  }
+  // スタイル定義
+  style: TonmanaStyle
+}
+
+/**
  * グラデーション設定
  */
 export interface GradientConfig {

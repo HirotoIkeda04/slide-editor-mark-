@@ -945,9 +945,9 @@ export const Editor = ({
 
           let lineColor = '#666'
           if (hasError) {
-            lineColor = '#ff7373'
+            lineColor = 'var(--app-error-light)'
           } else if (isCurrentLine) {
-            lineColor = '#9ca3af'
+            lineColor = 'var(--app-text-secondary)'
           }
 
             return (

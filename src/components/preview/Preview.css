@@ -2,8 +2,8 @@
 .preview-tab-list {
   display: flex;
   border-bottom: 0;
-  background: #1f1f1f;
-  border: 1px solid #333;
+  background: var(--app-bg-deep);
+  border: 1px solid var(--app-bg-elevated);
   border-radius: 0.6rem 0.6rem 0 0;
   margin-bottom: -2px;
   margin-top: 0;
@@ -46,7 +46,7 @@
   border: 1px solid transparent;
   border-bottom: none;
   background: transparent;
-  color: #f5f5f5;
+  color: var(--app-text-primary);
   font-size: 0.875rem; /* フォーマット名のフォントサイズを小さく */
   min-width: 68px;
   height: 48px; /* 高さを固定 */
@@ -70,20 +70,23 @@
 .preview-tab.last {
   margin-right: 0 !important; /* 最後のタブの右マージンを0に */
 }
+.preview-tab:not(.active) {
+  color: var(--app-text-muted);
+}
 .preview-tab:not(.active):hover {
-  background: rgba(245, 230, 211, 0.08);
-  color: #F5E6D3;
-  border-color: rgba(245, 230, 211, 0.5);
-  box-shadow: 0 2px 7px -4px rgba(245, 230, 211, 0.25);
+  background: oklch(0.90 0.03 70 / 0.08);
+  color: var(--app-accent-light);
+  border-color: oklch(0.90 0.03 70 / 0.5);
+  box-shadow: 0 2px 7px -4px oklch(0.90 0.03 70 / 0.25);
   z-index: 2;
 }
 .preview-tab.active {
-  background: #2b2b2b;
-  color: #F5E6D3;
-  border-color: #C4A584;
+  background: var(--app-bg-tertiary);
+  color: var(--app-accent-light);
+  border-color: var(--app-accent);
   border-bottom: 0;
   font-weight: 700;
-  box-shadow: 0 2px 8px -6px rgba(196, 165, 132, 0.25);
+  box-shadow: 0 2px 8px -6px oklch(0.72 0.05 70 / 0.25);
   z-index: 10;
 }
 .preview-tab.first {
@@ -124,7 +127,7 @@
   display: block;
 }
 .tab-aspect-ratio {
-  color: rgba(245, 230, 211, 0.5); /* フォーマット名と同じ系統の色の暗めのバージョン */
+  color: oklch(0.90 0.03 70 / 0.5); /* フォーマット名と同じ系統の色の暗めのバージョン */
   font-size: 0.65rem; /* アスペクト比のフォントサイズをさらに小さく */
   line-height: 1;
   margin-top: 0.125rem;
@@ -135,7 +138,7 @@
 }
 .tab-ratio {
   margin-left: 0.5em;
-  color: #c3e88d;
+  color: var(--app-success);
 }
 
 /* Preview tab tooltip */
@@ -144,8 +147,8 @@
 }
 
 .preview-tab-tooltip-fixed {
-  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
-  color: #e5e7eb;
+  background: var(--modal-bg);
+  color: var(--app-text-primary);
   padding: 0.625rem 0.875rem;
   border-radius: 0.5rem;
   font-size: 0.75rem;
@@ -153,8 +156,8 @@
   white-space: normal;
   word-wrap: break-word;
   word-break: break-word;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border: 1px solid #3a3a3a;
+  box-shadow: var(--app-shadow-lg);
+  border: 1px solid var(--app-border-primary);
   max-width: 280px;
   min-width: 200px;
   text-align: left;
@@ -172,7 +175,7 @@
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid #2a2a2a;
+  border-top: 6px solid var(--color-gray-925);
 }
 
 /* YouTubeスタイルのフルスクリーンボタン */
@@ -185,7 +188,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: oklch(0 0 0 / 0.6);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -208,7 +211,7 @@
 }
 
 .preview-fullscreen-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: oklch(0 0 0 / 0.8);
 }
 
 .preview-fullscreen-btn:active {
@@ -221,10 +224,10 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.375rem 0.75rem;
-  background: rgba(255, 203, 107, 0.08);
-  border: 1px solid rgba(255, 203, 107, 0.25);
+  background: oklch(0.72 0.05 70 / 0.08);
+  border: 1px solid oklch(0.72 0.05 70 / 0.25);
   border-radius: 1rem;
-  color: #FFCB6B;
+  color: var(--app-highlight);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -233,14 +236,14 @@
 }
 
 .tone-display:hover {
-  background: rgba(255, 203, 107, 0.15);
-  border-color: rgba(255, 203, 107, 0.4);
+  background: oklch(0.72 0.05 70 / 0.15);
+  border-color: oklch(0.72 0.05 70 / 0.4);
   transform: translateY(-1px);
 }
 
 .tone-display-icon {
   font-size: 1rem;
-  color: #FFCB6B;
+  color: var(--app-highlight);
 }
 
 .tone-display-name {
@@ -249,7 +252,39 @@
 
 .tone-display-code {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: var(--app-text-secondary);
   font-family: monospace;
 }
 
+/* H3 Grid Layout - 連続するH3を横並びに表示 */
+.h3-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.h3-grid-item {
+  padding: 0;
+}
+
+.h3-grid-item h3 {
+  margin-top: 0;
+}
+
+/* H3が2つの場合は2カラム */
+.h3-grid-layout:has(.h3-grid-item:nth-child(2):last-child) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* H3が3つの場合は3カラム */
+.h3-grid-layout:has(.h3-grid-item:nth-child(3):last-child) {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* H3が4つ以上の場合は最大4カラム */
+.h3-grid-layout:has(.h3-grid-item:nth-child(4)) {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
