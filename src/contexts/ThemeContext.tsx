@@ -1,4 +1,4 @@
-import React, { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 import { useTheme, type UseThemeReturn } from '../hooks/useTheme'
 
 const ThemeContext = createContext<UseThemeReturn | null>(null)
