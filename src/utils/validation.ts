@@ -31,8 +31,10 @@ export const generateConsoleMessages = (
       textWithoutAttribute = parsed.textWithoutAttribute.trim()
     }
     
-    // 見出し（#、##、###）の場合のみ長さをチェック
-    if (attribute === '#' || attribute === '##' || attribute === '###') {
+    // 見出し（#、##、###）およびレイアウト属性値（#ttl、#agd、#!）の場合のみ長さをチェック
+    const isHeadingAttribute = attribute === '#' || attribute === '##' || attribute === '###' ||
+                               attribute === '#ttl' || attribute === '#agd' || attribute === '#!'
+    if (isHeadingAttribute) {
       // 見出し間隔の警告チェック
       if (lastHeadingLineIndex !== null) {
         const lineGap = idx - lastHeadingLineIndex - 1
@@ -46,8 +48,7 @@ export const generateConsoleMessages = (
       }
       lastHeadingLineIndex = idx
       
-      // [レイアウトタイプ] を除去してから文字数をカウント
-      let headingText = textWithoutAttribute.replace(/^\[[^\]]+\]\s*/, '')
+      let headingText = textWithoutAttribute
       
       // H2/H3の比率指定をチェック
       if (attribute === '##' || attribute === '###') {
@@ -71,14 +72,14 @@ export const generateConsoleMessages = (
         }
         
         // 比率指定を除去してから文字数カウント
-        headingText = ratioResult.title.replace(/^\[[^\]]+\]\s*/, '')
+        headingText = ratioResult.title
       }
       
       const length = calculateHeadingLength(headingText)
-      if (length > 13) {
+      if (length > 14) {
         messages.push({
           type: 'error',
-          message: `見出しが長すぎます（${length}文字）。13文字以下にしてください。`,
+          message: `見出しが長すぎます（${length}文字）。14文字以下にしてください。`,
           line: idx + 1
         })
       }
