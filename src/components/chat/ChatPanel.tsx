@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { ChatMessage, ChatMode, ClaudeModel, AIEditToolInput } from '../../types'
+import type { ChatMessage, ChatMode, ClaudeModel, AIEditToolInput, Item } from '../../types'
 import { sendChatMessageStream, applyToolToContent, extractTableFromResponse, generateTableNameWithAI } from '../../utils/ai'
+import { useMentionPopup } from '../../hooks'
+import { MentionPopup } from '../common/MentionPopup'
 import './ChatPanel.css'
 
 interface ChatPanelProps {
@@ -8,23 +10,36 @@ interface ChatPanelProps {
   onApplyEdit: (content: string) => void
   onCreateTable?: (name: string, headers: string[] | undefined, data: string[][]) => void
   existingItemNames?: string[]
+  // フローティングモード用のprops
+  isFloating?: boolean
+  onClose?: () => void
+  initialMode?: ChatMode
+  initialModel?: ClaudeModel
+  // 外部からの状態管理用（ChatFABとの連携）
+  messages?: ChatMessage[]
+  onMessagesChange?: (messages: ChatMessage[]) => void
+  pendingMessage?: string | null
+  pendingImages?: string[]
+  onPendingMessageProcessed?: () => void
+  // @メンション補完用のアイテムリスト
+  items?: Item[]
 }
 
-// モード設定
+// モード設定（Material Icons）
 const MODE_CONFIG: Record<ChatMode, { label: string; icon: string; description: string }> = {
   write: { 
     label: 'Write', 
-    icon: '✦', 
+    icon: 'add', 
     description: '新規作成・全文書き換え'
   },
   edit: { 
     label: 'Edit', 
-    icon: '✎', 
+    icon: 'edit', 
     description: '部分的な編集'
   },
   ask: { 
     label: 'Ask', 
-    icon: '?', 
+    icon: 'chat_bubble_outline', 
     description: '質問への回答のみ'
   }
 }
@@ -164,13 +179,34 @@ const ToolUseDisplay = ({ toolName, toolInput, isStreaming, onApply, applied }: 
   )
 }
 
-export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingItemNames }: ChatPanelProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+export const ChatPanel = ({ 
+  editorContent, 
+  onApplyEdit, 
+  onCreateTable, 
+  existingItemNames,
+  isFloating = false,
+  onClose,
+  initialMode,
+  initialModel,
+  messages: externalMessages,
+  onMessagesChange,
+  pendingMessage,
+  pendingImages,
+  onPendingMessageProcessed,
+  items = [],
+}: ChatPanelProps) => {
+  // 内部状態（外部から提供されない場合に使用）
+  const [internalMessages, setInternalMessages] = useState<ChatMessage[]>([])
+  
+  // 外部/内部状態の切り替え
+  const messages = externalMessages ?? internalMessages
+  const setMessages = onMessagesChange ?? setInternalMessages
+  
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isComposing, setIsComposing] = useState(false)
-  const [mode, setMode] = useState<ChatMode>(getDefaultMode())
-  const [model, setModel] = useState<ClaudeModel>(getDefaultModel())
+  const [mode, setMode] = useState<ChatMode>(initialMode ?? getDefaultMode())
+  const [model, setModel] = useState<ClaudeModel>(initialModel ?? getDefaultModel())
   const [showModeDropdown, setShowModeDropdown] = useState(false)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
   const [selectedImages, setSelectedImages] = useState<string[]>([])
@@ -184,10 +220,50 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editorContentRef = useRef(editorContent)
 
+  // @メンション補完機能
+  const handleMentionInsert = useCallback((itemName: string, replaceStart: number, replaceEnd: number) => {
+    // @から検索クエリまでを置換して@アイテム名にする
+    const newInput = input.slice(0, replaceStart) + '@' + itemName + input.slice(replaceEnd)
+    setInput(newInput)
+    
+    // カーソルを挿入したアイテム名の後ろに移動
+    const newCursorPos = replaceStart + 1 + itemName.length
+    setTimeout(() => {
+      const textarea = textareaRef.current
+      if (textarea) {
+        textarea.focus()
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }, [input])
+
+  const mentionPopup = useMentionPopup({
+    items,
+    onInsert: handleMentionInsert,
+  })
+
   // editorContentを最新の状態で参照できるようにする
   useEffect(() => {
     editorContentRef.current = editorContent
   }, [editorContent])
+
+  // initialModeが変更されたらmodeを更新
+  useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode)
+    }
+  }, [initialMode])
+
+  // initialModelが変更されたらmodelを更新
+  useEffect(() => {
+    if (initialModel) {
+      setModel(initialModel)
+    }
+  }, [initialModel])
+
+  // pendingMessage/pendingImages用のref
+  const pendingMessageRef = useRef<string | null>(null)
+  const pendingImagesRef = useRef<string[]>([])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -294,13 +370,19 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
   }, [pendingToolCalls, onApplyEdit])
 
   const handleSend = async () => {
-    if ((!input.trim() && selectedImages.length === 0) || isLoading) return
+    // pendingMessage/pendingImagesがある場合はそれを使用
+    const messageText = pendingMessageRef.current || input.trim()
+    const imagesToSend = pendingImagesRef.current.length > 0 ? pendingImagesRef.current : selectedImages
+    pendingMessageRef.current = null
+    pendingImagesRef.current = []
+    
+    if ((!messageText && imagesToSend.length === 0) || isLoading) return
 
     // 画像がある場合はcontentを配列形式に
-    const content: ChatMessage['content'] = selectedImages.length > 0
+    const content: ChatMessage['content'] = imagesToSend.length > 0
       ? [
-          ...(input.trim() ? [{ type: 'text' as const, text: input.trim() }] : []),
-          ...selectedImages.map(dataUrl => {
+          ...(messageText ? [{ type: 'text' as const, text: messageText }] : []),
+          ...imagesToSend.map(dataUrl => {
             const match = dataUrl.match(/^data:image\/([^;]+);base64,(.+)$/)
             if (!match) {
               throw new Error('無効な画像形式です')
@@ -316,12 +398,12 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
             }
           })
         ]
-      : input.trim()
+      : messageText
 
     const userMessage: ChatMessage = {
       role: 'user',
       content,
-      images: selectedImages.length > 0 ? selectedImages : undefined
+      images: imagesToSend.length > 0 ? imagesToSend : undefined
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -413,20 +495,48 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // @メンション補完のキーイベントを先に処理
+    if (mentionPopup.handleKeyDown(e)) {
+      return
+    }
+    
     if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
       e.preventDefault()
       handleSend()
     }
   }
 
+  // pendingMessage/pendingImagesを処理（ChatFABからの入力を送信）
+  useEffect(() => {
+    if ((pendingMessage || (pendingImages && pendingImages.length > 0)) && !isLoading) {
+      pendingMessageRef.current = pendingMessage || null
+      pendingImagesRef.current = pendingImages || []
+      onPendingMessageProcessed?.()
+      // 次のフレームで送信
+      requestAnimationFrame(() => {
+        handleSend()
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMessage, pendingImages])
+
   return (
-    <div className="flex flex-col h-full chat-panel">
+    <div className={`flex flex-col h-full chat-panel ${isFloating ? 'chat-panel-floating' : ''}`}>
       {/* チャットヘッダー */}
       <div className="chat-header">
         <div className="flex items-center gap-1.5">
           <span className="chat-ai-icon material-icons">auto_awesome</span>
           <h3 className="text-sm chat-header-title">AI Assistant</h3>
         </div>
+        {isFloating && onClose && (
+          <button
+            className="chat-close-button"
+            onClick={onClose}
+            title="閉じる"
+          >
+            <span className="material-icons">close</span>
+          </button>
+        )}
       </div>
 
       {/* メッセージエリア */}
@@ -540,7 +650,15 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const newValue = e.target.value
+              const cursorPos = e.target.selectionStart || 0
+              setInput(newValue)
+              
+              // @メンション補完の処理
+              const inputRect = e.target.getBoundingClientRect()
+              mentionPopup.handleChange(newValue, cursorPos, inputRect)
+            }}
             onKeyDown={handleKeyDown}
             onCompositionStart={() => setIsComposing(true)}
             onCompositionEnd={() => setIsComposing(false)}
@@ -564,7 +682,7 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
                   className="chat-mode-button"
                   onClick={() => setShowModeDropdown(!showModeDropdown)}
                 >
-                  <span className="chat-mode-icon">{MODE_CONFIG[mode].icon}</span>
+                  <span className="chat-mode-icon material-icons">{MODE_CONFIG[mode].icon}</span>
                   <span className="chat-mode-label">{MODE_CONFIG[mode].label}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M6 9l6 6 6-6"/>
@@ -579,7 +697,7 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
                         onClick={() => handleModeSelect(key)}
                         data-tooltip={config.description}
                       >
-                        <span className="chat-mode-option-icon">{config.icon}</span>
+                        <span className="chat-mode-option-icon material-icons">{config.icon}</span>
                         <span className="chat-mode-option-label">{config.label}</span>
                       </button>
                     ))}
@@ -644,6 +762,26 @@ export const ChatPanel = ({ editorContent, onApplyEdit, onCreateTable, existingI
             </button>
           </div>
         </div>
+        
+        {/* @メンション補完ポップアップ */}
+        {mentionPopup.isOpen && (
+          <MentionPopup
+            items={mentionPopup.filteredItems}
+            searchQuery={mentionPopup.searchQuery}
+            selectedIndex={mentionPopup.selectedIndex}
+            position={mentionPopup.position}
+            showAbove={mentionPopup.showAbove}
+            onSelect={(item) => {
+              handleMentionInsert(
+                item.name,
+                0, // will be recalculated in the hook
+                mentionPopup.searchQuery.length + 1
+              )
+              mentionPopup.close()
+            }}
+            onClose={mentionPopup.close}
+          />
+        )}
       </div>
     </div>
   )

@@ -1,0 +1,458 @@
+.picto-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--app-bg-primary);
+  outline: none;
+  position: relative;
+}
+
+/* FloatingNavBar配置 */
+.picto-floating-navbar {
+  pointer-events: none;
+}
+
+/* Canvas Wrapper (contains canvas + overlay panels) */
+.picto-canvas-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Canvas Container */
+.picto-canvas-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: var(--app-bg-secondary);
+}
+
+/* Toolbar */
+.picto-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--app-border-primary);
+  background-color: var(--app-bg-primary);
+}
+
+.picto-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.picto-toolbar-divider {
+  width: 1px;
+  height: 1.5rem;
+  background-color: var(--app-border-primary);
+  margin: 0 0.25rem;
+}
+
+.picto-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.picto-toolbar-btn:hover:not(:disabled) {
+  background-color: var(--app-bg-hover);
+  color: var(--app-text-primary);
+}
+
+.picto-toolbar-btn.active {
+  background-color: var(--app-highlight);
+  color: white;
+}
+
+.picto-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.picto-toolbar-btn .material-icons {
+  font-size: 1.25rem;
+}
+
+/* Palette Dropdown in Toolbar */
+.picto-toolbar-palette-wrapper {
+  position: relative;
+}
+
+.picto-toolbar-add-btn {
+  background-color: var(--app-highlight);
+  color: white;
+}
+
+.picto-toolbar-add-btn:hover:not(:disabled) {
+  background-color: var(--app-highlight);
+  opacity: 0.9;
+}
+
+.picto-palette-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 200px;
+}
+
+.picto-palette-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.picto-palette-dropdown-item:hover {
+  background-color: var(--app-bg-hover);
+  border-color: var(--app-border-primary);
+}
+
+.picto-palette-dropdown-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.picto-palette-dropdown-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.picto-palette-dropdown-label {
+  font-size: 0.625rem;
+  color: var(--app-text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Properties Panel (Overlay) */
+.picto-properties {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 180px;
+  max-height: calc(100% - 1rem);
+  padding: 0.75rem;
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  overflow-y: auto;
+}
+
+.picto-properties-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.picto-properties-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.picto-properties-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.picto-properties-close:hover {
+  background-color: var(--app-bg-hover);
+  color: var(--app-text-primary);
+}
+
+.picto-properties-close .material-icons {
+  font-size: 1rem;
+}
+
+.picto-properties-empty {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  text-align: center;
+  padding: 1rem;
+}
+
+.picto-properties-group {
+  margin-bottom: 0.75rem;
+}
+
+.picto-properties-label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.picto-properties-input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.25rem;
+  background-color: var(--app-bg-secondary);
+  color: var(--app-text-primary);
+  box-sizing: border-box;
+}
+
+.picto-properties-input:focus {
+  outline: none;
+  border-color: var(--app-highlight);
+}
+
+.picto-properties-select {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.25rem;
+  background-color: var(--app-bg-secondary);
+  color: var(--app-text-primary);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.picto-properties-select:focus {
+  outline: none;
+  border-color: var(--app-highlight);
+}
+
+/* Canvas */
+.picto-canvas {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.picto-canvas-svg {
+  display: block;
+}
+
+.picto-canvas-grid {
+  pointer-events: none;
+}
+
+/* Element on Canvas */
+.picto-element {
+  cursor: move;
+  user-select: none;
+}
+
+.picto-element.selected .picto-element-outline {
+  stroke: var(--app-highlight);
+  stroke-width: 2;
+  stroke-dasharray: 4 2;
+}
+
+.picto-element-label {
+  font-size: 11px;
+  text-anchor: middle;
+  fill: var(--app-text-primary);
+  pointer-events: none;
+}
+
+/* Connector */
+.picto-connector {
+  cursor: pointer;
+}
+
+.picto-connector.selected .picto-connector-line {
+  stroke-width: 4 !important;
+}
+
+.picto-connector-label {
+  font-size: 10px;
+  fill: var(--app-text-secondary);
+}
+
+/* Connection Points */
+.picto-connection-point {
+  fill: var(--app-bg-primary);
+  stroke: var(--app-highlight);
+  stroke-width: 2;
+  cursor: crosshair;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.picto-element:hover .picto-connection-point,
+.picto-element.connecting .picto-connection-point {
+  opacity: 1;
+}
+
+/* Group */
+.picto-group {
+  pointer-events: none;
+}
+
+.picto-group-rect {
+  fill: none;
+  stroke-width: 2;
+}
+
+.picto-group-label {
+  font-size: 10px;
+  fill: currentColor;
+}
+
+/* Comment */
+.picto-comment {
+  cursor: move;
+}
+
+.picto-comment-bubble {
+  fill: var(--app-bg-primary);
+  stroke: var(--app-border-primary);
+}
+
+.picto-comment-text {
+  font-size: 11px;
+  fill: var(--app-text-primary);
+}
+
+/* Drag Preview */
+.picto-drag-preview {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Marquee Selection Rectangle */
+.picto-marquee {
+  fill: rgba(59, 130, 246, 0.1);
+  stroke: var(--app-highlight);
+  stroke-width: 1;
+  stroke-dasharray: 4 2;
+  pointer-events: none;
+}
+
+/* Toolbar Spacer (pushes expand button to right) */
+.picto-toolbar-spacer {
+  flex: 1;
+}
+
+/* Expanded Modal View */
+.picto-expand-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 2000;
+  animation: pictoFadeIn 0.2s ease;
+}
+
+@keyframes pictoFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.picto-expand-content {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  right: 2rem;
+  bottom: 2rem;
+  background: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.picto-expand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--app-border-primary);
+  background-color: var(--app-bg-primary);
+}
+
+.picto-expand-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.picto-expand-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.picto-expand-close:hover {
+  background-color: var(--app-bg-hover);
+  color: var(--app-text-primary);
+}
+
+.picto-expand-close .material-icons {
+  font-size: 1.25rem;
+}
+
+.picto-editor-expanded {
+  flex: 1;
+  min-height: 0;
+}
+
+.picto-editor-expanded .picto-canvas-wrapper {
+  flex: 1;
+}
+
+.picto-editor-expanded .picto-properties {
+  width: 220px;
+}

@@ -96,21 +96,21 @@ export const convertKeyMessageToHTML = (content: string): string => {
       return line // 画像のMarkdown記法はそのまま返す
     }
     
-    // レイアウトタイプ記法を除去し、構造を表現するためh1に統一
-    const layoutRemoved = line.replace(/^(#+\s+)\[([^\]]+)\]\s*(.*)$/, (_match, _heading, _layoutType, title) => {
-      // レイアウトタイプが指定されている場合は、見出しレベルに関係なくh1として扱う
-      return `# ${title}`
-    })
+    // レイアウト属性値（#ttl, #agd, #!）を通常のH1に変換
+    const layoutConverted = line
+      .replace(/^#ttl\s+(.*)$/, '# $1')
+      .replace(/^#agd\s+(.*)$/, '# $1')
+      .replace(/^#!\s+(.*)$/, '# $1')
     
     // 画像のMarkdown記法（![alt](url)）を除外してキーメッセージをチェック
-    const trimmed = layoutRemoved.trim()
+    const trimmed = layoutConverted.trim()
     if (!foundKeyMessage && trimmed.startsWith('! ') && !trimmed.startsWith('![')) {
       foundKeyMessage = true
       const keyMessageText = trimmed.substring(2) // '! 'を除去
       // HTMLタグに変換し、その後に空行を追加（Markdownパーサーがリストを正しく認識するため）
       return `<div class="key-message">${keyMessageText}</div>\n\n`
     }
-    return layoutRemoved
+    return layoutConverted
   })
   const result = convertedLines.join('\n')
   console.log('[convertKeyMessageToHTML] Output length:', result.length)
@@ -122,21 +122,27 @@ export const extractSlideTitle = (content: string): string => {
   const lines = content.split('\n')
   for (const line of lines) {
     const trimmed = line.trim()
-    // h1を優先
+    // レイアウト属性値（#ttl, #agd, #!）を優先
+    if (trimmed.startsWith('#ttl ')) {
+      return trimmed.substring(5).trim()
+    }
+    if (trimmed.startsWith('#agd ')) {
+      return trimmed.substring(5).trim()
+    }
+    if (trimmed.startsWith('#! ')) {
+      return trimmed.substring(3).trim()
+    }
+    // 通常のh1を優先
     if (trimmed.startsWith('# ')) {
-      const title = trimmed.substring(2).trim()
-      // [レイアウトタイプ] を除去してタイトルを取得
-      return title.replace(/^\[[^\]]+\]\s*/, '')
+      return trimmed.substring(2).trim()
     }
     // h2を次に優先
     if (trimmed.startsWith('## ')) {
-      const title = trimmed.substring(3).trim()
-      return title.replace(/^\[[^\]]+\]\s*/, '')
+      return trimmed.substring(3).trim()
     }
     // h3も考慮
     if (trimmed.startsWith('### ')) {
-      const title = trimmed.substring(4).trim()
-      return title.replace(/^\[[^\]]+\]\s*/, '')
+      return trimmed.substring(4).trim()
     }
   }
   // タイトルが見つからない場合は「新しいスライド」
@@ -144,28 +150,104 @@ export const extractSlideTitle = (content: string): string => {
 }
 
 // スライドのレイアウトタイプを抽出する関数
-// [中扉]は廃止され、#が自動的にセクション区切りとして機能するため不要
+// 属性値ベースの新記法: #ttl (表紙), #agd (目次), #! (まとめ), # (中扉)
+// スライドの先頭の見出しで判定する（slideSplitLevelによりスライドの先頭がH1/H2/H3の場合がある）
 export const extractSlideLayout = (content: string): 'cover' | 'toc' | 'section' | 'summary' | 'normal' => {
   const lines = content.split('\n')
+  
   for (const line of lines) {
     const trimmed = line.trim()
-    // 見出し行をチェック
-    const headingMatch = trimmed.match(/^#+\s+\[([^\]]+)\]/)
+    // 空行はスキップ
+    if (trimmed.length === 0) continue
+    
+    // 属性値ベースのレイアウト記法をチェック（先頭の見出しで判定）
+    if (trimmed.match(/^#ttl\s+/) || trimmed.match(/^#ttl$/)) {
+      return 'cover'
+    }
+    if (trimmed.match(/^#agd\s+/) || trimmed.match(/^#agd$/)) {
+      return 'toc'
+    }
+    if (trimmed.match(/^#!\s+/) || trimmed.match(/^#!$/)) {
+      return 'summary'
+    }
+    // 通常のH1見出し（#で始まり、##や###ではない）→ 中扉
+    if (trimmed.match(/^#\s+/) && !trimmed.match(/^##/)) {
+      return 'section'
+    }
+    // H2やH3で始まる場合は通常スライド
+    if (trimmed.match(/^##/)) {
+      return 'normal'
+    }
+    // 見出し以外のコンテンツで始まる場合も通常スライド
+    break
+  }
+  
+  return 'normal'
+}
+
+// 各スライドの開始行インデックス（0-based）を返す関数
+// splitSlidesByHeadingと同じロジックで分割位置を特定
+export const getSlideStartLines = (
+  content: string,
+  headingLevel: number,
+  attributeMap?: Map<number, string | null>
+): number[] => {
+  const lines = content.split('\n')
+  const startLines: number[] = []
+  let firstHeadingFound = false
+  let currentSlideStartLine = 0
+
+  // 行から見出しレベルを取得（属性値優先）
+  const getHeadingLevel = (line: string, lineIndex: number): number | null => {
+    const attribute = attributeMap?.get(lineIndex)
+    // レイアウト属性値はH1相当
+    if (attribute === '#' || attribute === '#ttl' || attribute === '#agd' || attribute === '#!') return 1
+    if (attribute === '##') return 2
+    if (attribute === '###') return 3
+    
+    // 属性値がない場合は行のテキストから判断
+    const trimmed = line.trim()
+    // レイアウト記法もH1として扱う
+    if (trimmed.match(/^#ttl\s+/) || trimmed.match(/^#agd\s+/) || trimmed.match(/^#!\s+/)) {
+      return 1
+    }
+    const headingMatch = trimmed.match(/^(#+)\s+/)
     if (headingMatch) {
-      const layoutType = headingMatch[1]
-      switch (layoutType) {
-        case '表紙':
-          return 'cover'
-        case '目次':
-          return 'toc'
-        case 'まとめ':
-          return 'summary'
-        default:
-          return 'normal'
+      return headingMatch[1].length
+    }
+    return null
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const headingLevelInLine = getHeadingLevel(line, i)
+    
+    if (headingLevelInLine !== null && headingLevelInLine <= headingLevel) {
+      if (!firstHeadingFound) {
+        // 最初の見出し前にコンテンツがある場合、それを最初のスライドとする
+        if (i > 0) {
+          const beforeContent = lines.slice(0, i).join('\n').trim()
+          if (beforeContent.length > 0) {
+            startLines.push(0)
+          }
+        }
+        firstHeadingFound = true
+        currentSlideStartLine = i
+        startLines.push(i)
+      } else {
+        // 新しいスライドの開始
+        currentSlideStartLine = i
+        startLines.push(i)
       }
     }
   }
-  return 'normal'
+
+  // スライドがない場合（見出しがない場合）
+  if (startLines.length === 0 && lines.length > 0) {
+    startLines.push(0)
+  }
+
+  return startLines
 }
 
 // 見出しレベルに基づいてスライドを分割する関数
@@ -194,12 +276,17 @@ export const splitSlidesByHeading = (
   // 行から見出しレベルを取得（属性値優先）
   const getHeadingLevel = (line: string, lineIndex: number): number | null => {
     const attribute = attributeMap?.get(lineIndex)
-    if (attribute === '#') return 1
+    // レイアウト属性値はH1相当
+    if (attribute === '#' || attribute === '#ttl' || attribute === '#agd' || attribute === '#!') return 1
     if (attribute === '##') return 2
     if (attribute === '###') return 3
     
     // 属性値がない場合は行のテキストから判断
     const trimmed = line.trim()
+    // レイアウト記法もH1として扱う
+    if (trimmed.match(/^#ttl\s+/) || trimmed.match(/^#agd\s+/) || trimmed.match(/^#!\s+/)) {
+      return 1
+    }
     const headingMatch = trimmed.match(/^(#+)\s+/)
     if (headingMatch) {
       return headingMatch[1].length
@@ -400,17 +487,41 @@ export const wrapConsecutiveH3InGrid = (content: string): string => {
   const lines = content.split('\n')
   const result: string[] = []
   let h3Sections: string[][] = []  // 現在収集中のH3セクション群
+  let h3Ratios: (number | null)[] = []  // 各H3セクションの比率
+  let h3Alignments: ('top' | 'mid' | 'btm')[] = []  // 各H3セクションの配置
   let currentH3Section: string[] = []  // 現在のH3セクション
+  let currentH3Ratio: number | null = null
+  let currentH3Alignment: 'top' | 'mid' | 'btm' = 'top'
   let inH3Sequence = false
   
   const flushH3Sections = () => {
     if (h3Sections.length >= 2) {
       // 2つ以上のH3がある場合はグリッドで囲む
-      result.push('<div class="h3-grid-layout">')
-      for (const section of h3Sections) {
-        result.push('<div class="h3-grid-item">')
+      // 比率からgrid-template-columnsを生成
+      const effectiveRatios = h3Ratios.map(r => r ?? 1)
+      const gridTemplateColumns = effectiveRatios.map(r => `${r}fr`).join(' ')
+      
+      result.push(`<div class="h3-grid-layout" style="grid-template-columns: ${gridTemplateColumns};">`)
+      const totalRatio = effectiveRatios.reduce((a, b) => a + b, 0)
+      const totalColumns = h3Sections.length
+      for (let idx = 0; idx < h3Sections.length; idx++) {
+        const section = h3Sections[idx]
+        const alignment = h3Alignments[idx] ?? 'top'
+        const alignSelfValue = alignment === 'mid' ? 'center' : alignment === 'btm' ? 'flex-end' : 'flex-start'
+        const myRatio = effectiveRatios[idx]
+        result.push(`<div class="h3-grid-item" style="align-self: ${alignSelfValue};">`)
         result.push('')
-        result.push(...section)
+        // table-chartタグに比率情報を追加
+        const updatedSection = section.map(line => {
+          if (line.includes('<table-chart ')) {
+            return line.replace(
+              /<table-chart ([^>]*)>/g,
+              `<table-chart $1 grid-ratio="${myRatio}" grid-total="${totalRatio}" grid-columns="${totalColumns}">`
+            )
+          }
+          return line
+        })
+        result.push(...updatedSection)
         result.push('')
         result.push('</div>')
       }
@@ -420,7 +531,11 @@ export const wrapConsecutiveH3InGrid = (content: string): string => {
       result.push(...h3Sections[0])
     }
     h3Sections = []
+    h3Ratios = []
+    h3Alignments = []
     currentH3Section = []
+    currentH3Ratio = null
+    currentH3Alignment = 'top'
     inH3Sequence = false
   }
   
@@ -428,20 +543,31 @@ export const wrapConsecutiveH3InGrid = (content: string): string => {
     const line = lines[i]
     const trimmed = line.trim()
     
-    // H3の検出（### で始まる行）
-    if (trimmed.match(/^###\s+/)) {
+    // H3の検出（### で始まる行）- 空のH3も含む
+    if (trimmed.match(/^###(\s|$)/)) {
       if (inH3Sequence && currentH3Section.length > 0) {
         // 既存のH3セクションを保存
         h3Sections.push([...currentH3Section])
+        h3Ratios.push(currentH3Ratio)
+        h3Alignments.push(currentH3Alignment)
         currentH3Section = []
       }
       inH3Sequence = true
-      currentH3Section.push(line)
+      
+      // 比率・配置指定をパース
+      const ratioResult = parseColumnRatio(line)
+      currentH3Ratio = ratioResult.ratio
+      currentH3Alignment = ratioResult.alignment ?? 'top'
+      
+      // 比率・配置指定を除去した行を追加
+      currentH3Section.push(removeColumnRatioFromLine(line))
     } else if (inH3Sequence) {
       // H1, H2, H4+ に遭遇したらH3シーケンスを終了
       if (trimmed.match(/^#{1,2}\s+/) || trimmed.match(/^#{4,}\s+/)) {
         if (currentH3Section.length > 0) {
           h3Sections.push([...currentH3Section])
+          h3Ratios.push(currentH3Ratio)
+          h3Alignments.push(currentH3Alignment)
           currentH3Section = []
         }
         flushH3Sections()
@@ -459,8 +585,127 @@ export const wrapConsecutiveH3InGrid = (content: string): string => {
   // 最後のH3セクションを処理
   if (currentH3Section.length > 0) {
     h3Sections.push([...currentH3Section])
+    h3Ratios.push(currentH3Ratio)
+    h3Alignments.push(currentH3Alignment)
   }
   flushH3Sections()
+  
+  return result.join('\n')
+}
+
+// 各要素の高さ係数（baseFontSizeに対する倍率）
+const HEIGHT_FACTORS = {
+  h1: 3.0,      // H1見出し + 余白
+  h2: 2.5,      // H2見出し + 余白
+  h3: 2.0,      // H3見出し + 余白
+  paragraph: 1.5,  // テキスト段落
+  listItem: 1.2,   // リストアイテム
+  keyMessage: 4.0, // キーメッセージ
+  image: 8.0,      // 画像（推定）
+}
+
+/**
+ * Markdown行の配列から高さ係数を推定する
+ * @param lines Markdownの行配列
+ * @returns 高さ係数の合計（baseFontSizeに乗算して使用）
+ */
+export const estimateContentHeight = (lines: string[]): number => {
+  let height = 0
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    
+    // 空行はスキップ
+    if (!trimmed) continue
+    
+    // table-chartタグはスキップ（グラフ自体の高さは別途計算）
+    if (trimmed.includes('<table-chart')) continue
+    
+    // picto-diagramタグはスキップ
+    if (trimmed.includes('<picto-diagram')) continue
+    
+    // euler-diagramタグはスキップ
+    if (trimmed.includes('<euler-diagram')) continue
+    
+    // HTMLタグ（divなど）はスキップ
+    if (trimmed.startsWith('<div') || trimmed.startsWith('</div')) continue
+    
+    // H1見出し
+    if (trimmed.match(/^#\s+/)) {
+      height += HEIGHT_FACTORS.h1
+      continue
+    }
+    
+    // H2見出し
+    if (trimmed.match(/^##\s+/)) {
+      height += HEIGHT_FACTORS.h2
+      continue
+    }
+    
+    // H3見出し
+    if (trimmed.match(/^###\s*/)) {
+      height += HEIGHT_FACTORS.h3
+      continue
+    }
+    
+    // リストアイテム（箇条書き・番号付き）
+    if (trimmed.match(/^[-*+]\s+/) || trimmed.match(/^\d+\.\s+/)) {
+      height += HEIGHT_FACTORS.listItem
+      continue
+    }
+    
+    // キーメッセージ（:::key-message または key-message class）
+    if (trimmed.includes('key-message') || trimmed.match(/^:::/)) {
+      height += HEIGHT_FACTORS.keyMessage
+      continue
+    }
+    
+    // 画像（Markdown記法または imgタグ）
+    if (trimmed.match(/^!\[/) || trimmed.includes('<img')) {
+      height += HEIGHT_FACTORS.image
+      continue
+    }
+    
+    // その他のテキスト（段落）
+    if (trimmed.length > 0 && !trimmed.startsWith('<')) {
+      height += HEIGHT_FACTORS.paragraph
+    }
+  }
+  
+  return height
+}
+
+/**
+ * Markdownコンテンツを解析し、table-chartの前後のコンテンツ高さを推定する
+ * @param content Markdownコンテンツ
+ * @returns table-chartタグにcontent-before/after属性を追加したコンテンツ
+ */
+export const injectContentHeightToCharts = (content: string): string => {
+  const lines = content.split('\n')
+  const result: string[] = []
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    if (line.includes('<table-chart ')) {
+      // グラフ前のコンテンツ高さを計算
+      const beforeLines = lines.slice(0, i)
+      const beforeHeight = estimateContentHeight(beforeLines)
+      
+      // グラフ後のコンテンツ高さを計算
+      const afterLines = lines.slice(i + 1)
+      const afterHeight = estimateContentHeight(afterLines)
+      
+      // table-chartタグに属性を追加
+      const updatedLine = line.replace(
+        /<table-chart ([^>]*)>/g,
+        `<table-chart $1 content-before="${beforeHeight.toFixed(1)}" content-after="${afterHeight.toFixed(1)}">`
+      )
+      result.push(updatedLine)
+    } else {
+      result.push(line)
+    }
+  }
   
   return result.join('\n')
 }
@@ -699,8 +944,21 @@ export const removeColumnRatioFromLine = (line: string): string => {
 }
 
 /**
+ * ドキュメント全体から比率・配置指定 {数値} {mid} などを除去する
+ * グリッドレイアウトが適用されない場合でも、比率指定がテキストとして表示されないようにする
+ * 
+ * @param content - 処理するコンテンツ
+ * @returns 比率指定を除去したコンテンツ
+ */
+export const removeAllColumnRatios = (content: string): string => {
+  const lines = content.split('\n')
+  const result = lines.map(line => removeColumnRatioFromLine(line))
+  return result.join('\n')
+}
+
+/**
  * ドキュメント全体からセクション見出し（#）を抽出する
- * レイアウトタイプ付きの見出し（[表紙]、[目次]、[まとめ]）は除外
+ * レイアウト属性値付きの見出し（#ttl, #agd, #!）は除外
  * 
  * @param content - ドキュメント全体のコンテンツ
  * @returns セクション見出しの配列
@@ -711,22 +969,14 @@ export const extractSectionHeadings = (content: string): string[] => {
   
   for (const line of lines) {
     const trimmed = line.trim()
-    // H1のパターンをチェック
+    // レイアウト属性値（#ttl, #agd, #!）は除外
+    if (trimmed.match(/^#ttl\s+/) || trimmed.match(/^#agd\s+/) || trimmed.match(/^#!\s+/)) {
+      continue
+    }
+    // 通常のH1のパターンをチェック
     const h1Match = trimmed.match(/^#\s+(.+)$/)
     if (h1Match) {
       const title = h1Match[1].trim()
-      // レイアウトタイプ記法をチェック
-      const layoutMatch = title.match(/^\[([^\]]+)\]\s*(.*)$/)
-      if (layoutMatch) {
-        const layoutType = layoutMatch[1]
-        // [表紙]、[目次]、[まとめ]は除外
-        if (layoutType === '表紙' || layoutType === '目次' || layoutType === 'まとめ') {
-          continue
-        }
-        // その他のレイアウトタイプ（[中扉]など）も除外
-        continue
-      }
-      // レイアウトタイプがない通常のセクション見出し
       sections.push(title)
     }
   }

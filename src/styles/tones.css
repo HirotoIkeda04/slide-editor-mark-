@@ -1,5 +1,5 @@
 /* ============================================
-   動的トンマナ（印象コードシステム）
+   動的Tone & Manner（印象コードシステム）
    CSS変数を使用して動的にスタイルを適用
    ============================================ */
 
@@ -51,16 +51,16 @@
   color: var(--tone-primary, #3B82F6);
 }
 
-/* 動的トンマナ用の背景色クラス */
+/* 動的Tone & Manner用の背景色クラス */
 .bg-tone-dynamic {
   background-color: var(--tone-background, #f5f5f5);
 }
 
 /* ============================================
-   静的トンマナ（後方互換性のため維持）
+   静的Tone & Manner（後方互換性のため維持）
    ============================================ */
 
-/* トンマナ: シンプル */
+/* Tone & Manner: シンプル */
 .tone-simple {
   --tone-primary: #3B82F6;
 }
@@ -75,7 +75,7 @@
 }
 .tone-simple .prose a { color: #2563eb; }
 
-/* トンマナ用背景色クラス */
+/* Tone & Manner用背景色クラス */
 .bg-tone-simple {
   background-color: #f5f5f5;
 }
@@ -89,7 +89,7 @@
   background-color: #FAF9F5;
 }
 
-/* トンマナ: カジュアル */
+/* Tone & Manner: カジュアル */
 .tone-casual {
   --tone-primary: #25b7c0;
   background-color: #25b7c0;
@@ -123,7 +123,7 @@
   border-radius: 0.25em;
 }
 
-/* トンマナ: ラグジュアリー */
+/* Tone & Manner: ラグジュアリー */
 .tone-luxury {
   --tone-primary: #C9A962;
   background-color: var(--app-bg-tertiary);
@@ -140,7 +140,7 @@
 }
 .tone-luxury .prose a { color: #f8e9a1; }
 
-/* トンマナ: 暖かい（Claude UI テーマ） */
+/* Tone & Manner: 暖かい（Claude UI テーマ） */
 .tone-warm {
   --tone-primary: #E07A5F;
   background-color: #FAF9F5;
@@ -183,7 +183,7 @@
   border-radius: 0.25em;
 }
 
-/* トンマナ用チップ */
+/* Tone & Manner用チップ */
 .tone-chip {
   display: inline-flex;
   align-items: center;
@@ -217,119 +217,6 @@
   font-size: 0.875rem;
 }
 
-/* InstaPost/InstaStory wrapper styles */
-.instapost-wrapper {
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0;
-  background-color: var(--app-bg-primary) !important; /* 外側コンテナの背景色を固定 */
-}
-/* サムネイルでは余白を削除 */
-.instapost-wrapper-thumbnail,
-.format-instapost .instapost-wrapper-thumbnail {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.tone-casual.instapost-wrapper {
-  background-color: var(--app-bg-primary) !important; /* 上書きを防ぐ */
-}
-.tone-warm.instapost-wrapper {
-  background-color: var(--app-bg-primary) !important; /* 上書きを防ぐ */
-}
-.tone-luxury.instapost-wrapper {
-  background-color: var(--app-bg-primary) !important; /* 上書きを防ぐ */
-}
-.instapost-frame {
-  /* widthとheightはPreview.tsxのslideStyleで設定されるため、ここでは設定しない */
-  background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  /* ボーダーと影はPreview.tsxのslideStyleで設定 */
-}
-/* サムネイルでは余白を削除 */
-.instapost-frame-thumbnail,
-.format-instapost .instapost-frame-thumbnail {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.tone-luxury .instapost-frame {
-  background-color: var(--app-bg-tertiary);
-  color: #f5f5f5;
-}
-.instapost-inner {
-  width: 100%;
-  height: 100%;
-  padding: clamp(2rem, 5vw, 3rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-.instapost-inner-thumbnail {
-  padding: 0 !important; /* サムネイルではパディングを削除 */
-  display: flex !important; /* サムネイルでもflexを維持（垂直方向の中央寄せのため） */
-  align-items: center !important; /* サムネイルでも上下中央寄せを維持 */
-  justify-content: center !important; /* サムネイルでも左右中央寄せを維持 */
-}
-.instapost-inner .prose {
-  text-align: center;
-  width: 100%;
-  margin: 0;
-}
-/* 通常レイアウト（layout-coverとlayout-section以外）は左寄せ */
-.instapost-inner .prose:not(.layout-cover):not(.layout-section) {
-  text-align: left;
-}
-/* サムネイルでは通常レイアウトのみ左寄せ（layout-coverとlayout-sectionは中央寄せを維持） */
-/* .format-instapost .instapost-inner .prose より詳細度を高めるため、.instapost-inner.instapost-inner-thumbnail を使用 */
-.format-instapost .instapost-inner.instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section),
-.instapost-wrapper.format-instapost .instapost-inner.instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section) {
-  text-align: left !important;
-}
-.instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section),
-.instapost-inner.instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section),
-.format-instapost .instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section),
-.format-instapost .instapost-inner.instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section),
-.instapost-wrapper.format-instapost .instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section),
-.instapost-wrapper.format-instapost .instapost-inner.instapost-inner-thumbnail .prose:not(.layout-cover):not(.layout-section) {
-  text-align: left !important; /* サムネイルでは通常レイアウトのみ左寄せ */
-  width: 100% !important;
-  margin: 0 !important;
-}
-.instapost-inner .prose > :first-child {
-  margin-top: 0 !important;
-}
-.instapost-inner .prose h1,
-.instapost-inner .prose h2,
-.instapost-inner .prose h3 {
-  margin-top: 0.25rem;
-}
-.instapost-inner .prose > *:first-child {
-  margin-top: 0 !important;
-}
-.instapost-inner-thumbnail .prose h1,
-.instapost-inner-thumbnail .prose h2,
-.instapost-inner-thumbnail .prose h3,
-.instapost-inner.instapost-inner-thumbnail .prose h1,
-.instapost-inner.instapost-inner-thumbnail .prose h2,
-.instapost-inner.instapost-inner-thumbnail .prose h3,
-.format-instapost .instapost-inner-thumbnail .prose h1,
-.format-instapost .instapost-inner-thumbnail .prose h2,
-.format-instapost .instapost-inner-thumbnail .prose h3,
-.format-instapost .instapost-inner.instapost-inner-thumbnail .prose h1,
-.format-instapost .instapost-inner.instapost-inner-thumbnail .prose h2,
-.format-instapost .instapost-inner.instapost-inner-thumbnail .prose h3,
-.instapost-wrapper.format-instapost .instapost-inner-thumbnail .prose h1,
-.instapost-wrapper.format-instapost .instapost-inner-thumbnail .prose h2,
-.instapost-wrapper.format-instapost .instapost-inner-thumbnail .prose h3,
-.instapost-wrapper.format-instapost .instapost-inner.instapost-inner-thumbnail .prose h1,
-.instapost-wrapper.format-instapost .instapost-inner.instapost-inner-thumbnail .prose h2,
-.instapost-wrapper.format-instapost .instapost-inner.instapost-inner-thumbnail .prose h3 {
-  text-align: left !important; /* サムネイルでは見出しも左寄せ */
-}
+/* format-instapost スタイル - 統合済み */
+/* スタイルは formats.css の .format-instapost で定義 */
 

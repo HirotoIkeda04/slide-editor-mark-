@@ -1,5 +1,5 @@
 import type { ImpressionCode, ImpressionPreset, ImpressionRange } from '../types'
-import { getMatchingBiomeName } from './tonmanaBiomes'
+import { getDefaultBiome } from './tonmanaBiomes'
 
 // ============================================
 // 軸の定義
@@ -101,7 +101,7 @@ export const impressionPresets: ImpressionPreset[] = [
   {
     id: 'elegant',
     name: 'elegant',
-    nameJa: 'エレガント',
+    nameJa: 'エレガン',
     code: { energy: 5, formality: 5, classicModern: 3, decoration: 1 },
     description: 'エネルギッシュ、格式高い、中間、シンプル',
   },
@@ -130,14 +130,14 @@ export const impressionPresets: ImpressionPreset[] = [
   {
     id: 'luxury',
     name: 'luxury',
-    nameJa: 'ラグジュアリー',
+    nameJa: 'ラグジュ',
     code: { energy: 3, formality: 5, classicModern: 5, decoration: 3 },
     description: '中間、格式高い、現代的、中間',
   },
   {
     id: 'friendly',
     name: 'friendly',
-    nameJa: 'フレンドリー',
+    nameJa: 'フレンド',
     code: { energy: 5, formality: 1, classicModern: 3, decoration: 3 },
     description: 'エネルギッシュ、親しみやすい、中間、中間',
   },
@@ -344,89 +344,89 @@ export function filterPresetsInRange(range: ImpressionRange): ImpressionPreset[]
  */
 const baseNames: Record<string, { name: string; nameJa: string }> = {
   // E=1 (落ち着いた)
-  'E1F1C1D1': { name: 'understated', nameJa: 'アンダーステイテッド' },
+  'E1F1C1D1': { name: 'understated', nameJa: 'アンステ' },
   'E1F1C1D3': { name: 'vintage', nameJa: 'ヴィンテージ' },
   'E1F1C1D5': { name: 'antique', nameJa: 'アンティーク' },
   'E1F1C3D1': { name: 'serene', nameJa: 'セリーン' },
   'E1F1C3D3': { name: 'relaxed', nameJa: 'リラックス' },
   'E1F1C3D5': { name: 'cozy', nameJa: 'コージー' },
   'E1F1C5D1': { name: 'zen', nameJa: 'ゼン' },
-  'E1F1C5D3': { name: 'effortless', nameJa: 'エフォートレス' },
-  'E1F1C5D5': { name: 'electric', nameJa: 'エレクトリック' },
+  'E1F1C5D3': { name: 'effortless', nameJa: 'エフォート' },
+  'E1F1C5D5': { name: 'electric', nameJa: 'エレキ' },
   'E1F3C1D1': { name: 'polished', nameJa: 'ポリッシュド' },
-  'E1F3C1D3': { name: 'timeless', nameJa: 'タイムレス' },
-  'E1F3C1D5': { name: 'heritage', nameJa: 'ヘリテージ' },
-  'E1F3C3D1': { name: 'neutral', nameJa: 'ニュートラル' },
+  'E1F3C1D3': { name: 'timeless', nameJa: 'タイムレ' },
+  'E1F3C1D5': { name: 'heritage', nameJa: 'ヘリテジ' },
+  'E1F3C3D1': { name: 'neutral', nameJa: 'ニュート' },
   'E1F3C3D3': { name: 'balanced', nameJa: 'バランス' },
-  'E1F3C3D5': { name: 'curated', nameJa: 'キュレイテッド' },
+  'E1F3C3D5': { name: 'curated', nameJa: 'キュレート' },
   'E1F3C5D1': { name: 'sleek', nameJa: 'スリーク' },
   'E1F3C5D3': { name: 'slick', nameJa: 'スリック' },
-  'E1F3C5D5': { name: 'futuristic', nameJa: 'フューチャリスティック' },
-  'E1F5C1D1': { name: 'stately', nameJa: 'ステイトリー' },
-  'E1F5C1D3': { name: 'dignified', nameJa: 'ディグニファイド' },
+  'E1F3C5D5': { name: 'futuristic', nameJa: 'フューチャ' },
+  'E1F5C1D1': { name: 'stately', nameJa: 'ステイト' },
+  'E1F5C1D3': { name: 'dignified', nameJa: 'ディグニ' },
   'E1F5C1D5': { name: 'baroque', nameJa: 'バロック' },
-  'E1F5C3D1': { name: 'corporate', nameJa: 'コーポレート' },
-  'E1F5C3D3': { name: 'professional', nameJa: 'プロフェッショナル' },
-  'E1F5C3D5': { name: 'formal', nameJa: 'フォーマル' },
-  'E1F5C5D1': { name: 'executive', nameJa: 'エグゼクティブ' },
-  'E1F5C5D3': { name: 'premium', nameJa: 'プレミアム' },
-  'E1F5C5D5': { name: 'ceremonial', nameJa: 'セレモニアル' },
+  'E1F5C3D1': { name: 'corporate', nameJa: 'コーポ' },
+  'E1F5C3D3': { name: 'professional', nameJa: 'プロ' },
+  'E1F5C3D5': { name: 'formal', nameJa: 'フォーマ' },
+  'E1F5C5D1': { name: 'executive', nameJa: 'エグゼ' },
+  'E1F5C5D3': { name: 'premium', nameJa: 'プレミ' },
+  'E1F5C5D5': { name: 'ceremonial', nameJa: 'セレモ' },
   // E=3 (中間)
   'E3F1C1D1': { name: 'quaint', nameJa: 'クエイント' },
-  'E3F1C1D3': { name: 'nostalgic', nameJa: 'ノスタルジック' },
+  'E3F1C1D3': { name: 'nostalgic', nameJa: 'ノスタル' },
   'E3F1C1D5': { name: 'folk', nameJa: 'フォーク' },
   'E3F1C3D1': { name: 'plain', nameJa: 'プレーン' },
   'E3F1C3D3': { name: 'everyday', nameJa: 'エブリデイ' },
-  'E3F1C3D5': { name: 'playful', nameJa: 'プレイフル' },
+  'E3F1C3D5': { name: 'playful', nameJa: 'プレイフ' },
   'E3F1C5D1': { name: 'agile', nameJa: 'アジャイル' },
-  'E3F1C5D3': { name: 'approachable', nameJa: 'アプローチャブル' },
-  'E3F1C5D5': { name: 'trendy', nameJa: 'トレンディ' },
-  'E3F3C1D1': { name: 'traditional', nameJa: 'トラディショナル' },
+  'E3F1C5D3': { name: 'approachable', nameJa: 'アプロ' },
+  'E3F1C5D5': { name: 'trendy', nameJa: 'トレンド' },
+  'E3F3C1D1': { name: 'traditional', nameJa: 'トラディ' },
   'E3F3C1D3': { name: 'classic', nameJa: 'クラシック' },
   'E3F3C1D5': { name: 'ornate', nameJa: 'オーネイト' },
   'E3F3C3D1': { name: 'minimal', nameJa: 'ミニマル' },
-  'E3F3C3D3': { name: 'standard', nameJa: 'スタンダード' },
-  'E3F3C3D5': { name: 'decorative', nameJa: 'デコラティブ' },
-  'E3F3C5D1': { name: 'contemporary', nameJa: 'コンテンポラリー' },
+  'E3F3C3D3': { name: 'standard', nameJa: 'スタンダ' },
+  'E3F3C3D5': { name: 'decorative', nameJa: 'デコラ' },
+  'E3F3C5D1': { name: 'contemporary', nameJa: 'コンテンポ' },
   'E3F3C5D3': { name: 'modern', nameJa: 'モダン' },
-  'E3F3C5D5': { name: 'expressive', nameJa: 'エクスプレッシブ' },
+  'E3F3C5D5': { name: 'expressive', nameJa: 'エクスプレ' },
   'E3F5C1D1': { name: 'noble', nameJa: 'ノーブル' },
   'E3F5C1D3': { name: 'regal', nameJa: 'リーガル' },
   'E3F5C1D5': { name: 'grand', nameJa: 'グランド' },
   'E3F5C3D1': { name: 'business', nameJa: 'ビジネス' },
-  'E3F5C3D3': { name: 'enterprise', nameJa: 'エンタープライズ' },
-  'E3F5C3D5': { name: 'prestige', nameJa: 'プレステージ' },
-  'E3F5C5D1': { name: 'refined', nameJa: 'リファインド' },
-  'E3F5C5D3': { name: 'luxury', nameJa: 'ラグジュアリー' },
-  'E3F5C5D5': { name: 'opulent', nameJa: 'オピュレント' },
+  'E3F5C3D3': { name: 'enterprise', nameJa: 'エンプラ' },
+  'E3F5C3D5': { name: 'prestige', nameJa: 'プレステ' },
+  'E3F5C5D1': { name: 'refined', nameJa: 'リファイン' },
+  'E3F5C5D3': { name: 'luxury', nameJa: 'ラグジュ' },
+  'E3F5C5D5': { name: 'opulent', nameJa: 'オピュレ' },
   // E=5 (エネルギッシュ)
   'E5F1C1D1': { name: 'rustic', nameJa: 'ラスティック' },
   'E5F1C1D3': { name: 'cottage', nameJa: 'コテージ' },
-  'E5F1C1D5': { name: 'bohemian', nameJa: 'ボヘミアン' },
+  'E5F1C1D5': { name: 'bohemian', nameJa: 'ボヘミ' },
   'E5F1C3D1': { name: 'natural', nameJa: 'ナチュラル' },
-  'E5F1C3D3': { name: 'friendly', nameJa: 'フレンドリー' },
-  'E5F1C3D5': { name: 'whimsical', nameJa: 'ウィムジカル' },
+  'E5F1C3D3': { name: 'friendly', nameJa: 'フレンド' },
+  'E5F1C3D5': { name: 'whimsical', nameJa: 'ウィムジ' },
   'E5F1C5D1': { name: 'fresh', nameJa: 'フレッシュ' },
-  'E5F1C5D3': { name: 'cheerful', nameJa: 'チアフル' },
+  'E5F1C5D3': { name: 'cheerful', nameJa: 'チアフ' },
   'E5F1C5D5': { name: 'kawaii', nameJa: 'かわいい' },
   'E5F3C1D1': { name: 'earthy', nameJa: 'アーシー' },
-  'E5F3C1D3': { name: 'artisan', nameJa: 'アルチザン' },
-  'E5F3C1D5': { name: 'festive', nameJa: 'フェスティブ' },
-  'E5F3C3D1': { name: 'grounded', nameJa: 'グラウンデッド' },
-  'E5F3C3D3': { name: 'inviting', nameJa: 'インバイティング' },
+  'E5F3C1D3': { name: 'artisan', nameJa: 'アルチ' },
+  'E5F3C1D5': { name: 'festive', nameJa: 'フェス' },
+  'E5F3C3D1': { name: 'grounded', nameJa: 'グラウンド' },
+  'E5F3C3D3': { name: 'inviting', nameJa: 'インバイト' },
   'E5F3C3D5': { name: 'lively', nameJa: 'ライブリー' },
-  'E5F3C5D1': { name: 'organic', nameJa: 'オーガニック' },
-  'E5F3C5D3': { name: 'dynamic', nameJa: 'ダイナミック' },
-  'E5F3C5D5': { name: 'vibrant', nameJa: 'ヴィブラント' },
+  'E5F3C5D1': { name: 'organic', nameJa: 'オーガニ' },
+  'E5F3C5D3': { name: 'dynamic', nameJa: 'ダイナミ' },
+  'E5F3C5D5': { name: 'vibrant', nameJa: 'ヴィブラ' },
   'E5F5C1D1': { name: 'royal', nameJa: 'ロイヤル' },
-  'E5F5C1D3': { name: 'majestic', nameJa: 'マジェスティック' },
-  'E5F5C1D5': { name: 'imperial', nameJa: 'インペリアル' },
-  'E5F5C3D1': { name: 'elegant', nameJa: 'エレガント' },
-  'E5F5C3D3': { name: 'sophisticated', nameJa: 'ソフィスティケイテッド' },
-  'E5F5C3D5': { name: 'glamorous', nameJa: 'グラマラス' },
+  'E5F5C1D3': { name: 'majestic', nameJa: 'マジェス' },
+  'E5F5C1D5': { name: 'imperial', nameJa: 'インペリ' },
+  'E5F5C3D1': { name: 'elegant', nameJa: 'エレガン' },
+  'E5F5C3D3': { name: 'sophisticated', nameJa: 'ソフィス' },
+  'E5F5C3D5': { name: 'glamorous', nameJa: 'グラマ' },
   'E5F5C5D1': { name: 'bold', nameJa: 'ボールド' },
-  'E5F5C5D3': { name: 'striking', nameJa: 'ストライキング' },
-  'E5F5C5D5': { name: 'extravagant', nameJa: 'エクストラバガント' },
+  'E5F5C5D3': { name: 'striking', nameJa: 'ストライク' },
+  'E5F5C5D5': { name: 'extravagant', nameJa: 'エクストラ' },
 }
 
 /**
@@ -465,7 +465,7 @@ export function getImpressionName(code: ImpressionCode): { name: string; nameJa:
   const baseD = roundToBaseValue(decoration)
   
   const baseKey = `E${baseE}F${baseF}C${baseC}D${baseD}`
-  const baseName = baseNames[baseKey] || { name: 'standard', nameJa: 'スタンダード' }
+  const baseName = baseNames[baseKey] || { name: 'standard', nameJa: 'スタンダ' }
   
   // 修飾語を決定（優先順位: E > F > C > D、最初に見つかった中間値のみ）
   let modifier = ''
@@ -496,10 +496,12 @@ export function getImpressionName(code: ImpressionCode): { name: string; nameJa:
 
 /**
  * 印象コードから表示用の名称を取得
- * バイオームマッチングで最も近いトンマナの名称を返す
+ * デフォルトのTone & Manner名称を返す
+ * 注: 旧4軸マッチングを廃止し、明示的なバイオーム選択に移行
  */
-export function getDisplayName(code: ImpressionCode): { name: string; nameJa: string } {
-  return getMatchingBiomeName(code)
+export function getDisplayName(_code: ImpressionCode): { name: string; nameJa: string } {
+  const biome = getDefaultBiome()
+  return { name: biome.name, nameJa: biome.nameJa }
 }
 
 // ============================================

@@ -46,6 +46,11 @@ export const parseAttributeFromLine = (line: string): {
   }
 
   const symbolPatterns: Array<{ pattern: RegExp; attribute: string }> = [
+    // Layout attributes (must come before # to match first)
+    { pattern: /^#ttl\s+/, attribute: '#ttl' },
+    { pattern: /^#agd\s+/, attribute: '#agd' },
+    { pattern: /^#!\s+/, attribute: '#!' },
+    // Heading attributes
     { pattern: /^###\s+/, attribute: '###' },
     { pattern: /^##\s+/, attribute: '##' },
     { pattern: /^#\s+/, attribute: '#' },
@@ -85,6 +90,11 @@ export const parseAttributeFromLine = (line: string): {
   }
 
   const symbolPatternsWithoutSpace: Array<{ pattern: RegExp; attribute: string }> = [
+    // Layout attributes (must come before # to match first)
+    { pattern: /^(#ttl)(?=\S)/, attribute: '#ttl' },
+    { pattern: /^(#agd)(?=\S)/, attribute: '#agd' },
+    { pattern: /^(#!)(?=\S)/, attribute: '#!' },
+    // Heading attributes
     { pattern: /^(###)(?=\S)/, attribute: '###' },
     { pattern: /^(##)(?=\S)/, attribute: '##' },
     { pattern: /^(#)(?=\S)/, attribute: '#' },

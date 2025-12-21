@@ -89,6 +89,10 @@
   box-shadow: 0 2px 8px -6px oklch(0.72 0.05 70 / 0.25);
   z-index: 10;
 }
+.preview-tab.active .material-icons,
+.preview-tab.active .tab-icon-text {
+  color: rgba(241, 226, 209, 1);
+}
 .preview-tab.first {
   border-top-left-radius: 0.6rem;
 }
@@ -178,7 +182,30 @@
   border-top: 6px solid var(--color-gray-925);
 }
 
-/* YouTubeスタイルのフルスクリーンボタン */
+/* スライド番号インジケーター（左下） */
+.preview-slide-indicator {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 12px;
+  background: oklch(0 0 0 / 0.4);
+  border-radius: 1rem;
+  color: oklch(0.85 0 0);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ホバー時に表示 */
+*:hover > .preview-slide-indicator {
+  opacity: 1;
+}
+
+/* YouTubeスタイルのフルスクリーンボタン（右下） */
 .preview-fullscreen-btn {
   position: absolute;
   right: 12px;
@@ -188,9 +215,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: oklch(0 0 0 / 0.6);
+  background: oklch(0 0 0 / 0.4);
   border: none;
-  border-radius: 4px;
+  border-radius: 50%;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease, background-color 0.2s ease;
@@ -200,7 +227,7 @@
 .preview-fullscreen-btn svg {
   width: 20px;
   height: 20px;
-  stroke: white;
+  stroke: oklch(0.85 0 0);
 }
 
 /* ホバー時に表示 */
@@ -211,14 +238,71 @@
 }
 
 .preview-fullscreen-btn:hover {
-  background: oklch(0 0 0 / 0.8);
+  background: oklch(0 0 0 / 0.6);
 }
 
 .preview-fullscreen-btn:active {
   transform: scale(0.95);
 }
 
-/* ToneDisplay - トンマナ名称表示 */
+/* スライドナビゲーションボタン（左右） */
+.preview-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0 0 0 / 0.4);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+  color: oklch(0.85 0 0);
+}
+
+.preview-nav-btn .material-icons {
+  font-size: 1.625rem;
+}
+
+.preview-nav-prev {
+  left: 5%;
+}
+
+.preview-nav-next {
+  right: 5%;
+}
+
+/* ホバー時に表示 */
+*:hover > .preview-nav-btn,
+.preview-nav-btn:hover,
+.preview-nav-btn:focus {
+  opacity: 1;
+}
+
+.preview-nav-btn:hover {
+  background: oklch(0 0 0 / 0.6);
+}
+
+.preview-nav-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* 無効状態 */
+.preview-nav-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed;
+}
+
+.preview-nav-btn:disabled:hover {
+  background: oklch(0 0 0 / 0.4);
+}
+
+/* ToneDisplay - Tone & Manner名称表示 */
 .tone-display {
   display: flex;
   align-items: center;
@@ -266,6 +350,12 @@
   width: 100%;
 }
 
+/* キーメッセージの後にH3グリッドが来る場合のセクション余白 */
+.key-message + .h3-grid-layout,
+.prose .key-message + .h3-grid-layout {
+  margin-top: 2em;
+}
+
 .h3-grid-item {
   padding: 0;
 }
@@ -287,4 +377,317 @@
 /* H3が4つ以上の場合は最大4カラム */
 .h3-grid-layout:has(.h3-grid-item:nth-child(4)) {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* ============================================ */
+/* Format Selector - ガラス風ホバー展開UI */
+/* ============================================ */
+
+.format-selector {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  z-index: 100;
+}
+
+
+/* ガラス風Floatingバー - 2段階アニメーション */
+.format-floating-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: oklch(0.15 0.01 260 / 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow: 
+    0 4px 24px oklch(0 0 0 / 0.3),
+    0 1px 3px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.05);
+  cursor: pointer;
+  height: 40px;
+  padding: 1px 8px;
+  gap: 4px;
+  border-radius: 20px;
+  overflow: hidden;
+  /* 幅・パディング・gapのトランジション（ease-out: 始め速く終わりゆっくり） */
+  transition: 
+    width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    gap 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    justify-content 0s;
+}
+
+/* 閉じた状態 */
+.format-floating-bar.collapsed {
+  width: 40px;
+  padding: 1px 1px;
+  gap: 0;
+  justify-content: center;
+}
+
+/* 展開中の状態（アニメーション中） */
+.format-floating-bar.expanding {
+  width: 345px;
+  justify-content: space-between;
+}
+
+/* 展開完了の状態 */
+.format-floating-bar.expanded {
+  width: 345px;
+  justify-content: space-between;
+}
+
+/* フェーズ1: アイコン移動（バー幅は維持） */
+.format-floating-bar.closing_icons {
+  width: 345px;
+  justify-content: space-between;
+}
+
+/* フェーズ2: バー縮小 */
+.format-floating-bar.closing_bar {
+  width: 40px;
+  padding: 1px 1px;
+  gap: 0;
+  justify-content: center;
+}
+
+/* 展開中: 非選択アイコンにブラーをかける（とてもblur → 少しblur） */
+.format-floating-bar.expanding .format-option:not(.active) {
+  filter: blur(6px);
+  transition: 
+    filter 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform var(--icon-duration, 0.8s) cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+/* 展開完了: 非選択アイコンのブラーを解除（少しblur → blurなし） */
+.format-floating-bar.expanded .format-option:not(.active) {
+  filter: blur(0);
+  transition: 
+    filter 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transform var(--icon-duration, 0.8s) cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+/* フェーズ1: 非選択アイコンをフェードアウト（少しblur） */
+.format-floating-bar.closing_icons .format-option:not(.active) {
+  opacity: 0;
+  filter: blur(4px);
+  pointer-events: none;
+  transition: 
+    filter 0.1s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* JSで計算されたイージング付きdelay */
+  transition-delay: var(--fade-delay, 0ms);
+}
+
+/* フェーズ1: 選択アイコンを左へ移動 */
+.format-floating-bar.closing_icons .format-option.active {
+  transform: translateX(calc(-1 * var(--icon-move-x, 0px)));
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* フェーズ2: 非選択アイコンを完全非表示（とてもblur） */
+.format-floating-bar.closing_bar .format-option:not(.active) {
+  width: 0;
+  opacity: 0;
+  filter: blur(8px);
+  padding: 0;
+  margin: 0;
+  border: none;
+  pointer-events: none;
+  transition: 
+    filter 0.15s cubic-bezier(0.4, 0, 1, 1),
+    width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* フェーズ2: 選択アイコンは左端に固定 */
+.format-floating-bar.closing_bar .format-option.active {
+  transform: translateX(0);
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* 閉じた状態: 非選択アイコンを非表示（とてもblur - 開く時の初期状態） */
+.format-floating-bar.collapsed .format-option:not(.active) {
+  width: 0;
+  opacity: 0;
+  filter: blur(8px);
+  padding: 0;
+  margin: 0;
+  border: none;
+  pointer-events: none;
+}
+
+/* 閉じた状態: 選択アイコン */
+.format-floating-bar.collapsed .format-option.active {
+  transform: translateX(0);
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+@keyframes formatNameFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 各フォーマットオプション */
+.format-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  /* 2段階アニメーション用トランジション（ease-out expo） */
+  /* transform durationは移動距離に応じて動的に設定（--icon-duration） */
+  transition: 
+    transform var(--icon-duration, 0.8s) cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+  gap: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.format-option:hover {
+  color: var(--app-text-primary);
+  background: oklch(1 0 0 / 0.08);
+}
+
+.format-option.hovered {
+  width: auto;
+  padding: 0 12px 0 6px;
+}
+
+/* ホバー時に表示されるラベル */
+.format-option-label {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+  animation: formatNameFadeIn 0.3s ease-out;
+}
+
+.format-option-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.format-option-ratio {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--app-text-muted);
+}
+
+/* 選択中のオプション - 丸枠でハイライト */
+.format-option.active {
+  color: var(--app-highlight);
+  background: oklch(0.72 0.05 70 / 0.15);
+  border-color: var(--app-highlight);
+  box-shadow: 0 0 0 2px oklch(0.72 0.05 70 / 0.2);
+}
+
+.format-option.active:hover {
+  background: oklch(0.72 0.05 70 / 0.2);
+}
+
+.format-option.active .format-option-name {
+  color: var(--app-highlight);
+}
+
+.format-option.active .format-option-ratio {
+  color: oklch(0.72 0.05 70 / 0.7);
+}
+
+/* アイコンスタイル */
+.format-icon-text {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.format-instagram-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.format-option .material-icons {
+  font-size: 1.25rem;
+}
+
+/* ツールチップ */
+.format-tooltip {
+  background: var(--modal-bg);
+  color: var(--app-text-primary);
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  box-shadow: var(--app-shadow-lg);
+  border: 1px solid var(--app-border-primary);
+  max-width: 280px;
+  min-width: 180px;
+  text-align: left;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.format-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--modal-bg);
 }

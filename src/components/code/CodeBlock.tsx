@@ -16,7 +16,7 @@ export const CodeBlock = ({
   ...props 
 }: CodeBlockProps) => {
   const codeRef = useRef<HTMLDivElement>(null)
-  const [fontSize, setFontSize] = useState<string>('clamp(0.75em, 1.5vmin, 0.9em)')
+  const [fontSize, setFontSize] = useState<string>('var(--code-font-size, 1em)')
   
   const match = /language-(\w+)/.exec(className || '')
   const language = match ? match[1] : ''
@@ -59,7 +59,7 @@ export const CodeBlock = ({
         const newFontSize = Math.max(currentFontSize * ratio * 0.9, 6) // 最小6px、さらに余裕を持たせる
         setFontSize(`${newFontSize}px`)
       } else {
-        setFontSize('clamp(0.75em, 1.5vmin, 0.9em)')
+        setFontSize('var(--code-font-size, 1em)')
       }
     }
     
@@ -129,4 +129,3 @@ export const CodeBlock = ({
     </div>
   )
 }
-

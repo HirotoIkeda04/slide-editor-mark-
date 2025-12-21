@@ -1,0 +1,176 @@
+/**
+ * GraphTypeModal - グラフタイプ選択モーダルのスタイル
+ */
+
+/* オーバーレイ */
+.graph-type-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* モーダルボックス */
+.graph-type-modal {
+  background-color: var(--app-bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  max-height: 80vh;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ヘッダー */
+.graph-type-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--app-border-primary);
+}
+
+.graph-type-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.graph-type-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--app-text-secondary);
+  transition: all 0.15s ease;
+}
+
+.graph-type-modal-close:hover {
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+}
+
+.graph-type-modal-close .material-icons {
+  font-size: 20px;
+}
+
+/* 本体 */
+.graph-type-modal-content {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* カテゴリセクション */
+.graph-type-modal-category {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.graph-type-modal-category-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* グラフタイプグリッド */
+.graph-type-modal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* グラフタイプボタン */
+.graph-type-modal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  min-width: 64px;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 8px;
+  background-color: var(--app-bg-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-type-modal-btn:hover {
+  background-color: var(--app-bg-tertiary);
+  border-color: var(--app-border-secondary);
+}
+
+.graph-type-modal-btn.active {
+  background-color: var(--app-accent-primary);
+  border-color: var(--app-accent-primary);
+  color: white;
+}
+
+.graph-type-modal-btn .material-icons {
+  font-size: 24px;
+  color: var(--app-text-secondary);
+}
+
+.graph-type-modal-btn.active .material-icons {
+  color: white;
+}
+
+.graph-type-modal-label {
+  font-size: 0.6875rem;
+  color: var(--app-text-secondary);
+  white-space: nowrap;
+}
+
+.graph-type-modal-btn.active .graph-type-modal-label {
+  color: white;
+}
+
+/* フォーカススタイル */
+.graph-type-modal-btn:focus-visible,
+.graph-type-modal-close:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
+}

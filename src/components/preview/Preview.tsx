@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useCallback, useState, useRef } from 'react'
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
-import type { Slide, SlideFormat, Tone, SlideLayout, Item, TableItem, ImpressionCode, ImpressionStyleVars, GradientConfig } from '../../types'
+import type { Slide, SlideFormat, Tone, SlideLayout, Item, TableItem, PictoItem, EulerItem, ImpressionCode, ImpressionStyleVars, GradientConfig } from '../../types'
 import { CodeBlock } from '../code/CodeBlock'
 import { TableChart } from '../chart/TableChart'
-import { convertKeyMessageToHTML, splitContentByH2, hasMultipleH2, expandItemReferences, extractImagesFromContent, extractSectionHeadings, generateTableOfContents, wrapConsecutiveH3InGrid } from '../../utils/markdown'
+import { PictoRenderer } from '../picto/PictoRenderer'
+import { EulerRenderer } from '../euler/EulerRenderer'
+import { convertKeyMessageToHTML, splitContentByH2, hasMultipleH2, expandItemReferences, extractImagesFromContent, extractSectionHeadings, generateTableOfContents, wrapConsecutiveH3InGrid, removeAllColumnRatios, injectContentHeightToCharts } from '../../utils/markdown'
 import { getItemByName, getItemById, itemToMarkdown } from '../../utils/items'
-import { formatConfigs, fontConfigs } from '../../constants/formatConfigs'
+import { formatConfigs, fontConfigs, safeAreaConfigs } from '../../constants/formatConfigs'
 import { generateStyleVars } from '../../utils/impressionStyle'
+import { getBiomeById } from '../../constants/tonmanaBiomes'
 import './Preview.css'
 
 // グラデーションをCSS文字列に変換
@@ -27,6 +30,57 @@ const gradientToCSS = (config?: GradientConfig): string => {
   return `linear-gradient(${config.angle ?? 135}deg, ${colorStops})`
 }
 
+// 目次用のカスタムリストコンポーネント（フォーマットに応じて分割）
+interface TocGridListProps {
+  children: React.ReactNode
+  ordered: boolean
+  maxColumns: number      // 最大カラム数（1なら分割しない）
+  itemsPerColumn: number  // 1カラムあたりの最大項目数
+}
+
+const TocGridList = ({ children, ordered, maxColumns, itemsPerColumn }: TocGridListProps) => {
+  // ReactMarkdownのchildrenから全ての子要素を取得
+  const allChildren = React.Children.toArray(children)
+  
+  // li要素のみをフィルタ（ReactMarkdownでは文字列型の'li'としてレンダリングされる）
+  const items = allChildren.filter(child => 
+    React.isValidElement(child) && 
+    (child.type === 'li' || (typeof child.type === 'string' && child.type.toLowerCase() === 'li'))
+  )
+  
+  // 分割しない条件：
+  // - maxColumnsが1以下
+  // - 項目数がitemsPerColumn以下（1カラムに収まる）
+  // - 項目数が1以下
+  if (maxColumns <= 1 || items.length <= itemsPerColumn || items.length <= 1) {
+    if (ordered) {
+      return <ol>{children}</ol>
+    }
+    return <ul>{children}</ul>
+  }
+  
+  // 2カラムに分割（半分ずつ）
+  const half = Math.ceil(items.length / 2)
+  const leftItems = items.slice(0, half)
+  const rightItems = items.slice(half)
+  
+  return (
+    <div className="toc-grid">
+      {ordered ? (
+        <>
+          <ol start={1}>{leftItems}</ol>
+          <ol start={half + 1}>{rightItems}</ol>
+        </>
+      ) : (
+        <>
+          <ul>{leftItems}</ul>
+          <ul>{rightItems}</ul>
+        </>
+      )}
+    </div>
+  )
+}
+
 interface PreviewProps {
   slides: Slide[]
   currentIndex: number
@@ -34,6 +88,7 @@ interface PreviewProps {
   currentTone: Tone
   impressionCode?: ImpressionCode // 印象コード（新システム）
   styleOverrides?: Partial<ImpressionStyleVars> // スタイルオーバーライド
+  selectedBiomeId?: string // 選択中のバイオームID
   previewRef: React.RefObject<HTMLDivElement | null>
   items: Item[]
   isSlideShow?: boolean // スライドショー表示かどうか
@@ -60,7 +115,7 @@ const getLayoutClasses = (layout: SlideLayout | undefined): string => {
   }
 }
 
-export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impressionCode, styleOverrides, previewRef, items, isSlideShow = false, isThumbnail = false, thumbnailHeight, onNavigate, onStartSlideShow }: PreviewProps) => {
+export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impressionCode, styleOverrides, selectedBiomeId, previewRef, items, isSlideShow = false, isThumbnail = false, thumbnailHeight, onNavigate, onStartSlideShow }: PreviewProps) => {
   const [scale, setScale] = useState(0.3) // 初期スケールを適切な値に設定（計算完了まで適度なサイズで表示）
   const containerRef = useRef<HTMLDivElement>(null)
   const slideRef = useRef<HTMLDivElement>(null)
@@ -76,7 +131,7 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
   // 印象コードからスタイル変数を生成（オーバーライド適用）
   const impressionStyles = useMemo(() => {
     if (impressionCode) {
-      const base = generateStyleVars(impressionCode)
+      const base = generateStyleVars(impressionCode, undefined, selectedBiomeId)
       if (styleOverrides) {
         const merged = { ...base, ...styleOverrides }
         // fontFamilyがオーバーライドされていて、fontFamilyHeadingがオーバーライドされていない場合、
@@ -89,7 +144,19 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
       return base
     }
     return null
-  }, [impressionCode, styleOverrides])
+  }, [impressionCode, styleOverrides, selectedBiomeId])
+
+  // ネオングロー効果の判定
+  const neonGlowColor = useMemo(() => {
+    if (!selectedBiomeId) return null
+    const biome = getBiomeById(selectedBiomeId)
+    if (!biome) return null
+    if (biome.baseStyle === 'Neon' || biome.baseStyle === 'NeonBold') {
+      // colorプロパティから小文字のグロー色を取得
+      return biome.color.toLowerCase()
+    }
+    return null
+  }, [selectedBiomeId])
 
   // スライドの固定サイズを取得
   const slideSize = formatConfigs[currentFormat]
@@ -431,10 +498,28 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
   // 目次レイアウトの場合は、全スライドからセクション見出しを抽出して自動生成
   const contentForTOC = useMemo(() => {
     if (layout === 'toc') {
+      // 現在のスライドから#agdの後のタイトルを抽出
+      const lines = slideContent.split('\n')
+      let tocTitle = ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        const agdMatch = trimmed.match(/^#agd\s+(.+)$/)
+        if (agdMatch) {
+          tocTitle = agdMatch[1].trim()
+          break
+        }
+      }
+      
       // 全スライドのコンテンツを結合してセクション見出しを抽出
       const allContent = slides.map(s => s.content).join('\n')
       const sections = extractSectionHeadings(allContent)
-      return generateTableOfContents(sections)
+      const tocList = generateTableOfContents(sections)
+      
+      // タイトルがある場合は「# タイトル」+ 目次リスト
+      if (tocTitle) {
+        return `# ${tocTitle}\n\n${tocList}`
+      }
+      return tocList
     }
     return slideContent
   }, [layout, slides, slideContent])
@@ -494,9 +579,10 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
       
       console.log('[CustomImage] Display mode:', displayMode, 'for item:', imageAlt, 'isSlideShow:', isSlideShow, 'scale:', scale)
       
-      // スライドのパディング（p-12 = 48px * 2 = 96px）とマージンを考慮
+      // スライドのパディング（フォーマットごとのセーフエリア）とマージンを考慮
       // スライドショーの場合は、スケール後のサイズを考慮してmaxHeightを計算
-      const slidePadding = 96 // p-12 = 48px * 2
+      const safeArea = safeAreaConfigs[currentFormat]
+      const slidePadding = safeArea.top + safeArea.bottom // 上下のセーフエリア合計
       const imageMargin = 40 // 1.25em * 2 (上下マージン)
       
       let maxHeightValue: string
@@ -558,11 +644,27 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     }
     console.log('[CustomImage] Using src as-is:', src)
     return <img src={src} alt={alt || ''} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
-  }, [imageMap, items, isSlideShow, fixedHeight, scale])
+  }, [imageMap, items, isSlideShow, fixedHeight, scale, currentFormat])
   
   // カスタムtable-chartコンポーネントを定義（テーブルをチャートとして表示）
-  const CustomTableChart = useCallback(({ id, name }: { id?: string; name?: string }) => {
-    console.log('[CustomTableChart] Called with id:', id, 'name:', name)
+  const CustomTableChart = useCallback(({ 
+    id, 
+    name,
+    'grid-ratio': gridRatio,
+    'grid-total': gridTotal,
+    'grid-columns': gridColumns,
+    'content-before': contentBefore,
+    'content-after': contentAfter
+  }: { 
+    id?: string
+    name?: string
+    'grid-ratio'?: string
+    'grid-total'?: string
+    'grid-columns'?: string
+    'content-before'?: string
+    'content-after'?: string
+  }) => {
+    console.log('[CustomTableChart] Called with id:', id, 'name:', name, 'gridRatio:', gridRatio, 'gridTotal:', gridTotal, 'gridColumns:', gridColumns, 'contentBefore:', contentBefore, 'contentAfter:', contentAfter)
     
     // IDまたは名前でテーブルアイテムを検索
     let tableItem: TableItem | undefined
@@ -593,38 +695,223 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
       )
     }
     
+    // セーフエリアを考慮した利用可能領域
+    const safeArea = safeAreaConfigs[currentFormat]
+    const availableWidth = fixedWidth - safeArea.left - safeArea.right
+    const availableHeight = fixedHeight - safeArea.top - safeArea.bottom
+
+    // グリッド内かどうかで分岐
+    const isInGrid = !!gridColumns
+    const myRatio = gridRatio ? parseFloat(gridRatio) : 1
+    const totalRatioValue = gridTotal ? parseFloat(gridTotal) : 1
+    
+    // 幅: グリッドカラム比率に基づいて計算
+    // グリッド内の場合、自分の列の比率に応じた幅を使用
+    const columnWidth = availableWidth * (myRatio / totalRatioValue)
+    const baseWidth = isInGrid ? columnWidth : availableWidth
+    const maxChartWidth = baseWidth * 0.9
+
+    // 高さ: コンテンツ解析結果を使用して動的に計算
+    // contentBefore/contentAfterはbaseFontSizeに対する係数
+    const beforeHeightFactor = contentBefore ? parseFloat(contentBefore) : 0
+    const afterHeightFactor = contentAfter ? parseFloat(contentAfter) : 0
+    
+    // 前後のコンテンツが占める高さをピクセルに変換
+    const beforeHeight = beforeHeightFactor * baseFontSize
+    const afterHeight = afterHeightFactor * baseFontSize
+    
+    // グリッド内の場合はH3見出し分も考慮
+    const gridExtraHeight = isInGrid ? (headingFontSize * 1.5) : 0
+    
+    // 使用済み高さ = 前のコンテンツ + 後のコンテンツ + グリッド余白 + マージン
+    const marginHeight = baseFontSize * 2  // 上下マージン
+    const usedHeight = beforeHeight + afterHeight + gridExtraHeight + marginHeight
+    
+    // 残りの高さをグラフに割り当て（最低でも利用可能高さの30%は確保）
+    const minChartHeight = availableHeight * 0.3
+    const calculatedMaxHeight = availableHeight - usedHeight
+    const maxChartHeight = Math.max(minChartHeight, calculatedMaxHeight)
+    
+    console.log('[CustomTableChart] Height calculation:', {
+      availableHeight,
+      beforeHeight,
+      afterHeight,
+      gridExtraHeight,
+      marginHeight,
+      usedHeight,
+      calculatedMaxHeight,
+      maxChartHeight
+    })
+
+    // グラフサイズ（アスペクト比を維持）
+    const isDonut = tableItem.displayFormat === 'donut'
+    const slideAspectRatio = fixedWidth / fixedHeight  // 16:9 = 1.78, 4:5 = 0.8, etc.
+    const chartAspectRatio = isDonut ? 1 : slideAspectRatio  // ドーナツは正方形
+
+    // アスペクト比を維持しながらフィット
+    let chartWidth: number
+    let chartHeight: number
+    if (maxChartWidth / chartAspectRatio <= maxChartHeight) {
+      chartWidth = maxChartWidth
+      chartHeight = maxChartWidth / chartAspectRatio
+    } else {
+      chartHeight = maxChartHeight
+      chartWidth = maxChartHeight * chartAspectRatio
+    }
+    
     return (
       <div style={{ width: '100%', margin: '1rem 0', display: 'flex', justifyContent: 'center' }}>
-        <TableChart 
-          table={tableItem} 
+        <TableChart
+          table={tableItem}
           tone={currentTone}
-          width={800}
-          height={300}
+          width={chartWidth}
+          height={chartHeight}
+          chartColors={impressionStyles?.chartColors}
+          backgroundColor={impressionStyles?.background}
+          baseFontSize={baseFontSize}
         />
       </div>
     )
-  }, [items, currentTone])
+  }, [items, currentTone, impressionStyles?.chartColors, impressionStyles?.background, currentFormat, fixedWidth, fixedHeight, headingFontSize, baseFontSize])
+
+  // カスタムpicto-diagramコンポーネントを定義（ピクト図解を表示）
+  const CustomPictoDiagram = useCallback(({ id, name }: { id?: string; name?: string }) => {
+    console.log('[CustomPictoDiagram] Called with id:', id, 'name:', name)
+    
+    // IDまたは名前でピクトアイテムを検索
+    let pictoItem: PictoItem | undefined
+    if (id) {
+      const item = getItemById(items, id)
+      if (item && item.type === 'picto') {
+        pictoItem = item as PictoItem
+      }
+    }
+    if (!pictoItem && name) {
+      const item = getItemByName(items, name)
+      if (item && item.type === 'picto') {
+        pictoItem = item as PictoItem
+      }
+    }
+    
+    if (!pictoItem) {
+      console.warn('[CustomPictoDiagram] Picto not found:', id || name)
+      return (
+        <div style={{ 
+          padding: '1rem', 
+          color: '#ff7373', 
+          fontStyle: 'italic',
+          textAlign: 'center'
+        }}>
+          Pictogram "{name || id}" が見つかりません
+        </div>
+      )
+    }
+    
+    return (
+      <div style={{ width: '100%', margin: '1rem 0', display: 'flex', justifyContent: 'center' }}>
+        <PictoRenderer item={pictoItem} />
+      </div>
+    )
+  }, [items])
+
+  // カスタムeuler-diagramコンポーネントを定義（オイラー図を表示）
+  const CustomEulerDiagram = useCallback(({ id, name }: { id?: string; name?: string }) => {
+    console.log('[CustomEulerDiagram] Called with id:', id, 'name:', name)
+    
+    // IDまたは名前でオイラーアイテムを検索
+    let eulerItem: EulerItem | undefined
+    if (id) {
+      const item = getItemById(items, id)
+      if (item && item.type === 'euler') {
+        eulerItem = item as EulerItem
+      }
+    }
+    if (!eulerItem && name) {
+      const item = getItemByName(items, name)
+      if (item && item.type === 'euler') {
+        eulerItem = item as EulerItem
+      }
+    }
+    
+    if (!eulerItem) {
+      console.warn('[CustomEulerDiagram] Euler not found:', id || name)
+      return (
+        <div style={{ 
+          padding: '1rem', 
+          color: '#ff7373', 
+          fontStyle: 'italic',
+          textAlign: 'center'
+        }}>
+          Euler diagram "{name || id}" が見つかりません
+        </div>
+      )
+    }
+    
+    // セーフエリアを考慮した利用可能なサイズを計算
+    // 見出しや他のコンテンツ用に高さの75%を使用
+    const safeArea = safeAreaConfigs[currentFormat]
+    const availableWidth = fixedWidth - safeArea.left - safeArea.right
+    const availableHeight = (fixedHeight - safeArea.top - safeArea.bottom) * 0.75
+    
+    return (
+      <div style={{ 
+        width: `${availableWidth}px`, 
+        height: `${availableHeight}px`,
+        margin: '0 auto', 
+        display: 'flex', 
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <EulerRenderer item={eulerItem} fitToContent={true} />
+      </div>
+    )
+  }, [items, currentFormat, fixedWidth, fixedHeight])
   
   // テキストグラデーションが有効かどうか
   const hasTextGradient = impressionStyles?.textGradient?.enabled ?? false
   
+  // フォーマットごとのTOC設定を取得
+  const tocMaxColumns = formatConfigs[currentFormat].tocMaxColumns
+  const tocItemsPerColumn = formatConfigs[currentFormat].tocItemsPerColumn
+  
   // ReactMarkdownのcomponentsを定義
-  const markdownComponents: Components = useMemo(() => ({
-    code: CodeBlock,
-    img: CustomImage,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    'table-chart': CustomTableChart as any,
-    // テキストグラデーション用のカスタム見出しコンポーネント
-    h1: ({ children, ...props }) => (
-      <h1 className={hasTextGradient ? 'text-gradient' : ''} {...props}>{children}</h1>
-    ),
-    h2: ({ children, ...props }) => (
-      <h2 className={hasTextGradient ? 'text-gradient' : ''} {...props}>{children}</h2>
-    ),
-    h3: ({ children, ...props }) => (
-      <h3 className={hasTextGradient ? 'text-gradient' : ''} {...props}>{children}</h3>
-    ),
-  }), [CustomImage, CustomTableChart, hasTextGradient])
+  const markdownComponents: Components = useMemo(() => {
+    // 目次レイアウトの場合はカスタムリストを使用（分割判定はTocGridList内で行う）
+    const listComponents = (layout === 'toc') ? {
+      ol: ({ children }: { children?: React.ReactNode }) => (
+        <TocGridList ordered maxColumns={tocMaxColumns} itemsPerColumn={tocItemsPerColumn}>
+          {children}
+        </TocGridList>
+      ),
+      ul: ({ children }: { children?: React.ReactNode }) => (
+        <TocGridList ordered={false} maxColumns={tocMaxColumns} itemsPerColumn={tocItemsPerColumn}>
+          {children}
+        </TocGridList>
+      ),
+    } : {}
+    
+    return {
+      code: CodeBlock,
+      img: CustomImage,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      'table-chart': CustomTableChart as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      'picto-diagram': CustomPictoDiagram as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      'euler-diagram': CustomEulerDiagram as any,
+      // テキストグラデーション用のカスタム見出しコンポーネント
+      h1: ({ children, ...props }) => (
+        <h1 className={hasTextGradient ? 'text-gradient' : ''} {...props}>{children}</h1>
+      ),
+      h2: ({ children, ...props }) => (
+        <h2 className={hasTextGradient ? 'text-gradient' : ''} {...props}>{children}</h2>
+      ),
+      h3: ({ children, ...props }) => (
+        <h3 className={hasTextGradient ? 'text-gradient' : ''} {...props}>{children}</h3>
+      ),
+      ...listComponents,
+    }
+  }, [CustomImage, CustomTableChart, CustomPictoDiagram, CustomEulerDiagram, hasTextGradient, layout, tocMaxColumns, tocItemsPerColumn])
   
   // プレースホルダーをMarkdownの画像記法に置き換え（react-markdownが処理できる形式）
   const contentWithImages = useMemo(() => {
@@ -641,10 +928,14 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
   }, [contentWithPlaceholders, images, isSlideShow])
   
   const convertedContent = useMemo(() => {
-    // まずキーメッセージを変換
+    // キーメッセージを変換
     const keyMessageConverted = convertKeyMessageToHTML(contentWithImages)
-    // 連続するH3をグリッドレイアウトで囲む
-    const result = wrapConsecutiveH3InGrid(keyMessageConverted)
+    // 連続するH3をグリッドレイアウトで囲む（比率・配置指定を抽出して適用し、その後除去する）
+    const gridWrapped = wrapConsecutiveH3InGrid(keyMessageConverted)
+    // 残りの比率・配置指定を除去（グリッドレイアウトが適用されなかった行のために）
+    const ratiosRemoved = removeAllColumnRatios(gridWrapped)
+    // table-chartタグに前後のコンテンツ高さ情報を追加
+    const result = injectContentHeightToCharts(ratiosRemoved)
     console.log('[Preview] Converted content length:', result.length)
     console.log('[Preview] Converted content preview:', result.substring(0, 500))
     return result
@@ -692,19 +983,43 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     }
   }
 
-  // スライドのボーダー色をトーンに応じて決定
-  const getBorderColor = () => {
-    switch (currentTone) {
-      case 'casual':
-        return '#9ca3af' // グレー（カジュアルの背景色#25b7c0に対して）
-      case 'luxury':
-        return '#6b7280' // グレー（ラグジュアリーの背景色#2a2a2aに対して）
-      case 'warm':
-        return '#333333' // ダークグレー（暖かいの背景色#FAF9F5に対して）
-      case 'simple':
-      default:
-        return '#9ca3af' // グレー（シンプルの背景色#f5f5f5に対して）
+  // OKLCH色をパースして{l, c, h}を返す
+  const parseOklch = (color: string): { l: number; c: number; h: number } | null => {
+    const match = color.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
+    if (match) {
+      return {
+        l: parseFloat(match[1]),
+        c: parseFloat(match[2]),
+        h: parseFloat(match[3])
+      }
     }
+    return null
+  }
+
+  // スライドのボーダー色を背景色に基づいて動的に決定
+  const getBorderColor = () => {
+    // 現在のレイアウトに応じた背景色を取得
+    const bgColor = (layout === 'cover' || layout === 'section')
+      ? (impressionStyles?.backgroundCover || '#1e40af')
+      : (impressionStyles?.background || '#f5f5f5')
+    
+    // OKLCH色の場合、同じ色相で明るさを調整
+    const oklch = parseOklch(bgColor)
+    if (oklch) {
+      // 明るい背景（L > 0.5）→ 暗めのボーダー
+      // 暗い背景（L <= 0.5）→ 明るめのボーダー
+      if (oklch.l > 0.5) {
+        const darkerL = Math.max(0.15, oklch.l - 0.35)
+        return `oklch(${darkerL.toFixed(2)} ${(oklch.c * 0.5).toFixed(2)} ${oklch.h})`
+      } else {
+        const lighterL = Math.min(0.85, oklch.l + 0.35)
+        return `oklch(${lighterL.toFixed(2)} ${(oklch.c * 0.5).toFixed(2)} ${oklch.h})`
+      }
+    }
+    
+    // HEX色やその他の場合はグレースケールで対応
+    // フォールバック: 背景が暗いと仮定して明るめのボーダー
+    return '#666666'
   }
 
   // サムネイルモード用のスケール計算（カルーセルのサイズに合わせる）
@@ -740,7 +1055,7 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     justifyContent: 'center',
     overflow: 'hidden',
     position: 'relative', // スケーリング時の位置調整のため
-    backgroundColor: 'var(--app-bg-primary)' // 外側コンテナの背景色を固定
+    backgroundColor: 'transparent' // 背景を透明にしてスライドが浮いて見えるように
   }
 
   // スライドのスタイル（固定サイズとスケーリング適用）
@@ -756,15 +1071,27 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     flexShrink: 0, // スケーリング時に縮小されないように
     border: isThumbnail ? 'none' : `${borderWidth}px solid ${getBorderColor()}`,
     borderRadius: isThumbnail ? '0' : (impressionStyles?.borderRadius || '4px'),
-    boxShadow: isThumbnail ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)',
+    boxShadow: 'none', // 影を削除してスライドが直接表示されているように
     // 印象コードからのスタイル適用
     // 背景グラデーションが有効な場合はグラデーションを適用、そうでなければ単色
-    ...(impressionStyles?.backgroundGradient?.enabled 
-      ? { background: gradientToCSS(impressionStyles.backgroundGradient) }
-      : { backgroundColor: impressionStyles?.background || '#f5f5f5' }
+    // cover/sectionレイアウトの場合は表紙用背景色（bgCover）を使用
+    ...(layout === 'cover' || layout === 'section'
+      ? (impressionStyles?.backgroundCoverGradient?.enabled
+          ? { background: gradientToCSS(impressionStyles.backgroundCoverGradient) }
+          : { backgroundColor: impressionStyles?.backgroundCover || '#1e40af' })
+      : impressionStyles?.backgroundGradient?.enabled 
+        ? { background: gradientToCSS(impressionStyles.backgroundGradient) }
+        : { backgroundColor: impressionStyles?.background || '#f5f5f5' }
     ),
-    color: impressionStyles?.text || '#1f2937',
+    color: layout === 'cover' || layout === 'section' 
+      ? (impressionStyles?.textCover || 'white') 
+      : (impressionStyles?.text || '#1f2937'),
     fontFamily: impressionStyles?.fontFamily || fontFamily,
+    // フォーマットごとのセーフエリア（パディング）を適用
+    paddingTop: `${safeAreaConfigs[currentFormat].top}px`,
+    paddingBottom: `${safeAreaConfigs[currentFormat].bottom}px`,
+    paddingLeft: `${safeAreaConfigs[currentFormat].left}px`,
+    paddingRight: `${safeAreaConfigs[currentFormat].right}px`,
     // CSS変数を設定してフォントサイズとフォントファミリーを動的に適用
     '--base-font-size': `${baseFontSize}px`,
     '--heading-font-size': `${headingFontSize}px`,
@@ -777,7 +1104,10 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     '--tone-primary-dark': impressionStyles?.primaryDark || '#2563EB',
     '--tone-background': impressionStyles?.background || '#f5f5f5',
     '--tone-background-alt': impressionStyles?.backgroundAlt || '#e5e5e5',
+    '--tone-background-cover': impressionStyles?.backgroundCover || '#1e40af',
+    '--tone-text-cover': impressionStyles?.textCover || 'white',
     '--tone-background-gradient': impressionStyles?.backgroundGradient?.enabled ? gradientToCSS(impressionStyles.backgroundGradient) : '',
+    '--tone-background-cover-gradient': impressionStyles?.backgroundCoverGradient?.enabled ? gradientToCSS(impressionStyles.backgroundCoverGradient) : '',
     '--tone-text': impressionStyles?.text || '#1f2937',
     '--tone-text-muted': impressionStyles?.textMuted || '#6b7280',
     '--tone-accent': impressionStyles?.accent || '#F59E0B',
@@ -792,74 +1122,6 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     '--tone-text-gradient': impressionStyles?.textGradient?.enabled ? gradientToCSS(impressionStyles.textGradient) : '',
     '--tone-text-gradient-enabled': impressionStyles?.textGradient?.enabled ? '1' : '0',
   } as unknown as React.CSSProperties
-
-  if (currentFormat === 'instapost') {
-    return (
-      <div
-        ref={(node) => {
-          containerRef.current = node
-          if (previewRef) {
-            (previewRef as React.MutableRefObject<HTMLDivElement | null>).current = node
-          }
-        }}
-        className={`${isThumbnail ? '' : 'shadow-2xl'} overflow-hidden instapost-wrapper format-instapost ${isThumbnail ? 'instapost-wrapper-thumbnail' : ''} ${isThumbnail ? '' : (isSlideShow ? 'slideshow-slide' : 'h-5/6')}`}
-        style={{ ...slideContainerStyle, position: 'relative' }}
-      >
-        <div
-          ref={slideRef}
-          className={`instapost-frame ${isThumbnail ? 'instapost-frame-thumbnail' : ''}`}
-          style={{
-            ...slideStyle,
-            '--base-font-size': `${baseFontSize}px`,
-            '--heading-font-size': `${headingFontSize}px`,
-            '--key-message-font-size': `${keyMessageFontSize}px`,
-            '--code-font-size': `${codeFontSize}px`,
-            '--font-family': fontFamily,
-          } as React.CSSProperties}
-          data-slide-element="true"
-        >
-          <div 
-            className={`instapost-inner ${
-            layout === 'cover' || layout === 'section' ? 'flex items-start justify-center' : ''
-            } ${isThumbnail ? 'instapost-inner-thumbnail' : ''}`}
-            data-slide-content="true"
-          >
-            <div className={`${layoutClasses} ${
-              layout === 'cover' || layout === 'section' ? '' : ''
-            }`} style={layout === 'cover' || layout === 'section' ? { marginTop: '20%', transform: 'translateY(0)' } : undefined}>
-              <ReactMarkdown
-                components={markdownComponents}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-              >
-                {convertedContent}
-              </ReactMarkdown>
-            </div>
-          </div>
-        </div>
-        
-        {/* YouTubeスタイルのフルスクリーンボタン */}
-        {onStartSlideShow && !isSlideShow && !isThumbnail && (
-          <button
-            className="preview-fullscreen-btn"
-            onClick={onStartSlideShow}
-            title="スライドショー"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {/* 左上 */}
-              <path d="M4 8V4H8" />
-              {/* 右上 */}
-              <path d="M16 4H20V8" />
-              {/* 左下 */}
-              <path d="M4 16V20H8" />
-              {/* 右下 */}
-              <path d="M16 20H20V16" />
-            </svg>
-          </button>
-        )}
-      </div>
-    )
-  }
   
   return (
     <div
@@ -869,9 +1131,10 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
           (previewRef as React.MutableRefObject<HTMLDivElement | null>).current = node
         }
       }}
-      className={`${isThumbnail ? '' : 'shadow-2xl'} overflow-hidden ${
+      className={`overflow-hidden ${
         isThumbnail ? '' : (isSlideShow ? 'slideshow-slide' : 'h-5/6')
       } ${
+        currentFormat === 'instapost' ? 'format-instapost' :
         currentFormat === 'a4' ? 'format-a4' :
         currentFormat === 'instastory' ? 'format-instastory' :
         currentFormat === 'webinar' ? 'format-webinar' :
@@ -879,16 +1142,17 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
         currentFormat === 'seminar' ? 'format-seminar' :
         currentFormat === 'conference' ? 'format-conference' :
         ''
-      }`}
+      } ${layout === 'cover' || layout === 'section' ? 'slide-cover-background' : ''}`}
       style={{ ...slideContainerStyle, position: 'relative' }}
     >
       <div
         ref={slideRef}
-        className={`${currentFormat === 'instastory' ? 'text-center' : ''} p-12 ${
-          layout === 'cover' || layout === 'section' ? 'flex items-start justify-center' : ''
+        className={`${currentFormat === 'instastory' ? 'text-center' : ''} ${
+          layout === 'cover' || layout === 'section' ? 'flex items-center justify-center' : ''
         }`}
         style={slideStyle}
         data-slide-element={currentFormat === 'instastory' ? 'true' : undefined}
+        data-neon-glow={neonGlowColor || undefined}
       >
         {shouldUseGridLayout && h1SectionContent && h2SectionsContent && h2SectionsContent.length >= 2 ? (
           <div className={layoutClasses}>
@@ -909,7 +1173,8 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
                 display: 'grid',
                 gap: '2rem',
                 gridTemplateColumns: generateGridTemplateColumns(h2Ratios, h2SectionsContent.length),
-                alignItems: 'stretch'  // デフォルトはstretch、各アイテムでalign-selfを上書き
+                alignItems: 'stretch',  // デフォルトはstretch、各アイテムでalign-selfを上書き
+                marginTop: '2em'  // キーメッセージとの間に余白
               }}
             >
               {h2SectionsContent.map((section, idx) => {
@@ -933,9 +1198,7 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
             </div>
           </div>
         ) : (
-          <div className={`${layoutClasses} ${
-            layout === 'cover' || layout === 'section' ? '' : ''
-          }`} style={layout === 'cover' || layout === 'section' ? { marginTop: '20%', transform: 'translateY(0)' } : undefined}>
+          <div className={layoutClasses}>
             <ReactMarkdown
               components={markdownComponents}
               remarkPlugins={[remarkGfm]}
@@ -947,7 +1210,14 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
         )}
       </div>
       
-      {/* YouTubeスタイルのフルスクリーンボタン */}
+      {/* スライド番号インジケーター（左下） */}
+      {!isSlideShow && !isThumbnail && slides.length > 0 && (
+        <div className="preview-slide-indicator">
+          {currentIndex + 1}/{slides.length}
+        </div>
+      )}
+      
+      {/* YouTubeスタイルのフルスクリーンボタン（右下） */}
       {onStartSlideShow && !isSlideShow && !isThumbnail && (
         <button
           className="preview-fullscreen-btn"
@@ -964,6 +1234,30 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
             {/* 右下 */}
             <path d="M16 20H20V16" />
           </svg>
+        </button>
+      )}
+      
+      {/* 前へボタン（左側） */}
+      {onNavigate && !isSlideShow && !isThumbnail && (
+        <button
+          className="preview-nav-btn preview-nav-prev"
+          onClick={() => onNavigate('prev')}
+          disabled={currentIndex === 0}
+          title="前のスライド"
+        >
+          <span className="material-icons">chevron_left</span>
+        </button>
+      )}
+      
+      {/* 次へボタン（右側） */}
+      {onNavigate && !isSlideShow && !isThumbnail && (
+        <button
+          className="preview-nav-btn preview-nav-next"
+          onClick={() => onNavigate('next')}
+          disabled={currentIndex >= slides.length - 1}
+          title="次のスライド"
+        >
+          <span className="material-icons">chevron_right</span>
         </button>
       )}
     </div>

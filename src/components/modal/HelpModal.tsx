@@ -45,9 +45,9 @@ export const HelpModal = ({ show, onClose }: HelpModalProps) => {
             <div className="opacity-90 text-sm mb-3">
               <p className="mb-2">見出しは<strong>インデントレベル</strong>で自動的に決定されます：</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>インデント0 → <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>#</code> 見出し1</li>
-                <li>インデント1（Tab×1） → <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>##</code> 見出し2</li>
-                <li>インデント2（Tab×2） → <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>###</code> 見出し3</li>
+                <li>インデント0 → <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>#</code> チャプター</li>
+                <li>インデント1（Tab×1） → <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>##</code> セクション</li>
+                <li>インデント2（Tab×2） → <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>###</code> サブセクション</li>
               </ul>
             </div>
             <div className="opacity-90 text-sm mb-2">
@@ -64,9 +64,9 @@ export const HelpModal = ({ show, onClose }: HelpModalProps) => {
             <div className="opacity-90 text-sm mb-3">
               <p className="mb-2">行頭に<strong>記号+半角スペース</strong>を入力すると、属性値が設定されます：</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}># </code> 見出し1（インデントレベル0で自動設定）</li>
-                <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>## </code> 見出し2（インデントレベル1で自動設定）</li>
-                <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>### </code> 見出し3（インデントレベル2で自動設定）</li>
+                <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}># </code> チャプター（インデントレベル0で自動設定）</li>
+                <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>## </code> セクション（インデントレベル1で自動設定）</li>
+                <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>### </code> サブセクション（インデントレベル2で自動設定）</li>
                 <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>- </code> または <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>* </code> 箇条書き</li>
                 <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>1. </code> 番号付きリスト（自動で連番）</li>
                 <li><code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--app-border-primary)' }}>a. </code> アルファベット付きリスト（自動で連番、表示は大文字）</li>
@@ -75,9 +75,9 @@ export const HelpModal = ({ show, onClose }: HelpModalProps) => {
             </div>
             <div className="opacity-70 text-xs mb-2">例：</div>
             <pre className="p-2 rounded text-xs" style={{ backgroundColor: 'var(--app-bg-primary)', color: 'var(--app-highlight)' }}>
-{`# 見出し1
-  見出し2（Tabキーでインデント）
-    見出し3（Tabキーで2回インデント）
+{`# チャプター
+  セクション（Tabキーでインデント）
+    サブセクション（Tabキーで2回インデント）
 - 箇条書き1
 - 箇条書き2
 1. 番号付きリスト1
@@ -93,7 +93,7 @@ b. アルファベットリスト2
           <section>
             <h3 className="text-lg font-semibold mb-2">スライドの分割</h3>
             <div className="opacity-90 text-sm mb-2">
-              <p>スライドは<strong>インデントレベル0の見出し（#）</strong>で自動的に分割されます。</p>
+              <p>スライドは<strong>チャプター（#）</strong>で自動的に分割されます。</p>
             </div>
             <div className="opacity-70 text-xs mb-2">例：</div>
             <pre className="p-2 rounded text-xs" style={{ backgroundColor: 'var(--app-bg-primary)', color: 'var(--app-highlight)' }}>
@@ -104,7 +104,7 @@ b. アルファベットリスト2
 コンテンツ`}
             </pre>
             <div className="opacity-70 text-xs mt-2">
-              ※ インデントレベル0の見出し（#）が新しいスライドの開始を意味します
+              ※ チャプター（#）が新しいスライドの開始を意味します
             </div>
           </section>
           <section>
@@ -116,7 +116,7 @@ b. アルファベットリスト2
             <pre className="p-2 rounded text-xs" style={{ backgroundColor: 'var(--app-bg-primary)', color: 'var(--app-highlight)' }}>
 {`! これはキーメッセージです
 
-## 見出し
+## セクション
 通常のコンテンツ`}
             </pre>
             <div className="opacity-70 text-xs mt-2">
@@ -136,15 +136,15 @@ def hello():
             </pre>
           </section>
           <section>
-            <h3 className="text-lg font-semibold mb-2">フォーマットとトンマナ</h3>
+            <h3 className="text-lg font-semibold mb-2">フォーマットとTone & Manner</h3>
             <div className="opacity-90 text-sm space-y-2">
               <div>
                 <div className="font-medium">フォーマット</div>
                 <div className="opacity-80">Webinar、TeamMtg、RoomSemi、HallConf、InstaPost、InstaStory、A4から選択できます。</div>
               </div>
               <div>
-                <div className="font-medium">トンマナ</div>
-                <div className="opacity-80">シンプル、カジュアル、ラグジュアリー、暖かいから選択できます。各トンマナで背景色やフォントが変わります。</div>
+                <div className="font-medium">Tone & Manner</div>
+                <div className="opacity-80">シンプル、カジュアル、ラグジュアリー、暖かいから選択できます。各Tone & Mannerで背景色やフォントが変わります。</div>
               </div>
             </div>
           </section>

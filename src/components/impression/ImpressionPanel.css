@@ -1,4 +1,4 @@
-/* ImpressionPanel - トンマナ設定パネル */
+/* ImpressionPanel - Tone & Manner設定パネル */
 
 .impression-panel {
   display: block; /* flexではなくblockにして内部コンテンツのスクロールを有効化 */
@@ -37,7 +37,6 @@
   font-size: 0.625rem;
   font-weight: 600;
   color: var(--app-text-secondary);
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
 }
@@ -122,7 +121,7 @@
   font-size: 0.8rem;
 }
 
-/* 適用中のトンマナ表示 */
+/* 適用中のTone & Manner表示 */
 .impression-current {
   display: flex;
   align-items: center;
@@ -587,6 +586,75 @@
   display: flex;
 }
 
+/* 読み取り専用カラー情報表示 */
+.impression-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.impression-detail-section-title {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--app-text-disabled);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--app-border-primary);
+  margin-bottom: 0.125rem;
+}
+
+.impression-detail-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.impression-detail-color-label {
+  font-size: 0.6875rem;
+  color: var(--app-text-secondary);
+}
+
+.impression-detail-color-swatch {
+  width: 3rem;
+  height: 1.25rem;
+  border-radius: 3px;
+  border: 1px solid var(--app-border-primary);
+  flex-shrink: 0;
+}
+
+.impression-detail-palette-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.impression-detail-palette-row {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.impression-detail-palette-chip {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 2px;
+  border: 1px solid var(--app-border-primary);
+  flex-shrink: 0;
+  transition: transform 0.1s ease;
+}
+
+.impression-detail-palette-chip:hover {
+  transform: scale(1.15);
+  z-index: 1;
+}
+
+/* ベースカラー列（最初の列） */
+.impression-detail-palette-chip.base {
+  margin-right: 0.25rem;
+}
+
 .impression-detail-row {
   display: flex;
   flex-direction: column;
@@ -1036,4 +1104,405 @@
 
 .impression-sub-attr-btn.active:hover {
   background: oklch(0.72 0.05 70 / 0.2);
+}
+
+/* ============================================ */
+/* Spotify風ドリルダウンUI - カテゴリタブ */
+/* ============================================ */
+
+.tonmana-category-tabs {
+  width: 100%;
+  overflow: hidden;
+}
+
+.tonmana-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tonmana-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ダークピル（State 0のカテゴリ、State 1のサブオプション） */
+.tonmana-chip-dark {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #232323;
+  border: none;
+  border-radius: 16px;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.tonmana-chip-dark:hover {
+  background: #2a2a2a;
+}
+
+/* アクセントピル（選択されたカテゴリ表示） - 単一用（後方互換） */
+.tonmana-chip-green {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-highlight);
+  border: none;
+  border-radius: 16px;
+  color: var(--app-bg-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 連結グリーンピル（複数選択カテゴリ用） */
+.tonmana-selected-group {
+  flex-shrink: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border-radius: 16px;
+}
+
+.tonmana-selected-item {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* 最初のラベル（完全なピル形状） */
+.tonmana-selected-item:first-child .tonmana-selected-label {
+  height: 32px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  background: var(--app-highlight);
+  border-radius: 16px;
+  color: var(--app-bg-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+}
+
+/* 2番目以降のラベル */
+.tonmana-selected-item:not(:first-child) .tonmana-selected-label {
+  height: 32px;
+  padding: 0 14px 0 24px;
+  margin-left: -14px;
+  display: flex;
+  align-items: center;
+  background: var(--app-highlight);
+  border-radius: 0 16px 16px 0;
+  color: var(--app-bg-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+}
+
+/* くり抜いた円（半円形の切れ目 - 一定幅の隙間） */
+.tonmana-selected-item:not(:first-child) .tonmana-selected-label::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 20px;
+  height: 32px;
+  background: radial-gradient(circle at 1px 50%, #232323 17px, transparent 17px);
+}
+
+/* 区切り線は非表示 */
+.tonmana-selected-divider {
+  display: none;
+}
+
+/* 戻るボタン（×）- Spotify風サークル */
+.tonmana-back-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #232323;
+  border: none;
+  border-radius: 50%;
+  color: #b3b3b3;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tonmana-back-btn:hover {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
+.tonmana-back-btn .material-icons {
+  font-size: 1.125rem;
+}
+
+/* ============================================ */
+/* Tone & Mannerチップ一覧（フレックス表示） */
+/* ============================================ */
+
+.tonmana-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.25rem 0.25rem;
+}
+
+/* 格付けセクション */
+.tonmana-rank-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tonmana-rank-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--app-text-secondary);
+  padding: 0.25rem 0;
+}
+
+.tonmana-rank-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--app-border-primary);
+}
+
+.tonmana-rank-s {
+  color: oklch(0.75 0.15 80);
+}
+
+.tonmana-rank-a {
+  color: oklch(0.58 0.10 80);
+}
+
+.tonmana-rank-b {
+  color: var(--app-text-tertiary);
+}
+
+.tonmana-rank-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 110px);
+  justify-content: space-between;
+  gap: 0.75rem 0.5rem;
+}
+
+/* チップコンテナ（チップ + 日本語名） */
+.tonmana-chip-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 110px;
+}
+
+/* 個別Tone & Mannerチップ（カプセル型・左右2分割） */
+.tonmana-chip {
+  position: relative;
+  width: 110px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  border-radius: 20px; /* 高さの半分で完全なカプセル形状 */
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tonmana-chip:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.2);
+}
+
+.tonmana-chip.selected {
+  box-shadow: 0 0 0 2px var(--app-highlight), 0 4px 12px oklch(0 0 0 / 0.15);
+}
+
+/* チップレイヤー共通 */
+.tonmana-chip-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0.375rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* 右レイヤー: 通常スライド（右半分） */
+.tonmana-chip-top {
+  clip-path: polygon(
+    50% 0%,
+    100% 0%,
+    100% 100%,
+    50% 100%
+  );
+  z-index: 2;
+}
+
+/* 境界線レイヤー: 左右の区切りを示す細いライン */
+.tonmana-chip::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  width: 1px;
+  height: 80%;
+  pointer-events: none;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-50%);
+}
+
+/* 右レイヤー: 表紙スライド（右半分） */
+.tonmana-chip-bottom {
+  z-index: 1;
+}
+
+/* 英語名（チップ内） */
+.tonmana-chip-name-en {
+  font-size: 1.0rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 日本語名（チップ内） */
+.tonmana-chip-name-ja-inner {
+  font-size: 0.5rem;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ============================================ */
+/* カラーチップ候補表示 */
+/* ============================================ */
+
+.color-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.375rem;
+}
+
+.color-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.color-chip {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.15);
+}
+
+.color-chip:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.25);
+  z-index: 1;
+}
+
+.color-chip.selected {
+  border-color: var(--app-highlight);
+  box-shadow: 0 0 0 2px oklch(0.72 0.05 70 / 0.4), 0 2px 6px oklch(0 0 0 / 0.2);
+  transform: scale(1.1);
+}
+
+.color-chip.from-biome {
+  position: relative;
+}
+
+.color-chip.from-biome::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  background: var(--app-highlight);
+  border-radius: 50%;
+  border: 1px solid var(--app-bg-primary);
+}
+
+.color-picker-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px dashed var(--app-border-hover);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.color-picker-btn:hover {
+  border-color: var(--app-highlight);
+  border-style: solid;
+}
+
+.color-picker-btn::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.color-picker-btn::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.color-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--app-border-primary);
+  flex-shrink: 0;
 }

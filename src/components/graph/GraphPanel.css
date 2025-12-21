@@ -1,0 +1,678 @@
+/* ============================================
+ * Graph Panel Styles
+ * カテゴリチップ、カルーセル、設定パネルのスタイル
+ * ============================================ */
+
+/* ============================================
+ * カテゴリチップ (GraphCategoryChips)
+ * ============================================ */
+
+.graph-category-chips {
+  display: flex;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.graph-category-chips-scroll {
+  display: flex;
+  gap: 0.375rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.25rem 0;
+}
+
+.graph-category-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.graph-category-chip {
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  border: none;
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.graph-category-chip:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.graph-category-chip:hover {
+  background-color: var(--app-border-primary);
+  color: var(--app-text-primary);
+}
+
+.graph-category-chip.active {
+  background-color: var(--app-accent);
+  color: var(--color-gray-1000);
+}
+
+.graph-category-chip.active:hover {
+  background-color: var(--color-beige-400);
+}
+
+/* ============================================
+ * グラフタイプカルーセル (GraphTypeCarousel)
+ * ============================================ */
+
+.graph-carousel-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.graph-carousel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.graph-carousel-scroll {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.25rem 0;
+  scroll-behavior: smooth;
+}
+
+.graph-carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.graph-carousel-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.graph-carousel-fade.left {
+  left: 0;
+  background: linear-gradient(to right, var(--app-bg-primary) 0%, transparent 100%);
+}
+
+.graph-carousel-fade.right {
+  right: 0;
+  background: linear-gradient(to left, var(--app-bg-primary) 0%, transparent 100%);
+}
+
+.graph-type-btn {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
+  min-width: 52px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.graph-type-btn:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.graph-type-btn:hover {
+  background-color: var(--app-bg-tertiary);
+  border-color: var(--app-border-primary);
+  color: var(--app-text-primary);
+}
+
+.graph-type-btn.active {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--color-gray-1000);
+}
+
+.graph-type-btn.active:hover {
+  background-color: var(--color-beige-400);
+  border-color: var(--color-beige-400);
+}
+
+.graph-type-btn .material-icons {
+  font-size: 18px;
+}
+
+.graph-type-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.graph-type-btn.more-btn {
+  border: none;
+}
+
+.graph-type-btn.more-btn:hover {
+  background-color: var(--app-bg-tertiary);
+}
+
+.graph-settings-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.graph-settings-btn:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.graph-settings-btn:hover:not(.disabled) {
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+}
+
+.graph-settings-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.graph-settings-btn .material-icons {
+  font-size: 18px;
+}
+
+/* ============================================
+ * グラフ設定パネル (GraphSettingsPanel) - ポップアップ版
+ * ============================================ */
+
+.graph-settings-panel-popup {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  max-height: 100%;
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 8px;
+  box-shadow: var(--app-shadow-lg);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  animation: popupSlideIn 0.2s ease-out;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.graph-settings-panel-popup.closing {
+  animation: popupSlideOut 0.15s ease-in forwards;
+}
+
+@keyframes popupSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+/* レガシー: フルスクリーンパネル（参考用） */
+.graph-settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background-color: var(--app-bg-primary);
+  border-left: 1px solid var(--app-border-primary);
+  box-shadow: var(--app-shadow-lg);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.graph-settings-panel.closing {
+  animation: slideOutRight 0.2s ease-in forwards;
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* パネルヘッダー */
+.graph-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--app-border-primary);
+}
+
+.graph-panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.graph-panel-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-panel-close-btn:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.graph-panel-close-btn:hover {
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+}
+
+.graph-panel-close-btn .material-icons {
+  font-size: 18px;
+}
+
+/* パネルコンテンツ */
+.graph-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.graph-panel-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* セクション */
+.graph-panel-section {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--app-border-primary);
+}
+
+.graph-panel-section:last-child {
+  border-bottom: none;
+}
+
+.graph-section-title {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--app-text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+/* フォーム要素 */
+.graph-form-group {
+  margin-bottom: 0.75rem;
+}
+
+.graph-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.graph-form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.graph-form-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  background-color: var(--app-bg-secondary);
+  color: var(--app-text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.graph-form-select:hover {
+  border-color: var(--app-border-hover);
+}
+
+.graph-form-select:focus {
+  outline: none;
+  border-color: var(--app-accent);
+}
+
+.graph-form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  background-color: var(--app-bg-secondary);
+  color: var(--app-text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.graph-form-input:hover {
+  border-color: var(--app-border-hover);
+}
+
+.graph-form-input:focus {
+  outline: none;
+  border-color: var(--app-accent);
+}
+
+/* チェックボックス群 */
+.graph-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.graph-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+  cursor: pointer;
+}
+
+.graph-checkbox-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--app-accent);
+  cursor: pointer;
+}
+
+/* ラジオボタン群 */
+.graph-radio-group {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.graph-radio-btn {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid var(--app-border-primary);
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-radio-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.graph-radio-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.graph-radio-btn:not(:first-child) {
+  margin-left: -1px;
+}
+
+.graph-radio-btn:hover {
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+}
+
+.graph-radio-btn.active {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--color-gray-1000);
+  z-index: 1;
+}
+
+/* トグル */
+.graph-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.graph-toggle-label {
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+}
+
+.graph-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background-color: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graph-toggle.active {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+}
+
+.graph-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--app-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.graph-toggle.active::after {
+  left: 18px;
+  background-color: var(--color-gray-1000);
+}
+
+/* グラフ一覧グリッド */
+.graph-list-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.375rem;
+}
+
+.graph-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-list-item:hover {
+  background-color: var(--app-bg-tertiary);
+  border-color: var(--app-border-primary);
+  color: var(--app-text-primary);
+}
+
+.graph-list-item.active {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--color-gray-1000);
+}
+
+.graph-list-item .material-icons {
+  font-size: 20px;
+}
+
+.graph-list-item-label {
+  font-size: 0.5625rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* カラーピッカー */
+.graph-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.graph-color-label {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graph-color-picker {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--app-border-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.graph-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.graph-color-picker::-webkit-color-swatch {
+  border: none;
+}
+
+/* オーバーレイ背景（レガシー - フルスクリーンモード用） */
+.graph-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 99;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* 小さい入力フィールド（範囲設定用） */
+.graph-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.graph-range-input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  background-color: var(--app-bg-secondary);
+  color: var(--app-text-primary);
+  text-align: center;
+}
+
+.graph-range-separator {
+  font-size: 0.75rem;
+  color: var(--app-text-secondary);
+}
+
+/* 凡例位置選択 */
+.graph-legend-position {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.graph-legend-position-btn {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-legend-position-btn:hover {
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+}
+
+.graph-legend-position-btn.active {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--color-gray-1000);
+}

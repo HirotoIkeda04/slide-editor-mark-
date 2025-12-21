@@ -1,12 +1,18 @@
 /* Line-based Editor Container */
 .editor-container {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  background-color: var(--editor-bg);
-  border: 1px solid var(--editor-border);
+  /* 行番号カラム背景を左端に配置 */
+  background: linear-gradient(
+    to right,
+    var(--editor-bg-line-number) var(--line-number-width, 34px),
+    transparent var(--line-number-width, 34px)
+  );
+  border: none;
   font-family: 'M PLUS 1 Code', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
   font-size: 12px;
   line-height: 18px;
@@ -19,45 +25,65 @@
   display: none;
 }
 
-/* Line Numbers Column */
-.editor-line-numbers {
+/* 統合された行（行番号 + コンテンツを1つの要素に） */
+.editor-row {
+  display: flex;
+  height: 18px;
+  min-height: 18px;
+  max-height: 18px;
+  line-height: 18px;
+  box-sizing: border-box;
+}
+
+.editor-row.current {
+  background-color: var(--editor-bg-current-line);
+}
+
+/* 行番号（各行内） */
+.editor-line-number {
   flex-shrink: 0;
-  min-width: 3ch;  /* 3桁分の幅 */
-  width: fit-content;  /* 4桁以上になったら自動で広がる */
-  padding: 8px 6px 8px 8px;
+  /* 幅はインラインスタイルで動的に設定（3桁デフォルト、4桁以上は自動拡張） */
+  padding-left: 8px;
+  padding-right: 8px;
+  background-color: #3a3735;
   background-color: var(--editor-bg-line-number);
-  border-right: 1px solid var(--editor-border);
+  /* border-rightはlinear-gradientで描画するため削除 */
   text-align: right;
   user-select: none;
-  color: var(--editor-text-line-number);
-}
-
-.editor-line-number {
+  font-size: 10px;
   height: 18px;
   line-height: 18px;
-  font-size: 10px;
+  box-sizing: border-box;
 }
 
-/* Content Area */
-.editor-content {
+/* 行コンテンツ（各行内） */
+.editor-line-content {
+  display: flex;
   flex: 1;
   min-width: 0;
-  padding: 8px 0;
-  margin-left: 2ch;  /* 行番号カラムとの間に半角2スペース分の余白 */
+  padding: 0 12px 0 0;
+  margin-left: 2ch;
+  height: 18px;
+  line-height: 18px;
+  box-sizing: border-box;
 }
 
 /* Bottom Spacer for FloatingNavBar clearance */
 .editor-bottom-spacer {
   height: 126px;  /* 7行 × 18px = 126px */
   flex-shrink: 0;
+  background-color: transparent;
 }
 
-/* Single Line */
+/* Legacy: 旧構造用（互換性のため残す） */
 .editor-line {
   display: flex;
   height: 18px;
+  min-height: 18px;
+  max-height: 18px;
   line-height: 18px;
   padding: 0 12px 0 0;
+  box-sizing: border-box;
 }
 
 .editor-line.current {
@@ -80,14 +106,9 @@
   white-space: pre;
 }
 
-/* シンタックスハイライト: 見出し記号 */
+/* シンタックスハイライト: 見出し記号（#, ##, ###）およびレイアウト属性値（#ttl, #agd, #!） */
 .editor-attribute-heading {
   color: var(--color-syntax-yellow);
-}
-
-/* シンタックスハイライト: レイアウトタイプ（属性表示部分では使用しないが、将来の拡張用） */
-.editor-text-layout-type {
-  color: var(--color-syntax-purple);
 }
 
 /* シンタックスハイライト: 比率・配置指定 */
@@ -216,6 +237,7 @@
 .editor-file-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 44px;
   padding: 0.75rem 1rem;
   box-sizing: border-box;
@@ -231,4 +253,34 @@
   color: var(--app-text-secondary);
   font-weight: 500;
   user-select: none;
+}
+
+/* Editor Header Load Button */
+.editor-header-load-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--app-text-muted);
+  transition: all 0.15s ease;
+}
+
+.editor-header-load-btn:hover {
+  color: var(--app-text-primary);
+  background: var(--app-bg-elevated);
+  border-color: var(--app-border-secondary);
+}
+
+.editor-header-load-btn:active {
+  transform: scale(0.95);
+}
+
+.editor-header-load-btn .material-icons {
+  font-size: 1.125rem;
 }

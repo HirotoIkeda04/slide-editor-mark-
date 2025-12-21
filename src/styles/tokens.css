@@ -2,7 +2,7 @@
  * OKLCH Color Token System
  * ============================================
  * Claude公式カラーパレットを参考
- * スライドのトンマナ（--tone-* 変数）とは独立して管理
+ * スライドのTone & Manner（--tone-* 変数）とは独立して管理
  */
 
 :root {
@@ -272,7 +272,7 @@
 :root {
   /* エディター */
   --editor-bg: var(--app-bg-primary);
-  --editor-bg-line-number: var(--color-dark-900);
+  --editor-bg-line-number: var(--app-bg-primary); /* oklch(0.250) */
   --editor-bg-current-line: var(--app-hover-overlay);
   --editor-text: var(--app-text-primary);
   --editor-text-line-number: var(--color-black-50);

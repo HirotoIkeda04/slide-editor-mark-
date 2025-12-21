@@ -47,11 +47,40 @@ export interface ImpressionRange {
 }
 
 /**
- * トンマナのスタイル定義
+ * ベーススタイル（13種類）
+ */
+export type TonmanaBaseStyle = 'Plain' | 'Corporate' | 'Elegant' | 'Casual' | 'Tech' | 'Natural' | 'Gradient' | 'Neon' | 'NeonBold' | 'Handwritten' | 'DarkTech' | 'DarkElegant' | 'DarkCasual'
+
+/**
+ * トンマナフィルターカテゴリ
+ * - light: ライトテーマ（明るい背景）
+ * - dark: ダークテーマ（暗い背景）
+ * - formal: フォーマル（格式高い）
+ * - casual: カジュアル（親しみやすい）
+ * - gradient: グラデーション
+ * - handwritten: 手書き風
+ * - used: 利用済み（履歴）
+ */
+export type TonmanaFilterCategory = 'light' | 'dark' | 'formal' | 'casual' | 'gradient' | 'handwritten' | 'used'
+
+/**
+ * ブランドカラー（11色）
+ */
+export type TonmanaColor = 'Gray' | 'Sky' | 'Coral' | 'Mint' | 'Sand' | 'Lavender' | 'Amber' | 'Pink' | 'Cyan' | 'Lime' | 'Yellow'
+
+/**
+ * トンマナの格付け（APCA Lc基準）
+ * - S: 厳しい基準で全合格（本文Lc>=90, 見出しLc>=75, 表紙Lc>=75）
+ * - A: 一般的基準で全合格（本文Lc>=75, 見出しLc>=60, 表紙Lc>=60）
+ * - B: 甘め基準で全合格（本文Lc>=60, 見出しLc>=45, 表紙Lc>=45）
+ */
+export type TonmanaRank = 'S' | 'A' | 'B'
+
+/**
+ * Tone & Mannerのスタイル定義
  */
 export interface TonmanaStyle {
   name: string
-  hue: string
   bgNormal: string
   bgCover: string
   headingColor: string
@@ -59,26 +88,40 @@ export interface TonmanaStyle {
   fontHeading: string
   fontBody: string
   letterSpacing: string
+  // カラーパレット
+  baseColor: string      // ベースカラー（白/黒に近い色、通常はbgNormalと同じ）
+  primary: string        // プライマリーカラー
+  secondary: string      // セカンダリーカラー
+  chartColors: string[]  // カラーパレット（8色）
 }
 
 /**
- * バイオーム型トンマナ定義
- * マインクラフトのバイオームのように、4軸空間の「領域」として定義される
+ * Tone & Mannerチップの視覚スタイル定義
+ * チップ自体がTone & Mannerの趣旨を視覚的に表現する（Show, don't tell）
+ */
+export interface TonmanaChipStyle {
+  fontFamily: string
+  fontWeight: number
+  color: string
+  backgroundColor: string
+  borderRadius: string
+  border?: string
+}
+
+/**
+ * Tone & Manner定義
+ * スタイル×カラーの組み合わせで一意に定義される
  */
 export interface TonmanaBiome {
-  id: string
-  name: string          // 英語名（例: "minimal", "business"）
-  nameJa: string        // 日本語名（例: "ミニマル", "ビジネス"）
-  category: string      // カテゴリ（例: "シンプル系", "ビジネス系"）
-  // 4軸空間での領域（各軸のmin-max）
-  region: {
-    energy: [number, number]       // 例: [1, 2] = 落ち着いた寄り
-    formality: [number, number]    // 例: [4, 5] = 格式高い寄り
-    classicModern: [number, number]
-    decoration: [number, number]
-  }
+  id: string                      // 例: "plain-gray", "corporate-sky"
+  name: string                    // 英語名（例: "PlainGray", "CorporateSky"）
+  nameJa: string                  // 日本語名（例: "プレーン グレー", "コーポレート スカイ"）
+  baseStyle: TonmanaBaseStyle     // ベーススタイル
+  color: TonmanaColor             // カラー
   // スタイル定義
   style: TonmanaStyle
+  // チップの視覚スタイル
+  chipStyle: TonmanaChipStyle
 }
 
 /**
@@ -112,12 +155,15 @@ export interface ImpressionStyleVars {
   primaryDark: string
   background: string
   backgroundAlt: string
+  backgroundCover: string  // 表紙/中扉用背景色
+  textCover: string        // 表紙/中扉用テキスト色
   text: string
   textMuted: string
   accent: string
   // Gradients
   backgroundGradient?: GradientConfig
   textGradient?: GradientConfig
+  backgroundCoverGradient?: GradientConfig  // 表紙用背景グラデーション
   // Typography
   fontFamily: string
   fontFamilyHeading: string
@@ -127,6 +173,8 @@ export interface ImpressionStyleVars {
   // Layout
   borderRadius: string
   spacing: string
+  // Chart colors
+  chartColors?: string[]  // カラーパレット（グラフ用、8色）
 }
 
 /**
@@ -140,7 +188,7 @@ export interface ImpressionHistoryEntry {
 
 /**
  * 詳細設定のピン留め状態
- * trueの項目はトンマナ変更時も値を保持する
+ * trueの項目はTone & Manner変更時も値を保持する
  */
 export interface StylePins {
   primary?: boolean
@@ -155,7 +203,7 @@ export interface StylePins {
 
 /**
  * カラーパレット候補
- * トンマナから生成される色相バリエーション
+ * Tone & Mannerから生成される色相バリエーション
  */
 export interface ColorPalette {
   id: string
@@ -239,7 +287,10 @@ export interface AIStreamEvent {
 }
 
 // Item types
-export type ItemType = 'table' | 'image' | 'text' | 'slide'
+export type ItemType = 'table' | 'image' | 'text' | 'slide' | 'picto' | 'euler' | 'new'
+
+// 新しいアイテム用の固定ID
+export const NEW_ITEM_ID = 'new-item'
 
 export interface BaseItem {
   id: string
@@ -275,15 +326,243 @@ export interface MergedCell {
   colSpan: number
 }
 
-// Table display format (表/グラフ形式)
-export type TableDisplayFormat = 'table' | 'line' | 'area' | 'bar' | 'scatter'
+// Table display format (表/グラフ形式) - 19種類
+export type TableDisplayFormat = 
+  // 基本 (Basic)
+  | 'table'          // 表
+  | 'bar'            // 棒グラフ
+  | 'horizontalBar'  // 横棒グラフ
+  | 'line'           // 折れ線グラフ
+  | 'area'           // 面グラフ
+  // 構成比 (Composition)
+  | 'donut'          // ドーナツチャート
+  | 'treemap'        // ツリーマップ
+  | 'sankey'         // サンキーダイアグラム
+  | 'stackedBar'     // 積み上げ棒グラフ
+  // 分析 (Analysis)
+  | 'waterfall'      // ウォーターフォールチャート
+  | 'combo'          // コンボチャート（棒+線）
+  | 'heatmap'        // ヒートマップ
+  // 金融 (Financial)
+  | 'candlestick'    // ローソク足チャート
+  // 統計 (Statistical)
+  | 'scatter'        // 散布図
+  | 'bubble'         // バブルチャート
+  | 'boxplot'        // 箱ひげ図
+  | 'radar'          // レーダーチャート
+  | 'dot'            // ドットチャート
+
+// グラフカテゴリ
+export type GraphCategory = 'all' | 'basic' | 'composition' | 'analysis' | 'hierarchy' | 'financial' | 'statistical'
+
+// チャート入力モード
+export type ChartInputMode = 'spreadsheet' | 'tree' | 'map'
+
+// Z軸の用途
+export type ZAxisUsage = 'size' | 'color' | 'group'
+
+// 系列の表示タイプ
+export type SeriesDisplayType = 'bar' | 'line' | 'area'
+
+// 系列設定
+export interface SeriesConfig {
+  id: string
+  column: number
+  displayType: SeriesDisplayType
+  showLabel: boolean
+  yAxisIndex: number
+}
+
+// ============================================
+// ツリー入力システム (Tree Input System)
+// ============================================
+
+/**
+ * ツリーノードのタイプ
+ */
+export type TreeNodeType = 'income' | 'expense' | 'neutral'
+
+/**
+ * ツリーノード
+ * サンキー、ツリーマップ、サンバースト用の階層データ
+ */
+export interface TreeNode {
+  id: string
+  name: string
+  value: number | null  // nullの場合は子の合計から計算
+  nodeType: TreeNodeType
+  children: TreeNode[]
+  expanded?: boolean
+}
+
+/**
+ * ツリーデータ
+ * 収入/支出の二分構造、または単一ツリー
+ */
+export interface TreeData {
+  income: TreeNode
+  expense: TreeNode
+  centerLabel?: string
+}
+
+/**
+ * ツリー設定
+ */
+export interface TreeSettings {
+  structure: 'single' | 'income-expense'
+  centerLabel: string
+  colors: {
+    income: string
+    expense: string
+    neutral: string
+  }
+  display: {
+    showValues: boolean
+    showPercentage: boolean
+    maxDepth: number
+  }
+}
+
+/**
+ * デフォルトのツリー設定
+ */
+export const DEFAULT_TREE_SETTINGS: TreeSettings = {
+  structure: 'income-expense',
+  centerLabel: '収支',
+  colors: {
+    income: '#10b981',
+    expense: '#ef4444',
+    neutral: '#6b7280',
+  },
+  display: {
+    showValues: true,
+    showPercentage: false,
+    maxDepth: 4,
+  },
+}
+
+/**
+ * デフォルトのツリーデータを作成
+ */
+export const createDefaultTreeData = (): TreeData => ({
+  income: {
+    id: 'income-root',
+    name: '収入',
+    value: null,
+    nodeType: 'income',
+    children: [
+      { id: 'income-1', name: '売上', value: 100, nodeType: 'income', children: [] },
+    ],
+    expanded: true,
+  },
+  expense: {
+    id: 'expense-root',
+    name: '支出',
+    value: null,
+    nodeType: 'expense',
+    children: [
+      { id: 'expense-1', name: 'コスト', value: 60, nodeType: 'expense', children: [] },
+    ],
+    expanded: true,
+  },
+  centerLabel: '収支',
+})
+
+// データパターン（グラフタイプごとに必要なデータ構造）
+export type DataPattern = 'A' | 'B' | 'B_size' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I'
+
+// 積み上げモード
+export type StackedMode = 'off' | 'on' | 'percent'
+
+// エラーバータイプ
+export type ErrorBarType = 'none' | 'column' | 'stddev' | 'ci95'
+
+// 凡例位置
+export type LegendPosition = 'top' | 'bottom' | 'left' | 'right' | 'inside'
+
+// Y軸範囲モード
+export type YAxisRangeMode = 'auto' | 'custom'
+
+// カラーモード
+export type ColorMode = 'tone' | 'custom'
 
 // Chart configuration for table visualization
 export interface TableChartConfig {
+  // === 基本設定 ===
   xAxisColumn?: number  // X軸に使用する列（デフォルト: 0）
   yAxisColumns?: number[]  // Y軸に使用する列（デフォルト: 1以降全て）
+  
+  // === パターン別の追加列設定 ===
+  // バブルチャート用 (Pattern B+size)
+  sizeColumn?: number  // サイズに使用する列
+  
+  // ローソク足用 (Pattern C: OHLC)
+  dateColumn?: number   // 日付列
+  openColumn?: number   // 始値列
+  highColumn?: number   // 高値列
+  lowColumn?: number    // 安値列
+  closeColumn?: number  // 終値列
+  
+  // ヒートマップ用 (Pattern D: Matrix)
+  rowLabelColumn?: number  // 行ラベル列
+  colLabelColumn?: number  // 列ラベル列（実際には行選択）
+  valueColumn?: number     // 値列
+  
+  // サンキー用 (Pattern E: Flow)
+  fromColumn?: number  // From列
+  toColumn?: number    // To列
+  
+  // ツリーマップ用 (Pattern F: Hierarchy) - xAxisColumn, valueColumn使用
+  
+  // ウォーターフォール用 (Pattern G: Incremental)
+  typeColumn?: number  // タイプ列（開始/増加/減少/合計）
+  
+  // 箱ひげ図用 (Pattern H: Distribution)
+  groupColumn?: number  // グループ列
+  
+  // コンボチャート用 (Pattern I: Composite)
+  barColumns?: number[]   // 棒グラフに使用する列
+  lineColumns?: number[]  // 折れ線に使用する列
+  
+  // === グラフ設定 ===
+  stacked?: StackedMode  // 積み上げモード
+  rightYAxis?: number    // 右Y軸に使用する列
+  errorBar?: ErrorBarType  // エラーバータイプ
+  errorBarColumn?: number  // エラーバー用の列（column指定時）
+  showRegression?: boolean  // 回帰直線を表示（散布図用）
+  showR2?: boolean         // R²値を表示（散布図用）
+  
+  // === カラー設定 ===
+  colorMode?: ColorMode  // カラーモード（トーン連動 or カスタム）
+  customColors?: Record<number, string>  // カスタム色（列番号 → 色）
+  
+  // === 表示設定 ===
   showLegend?: boolean  // 凡例を表示するか
+  legendPosition?: LegendPosition  // 凡例位置
+  legendType?: 'legend' | 'annotation'  // 凡例表示タイプ（通常凡例 or 線上ラベル）
   showGrid?: boolean  // グリッドを表示するか
+  showDataLabels?: boolean  // データラベルを表示するか
+  
+  // === 軸設定 ===
+  yAxisUnit?: string           // Y軸の単位（例: "円", "%"）
+  yAxisRightUnit?: string      // 右Y軸の単位（2軸グラフ用）
+  yAxisRightColumns?: number[]  // 右Y軸に表示する列
+  yAxisRange?: YAxisRangeMode  // Y軸範囲モード
+  yAxisMin?: number            // Y軸最小値（custom時）
+  yAxisMax?: number            // Y軸最大値（custom時）
+  logScale?: boolean           // 対数軸
+  
+  // === 線上ラベル ===
+  showLineLabels?: boolean      // 線上にラベルを表示
+  lineLabelPosition?: 'start' | 'middle' | 'end'  // ラベル位置
+  
+  // === 日付フォーマット ===
+  xAxisDateFormat?: string      // 日付フォーマット（例: "YY年M月", "MM/DD"）
+  
+  // === Phase 2: 系列設定 ===
+  seriesConfigs?: SeriesConfig[]  // 系列ごとの表示設定
+  zColumn?: number                // Z軸に使用する列
+  zUsage?: ZAxisUsage             // Z軸の用途
 }
 
 export interface TableItem extends BaseItem {
@@ -300,6 +579,9 @@ export interface TableItem extends BaseItem {
   // Row/Column visibility
   hiddenRows?: number[]    // 非表示行のインデックス
   hiddenColumns?: number[] // 非表示列のインデックス
+  // Tree input data (for sankey, treemap, etc.)
+  treeData?: TreeData        // ツリー入力データ
+  treeSettings?: TreeSettings  // ツリー設定
 }
 
 export type ImageDisplayMode = 'contain' | 'cover'
@@ -321,7 +603,142 @@ export interface SlideItem extends BaseItem {
   content: string
 }
 
-export type Item = TableItem | ImageItem | TextItem | SlideItem
+// ============================================
+// ピクト図解システム (Picto Diagram System)
+// ============================================
+
+/**
+ * ピクト図解のエレメントタイプ
+ * ビジネスモデルの関係者を表すシンボル
+ */
+export type PictoElementType = 
+  | 'person'      // ヒト（法人・個人）
+  | 'company'     // 会社
+  | 'money'       // カネ（価格・売上）
+  | 'product'     // モノ（商品・サービス）
+  | 'info'        // 情報（データ）
+  | 'smartphone'  // スマホ
+  | 'store'       // 店舗
+  | 'other'       // その他
+
+/**
+ * ピクト図解のエレメント（関係者）
+ */
+export interface PictoElement {
+  id: string
+  type: PictoElementType
+  label: string
+  position: { x: number; y: number }
+  size?: { width: number; height: number }
+}
+
+/**
+ * コネクタのフロータイプ（流れの種類）
+ * 色で区別される
+ */
+export type PictoFlowType = 
+  | 'product'   // モノの流れ（緑）
+  | 'money'     // カネの流れ（黄）
+  | 'info'      // 情報の流れ（青）
+  | 'relation'  // 関係性（グレー）
+
+/**
+ * コネクタの方向
+ */
+export type PictoConnectorDirection = 'forward' | 'backward' | 'bidirectional'
+
+/**
+ * ピクト図解のコネクタ（関係性・矢印）
+ */
+export interface PictoConnector {
+  id: string
+  fromElementId: string
+  toElementId: string
+  flowType: PictoFlowType
+  direction: PictoConnectorDirection
+  label?: string
+  labelPosition?: 'above' | 'below'
+}
+
+/**
+ * ピクト図解のグループ（囲み線）
+ */
+export interface PictoGroup {
+  id: string
+  elementIds: string[]
+  label?: string
+  color?: string
+  style?: 'solid' | 'dashed'
+}
+
+/**
+ * ピクト図解のコメント（吹き出し）
+ */
+export interface PictoComment {
+  id: string
+  text: string
+  position: { x: number; y: number }
+  style: 'bubble' | 'note'
+  targetElementId?: string
+}
+
+/**
+ * ピクト図解アイテム
+ */
+export interface PictoItem extends BaseItem {
+  type: 'picto'
+  elements: PictoElement[]
+  connectors: PictoConnector[]
+  groups: PictoGroup[]
+  comments: PictoComment[]
+  canvasSize: { width: number; height: number }
+}
+
+// ============================================
+// オイラー図システム (Euler Diagram System)
+// ============================================
+
+/**
+ * オイラー図の円
+ * 集合を表す円で、サイズと位置を自由に調整可能
+ */
+export interface EulerCircle {
+  id: string
+  label: string
+  position: { x: number; y: number }
+  radius: number        // 半径（手動調整可能 → 包含関係の表現に使用）
+  color: string
+}
+
+/**
+ * オイラー図の要素
+ * 集合内の個別要素（点やラベル付きの点、または文字のみ）を表す
+ */
+export interface EulerElement {
+  id: string
+  label: string               // 要素のラベル（例: "a", "1", "りんご"）
+  position: { x: number; y: number }
+  shape: 'dot' | 'label' | 'text'  // dot: 点のみ, label: 点+ラベル, text: 文字のみ
+  color?: string              // 色（省略時は黒）
+}
+
+/**
+ * オイラー図アイテム
+ * 円の数は無制限で、包含関係や集合の重なりを自由に表現できる
+ */
+export interface EulerItem extends BaseItem {
+  type: 'euler'
+  circles: EulerCircle[]      // 無制限（自由に追加可能）
+  elements: EulerElement[]    // 集合内の要素
+  canvasSize: { width: number; height: number }
+}
+
+// 新しいアイテム（プレースホルダー）
+export interface NewItem extends BaseItem {
+  type: 'new'
+}
+
+export type Item = TableItem | ImageItem | TextItem | SlideItem | PictoItem | EulerItem | NewItem
 
 // Editor line structure for line-based editing
 export interface EditorLine {

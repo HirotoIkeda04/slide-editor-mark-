@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import type { Slide, SlideFormat, Tone, ConsoleMessage, Item, EditorLine, EditorSelection, ImpressionCode, ImpressionStyleVars, StylePins } from './types'
+import type { Slide, SlideFormat, Tone, ConsoleMessage, Item, EditorLine, EditorSelection, ImpressionCode, ImpressionStyleVars, StylePins, NewItem } from './types'
+import { NEW_ITEM_ID } from './types'
 import { generateConsoleMessages } from './utils/validation'
 import { loadPresentation } from './utils/slides'
-import { extractSlideLayout, splitSlidesByHeading } from './utils/markdown'
+import { extractSlideLayout, splitSlidesByHeading, getSlideStartLines } from './utils/markdown'
 import { formatConfigs } from './constants/formatConfigs'
-import { createItem, updateItem } from './utils/items'
+import { createItem, updateItem, deleteItem, generateUniqueItemName } from './utils/items'
+import { parseMarkdownTable } from './utils/tableUtils'
 import { saveItemsToLocalStorage, loadItemsFromLocalStorage } from './utils/fileSystem'
 import { contentToLines, linesToContent, linesToAttributeMap } from './utils/attributes'
 import { DEFAULT_IMPRESSION_CODE, findMatchingPreset } from './constants/impressionConfigs'
@@ -12,30 +14,32 @@ import type { SlideItem } from './types'
 import { ThemeProvider } from './contexts/ThemeContext'
 
 const MAIN_SLIDE_ITEM_ID = 'main-slide'
+
+// 新しいアイテムプレースホルダーを作成
+const createNewItemPlaceholder = (): NewItem => ({
+  id: NEW_ITEM_ID,
+  name: '新しいアイテム',
+  type: 'new',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+})
 import { Toolbar } from './components/toolbar/Toolbar'
 import { ExportModal } from './components/modal/ExportModal'
 import { HelpModal } from './components/modal/HelpModal'
-import { ToneDisplay } from './components/preview/ToneDisplay'
 import { FormatTabs } from './components/preview/FormatTabs'
 import { Preview } from './components/preview/Preview'
 import { SlideCarousel } from './components/slideCarousel/SlideCarousel'
-import { Editor } from './components/editor/Editor'
-import { Toast } from './components/toast/Toast'
-import { ChatPanel } from './components/chat/ChatPanel'
-import { ItemTabBar } from './components/items/ItemTabBar'
-import { ItemDetailPanel } from './components/items/ItemDetailPanel'
+import { EditorArea } from './components/editor/EditorArea'
 import { ItemModal } from './components/items/ItemModal'
 import { SlideShowView } from './components/slideshow/SlideShowView'
-import { FloatingNavBar } from './components/floatingNavBar/FloatingNavBar'
-import { ImpressionPanel } from './components/impression/ImpressionPanel'
 import './App.css'
 
 // Default content
-const DEFAULT_CONTENT = `# [表紙] プレゼンテーションタイトル
+const DEFAULT_CONTENT = `#ttl プレゼンテーションタイトル
 
 あなたのプレゼンテーションをここに作成
 
-# [目次] 目次
+#agd 目次
 
 # セクション1
 
@@ -59,7 +63,7 @@ const DEFAULT_CONTENT = `# [表紙] プレゼンテーションタイトル
 2. 次のステップ
 3. 最後のステップ
 
-# [まとめ] まとめ
+#! まとめ
 
 - 結論1
 - 結論2
@@ -77,6 +81,7 @@ function App() {
   const [styleOverrides, setStyleOverrides] = useState<Partial<ImpressionStyleVars>>({})
   const [stylePins, setStylePins] = useState<StylePins>({})
   const [isTonmanaSelected, setIsTonmanaSelected] = useState(false)
+  const [selectedBiomeId, setSelectedBiomeId] = useState<string>('plain-gray')
   
   // スタイルオーバーライドを更新するハンドラー
   const handleStyleOverride = useCallback((overrides: Partial<ImpressionStyleVars>) => {
@@ -126,17 +131,17 @@ function App() {
     return 'simple'
   }, [impressionCode])
   
-  const [items, setItems] = useState<Item[]>([])
+  const [items, setItems] = useState<Item[]>([createNewItemPlaceholder()])
   const [selectedItemId, setSelectedItemId] = useState<string | null>(MAIN_SLIDE_ITEM_ID)
   const [showItemModal, setShowItemModal] = useState(false)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
-  const [isCreatingItem, setIsCreatingItem] = useState(false)
   
   // Line-based editor state
   const [lines, setLines] = useState<EditorLine[]>(() => contentToLines(DEFAULT_CONTENT))
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
   const [currentAttribute, setCurrentAttribute] = useState<string | null>(null)
   const [selection, setSelection] = useState<EditorSelection | null>(null)
+  const [scrollToLine, setScrollToLine] = useState<number | null>(null)
   
   const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([])
   const [isComposing, setIsComposing] = useState(false)
@@ -161,6 +166,11 @@ function App() {
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+  
+  // エディタエリアの幅（パーセント）
+  const [editorWidth, setEditorWidth] = useState(50)
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeContainerRef = useRef<HTMLDivElement>(null)
 
   // Derived editorContent from lines (for compatibility) - memoized for performance
   const editorContent = useMemo(() => linesToContent(lines), [lines])
@@ -172,14 +182,18 @@ function App() {
   useEffect(() => {
     const loadedItems = loadItemsFromLocalStorage()
     
+    // 'new' タイプのアイテムを除外（localStorageには保存されないはずだが念のため）
+    const filteredItems = loadedItems.filter(item => item.type !== 'new')
+    
     // メインスライドアイテムが存在しない場合は作成
-    const mainSlideItem = loadedItems.find(item => item.id === MAIN_SLIDE_ITEM_ID)
+    const mainSlideItem = filteredItems.find(item => item.id === MAIN_SLIDE_ITEM_ID)
     if (!mainSlideItem) {
       const newMainSlideItem = createItem('Main Slides', 'slide', {
         content: editorContent
       } as Partial<SlideItem>)
       newMainSlideItem.id = MAIN_SLIDE_ITEM_ID
-      setItems([newMainSlideItem, ...loadedItems])
+      // 新しいアイテムプレースホルダーを追加
+      setItems([newMainSlideItem, ...filteredItems, createNewItemPlaceholder()])
       setSelectedItemId(MAIN_SLIDE_ITEM_ID)
       lastSyncedContentRef.current = editorContent
     } else {
@@ -188,7 +202,8 @@ function App() {
         setLines(contentToLines(mainSlideItem.content))
         lastSyncedContentRef.current = mainSlideItem.content
       }
-      setItems(loadedItems)
+      // 新しいアイテムプレースホルダーを追加
+      setItems([...filteredItems, createNewItemPlaceholder()])
       setSelectedItemId(MAIN_SLIDE_ITEM_ID)
     }
     
@@ -364,12 +379,14 @@ function App() {
     }
   }, [editingHeaderItemId])
 
-  // アイテムをlocalStorageに保存
+  // アイテムをlocalStorageに保存（'new' タイプは除外）
   useEffect(() => {
     if (!isInitializedRef.current) return
     const hasMainSlide = items.some(item => item.id === MAIN_SLIDE_ITEM_ID)
     if (!hasMainSlide) return
-    saveItemsToLocalStorage(items)
+    // 'new' タイプのアイテムは保存しない
+    const itemsToSave = items.filter(item => item.type !== 'new')
+    saveItemsToLocalStorage(itemsToSave)
   }, [items])
 
   // スライドのパース
@@ -390,6 +407,12 @@ function App() {
       setCurrentIndex(Math.max(0, parsedSlides.length - 1))
     }
   }, [editorContent, currentIndex, currentFormat, attributeMap])
+
+  // 各スライドの開始行を計算（現在のスライドに移動機能用）
+  const slideStartLines = useMemo(() => {
+    const slideSplitLevel = formatConfigs[currentFormat].slideSplitLevel
+    return getSlideStartLines(editorContent, slideSplitLevel, attributeMap)
+  }, [editorContent, currentFormat, attributeMap])
 
   // コンソールメッセージの生成
   useEffect(() => {
@@ -433,13 +456,6 @@ function App() {
   }, [lines])
 
   // アイテム管理のハンドラー
-  const handleAddItem = () => {
-    setEditingItem(null)
-    setIsCreatingItem(true)
-    setSelectedItemId(null)  // 選択を解除して作成フォームを表示
-    setIsTonmanaSelected(false)
-  }
-
   const handleEditItem = (item: Item) => {
     if (item.id === MAIN_SLIDE_ITEM_ID) {
       return
@@ -448,24 +464,42 @@ function App() {
     setShowItemModal(true)
   }
 
-  const handleCancelCreate = () => {
-    setIsCreatingItem(false)
-    setSelectedItemId(MAIN_SLIDE_ITEM_ID)
-  }
-
   const handleCreateItem = (itemData: Partial<Item>) => {
     const newItem = createItem(
       itemData.name!,
       itemData.type!,
       itemData
     )
-    setItems(prev => [...prev, newItem])
-    setIsCreatingItem(false)
+    // 'new' アイテムを除外し、新しいアイテムを追加、新しい 'new' プレースホルダーを追加
+    setItems(prev => {
+      const itemsWithoutNew = prev.filter(item => item.id !== NEW_ITEM_ID)
+      return [...itemsWithoutNew, newItem, createNewItemPlaceholder()]
+    })
     setSelectedItemId(newItem.id)  // 作成したアイテムを選択
   }
 
   const handleUpdateItem = (itemId: string, updates: Partial<Item>) => {
     setItems(prev => updateItem(prev, itemId, updates))
+  }
+
+  const handleDeleteItem = (itemId: string) => {
+    // メインスライドと'new'タイプのアイテムは削除できない
+    if (itemId === MAIN_SLIDE_ITEM_ID) {
+      return
+    }
+    const itemToDelete = items.find(item => item.id === itemId)
+    if (itemToDelete && itemToDelete.type === 'new') {
+      return
+    }
+    
+    setItems(prev => {
+      const updatedItems = deleteItem(prev, itemId)
+      // 削除後に選択が無効になった場合はメインスライドを選択
+      if (selectedItemId === itemId) {
+        setSelectedItemId(MAIN_SLIDE_ITEM_ID)
+      }
+      return updatedItems
+    })
   }
 
   const handleSaveItem = (itemData: Partial<Item>) => {
@@ -500,10 +534,10 @@ function App() {
       data
     })
     
+    // 'new' アイテムの前に挿入し、新しいプレースホルダーを再生成
     setItems(prevItems => {
-      const updatedItems = [...prevItems, newTableItem]
-      saveItemsToLocalStorage(updatedItems)
-      return updatedItems
+      const itemsWithoutNew = prevItems.filter(item => item.id !== NEW_ITEM_ID)
+      return [...itemsWithoutNew, newTableItem, createNewItemPlaceholder()]
     })
     
     setSelectedItemId(newTableItem.id)
@@ -514,11 +548,125 @@ function App() {
     setLines(contentToLines(content))
   }, [])
 
+  // 現在のスライドに対応するエディタ行にスクロール
+  const handleScrollToCurrentSlide = useCallback(() => {
+    if (slideStartLines.length > 0 && currentIndex < slideStartLines.length) {
+      const targetLine = slideStartLines[currentIndex]
+      setScrollToLine(targetLine)
+      // スクロール後にリセット（連続クリック対応）
+      setTimeout(() => setScrollToLine(null), 100)
+    }
+  }, [slideStartLines, currentIndex])
+
+  // 選択範囲からテキストを抽出
+  const extractSelectedText = useCallback((sel: EditorSelection, lineData: EditorLine[]): string => {
+    const { startLine, startChar, endLine, endChar } = sel
+    let text = ''
+
+    for (let i = startLine; i <= endLine; i++) {
+      const line = lineData[i]
+      if (!line) continue
+      
+      const lineText = line.text
+      let start = 0
+      let end = lineText.length
+
+      if (i === startLine) start = startChar
+      if (i === endLine) end = endChar
+
+      text += lineText.slice(start, end)
+      if (i < endLine) text += '\n'
+    }
+
+    return text
+  }, [])
+
+  // 選択テキストからアイテムを作成
+  const handleCreateItemFromSelection = useCallback(() => {
+    if (!selection) return
+
+    const selectedText = extractSelectedText(selection, lines)
+    if (!selectedText.trim()) return
+
+    const existingNames = items.map(item => item.name)
+
+    // Markdownテーブル形式かどうかを判定
+    const parsedTable = parseMarkdownTable(selectedText)
+
+    if (parsedTable && (parsedTable.headers.length > 0 || parsedTable.data.length > 0)) {
+      // テーブルアイテムとして作成
+      const name = generateUniqueItemName('Table', existingNames)
+      const newItem = createItem(name, 'table', {
+        data: parsedTable.data,
+        headers: parsedTable.hasHeaders ? parsedTable.headers : undefined
+      })
+      // 'new' アイテムの前に挿入し、新しいプレースホルダーを再生成
+      setItems(prev => {
+        const itemsWithoutNew = prev.filter(item => item.id !== NEW_ITEM_ID)
+        return [...itemsWithoutNew, newItem, createNewItemPlaceholder()]
+      })
+      setSelectedItemId(newItem.id)
+      setSelection(null)
+    } else {
+      // テキストアイテムとして作成
+      const name = generateUniqueItemName('Text', existingNames)
+      const newItem = createItem(name, 'text', {
+        content: selectedText
+      })
+      // 'new' アイテムの前に挿入し、新しいプレースホルダーを再生成
+      setItems(prev => {
+        const itemsWithoutNew = prev.filter(item => item.id !== NEW_ITEM_ID)
+        return [...itemsWithoutNew, newItem, createNewItemPlaceholder()]
+      })
+      setSelectedItemId(newItem.id)
+      setSelection(null)
+    }
+  }, [selection, lines, items, extractSelectedText])
+
+  // リサイズハンドラ
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  // リサイズ中の処理
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeContainerRef.current) return
+      
+      const containerRect = resizeContainerRef.current.getBoundingClientRect()
+      const containerWidth = containerRect.width
+      const mouseX = e.clientX - containerRect.left
+      
+      // プレビュー側の幅をマウス位置から計算
+      const previewWidthPercent = (mouseX / containerWidth) * 100
+      // エディタ側の幅
+      const editorWidthPercent = 100 - previewWidthPercent
+      
+      // 最小幅30%、最大幅70%に制限
+      const clampedEditorWidth = Math.min(Math.max(editorWidthPercent, 30), 70)
+      setEditorWidth(clampedEditorWidth)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
+
   return (
     <ThemeProvider>
     <div className="h-screen max-h-screen flex flex-col overflow-hidden">
       <Toolbar
-        onLoad={() => loadPresentation(handleSetEditorContent, setCurrentIndex)}
         onShowHelp={() => setShowHelpModal(true)}
         onShowExport={() => setShowExportModal(true)}
         onUndo={handleUndo}
@@ -556,6 +704,7 @@ function App() {
           currentTone={currentTone}
           impressionCode={impressionCode}
           styleOverrides={styleOverrides}
+          selectedBiomeId={selectedBiomeId}
           items={items}
           onClose={() => setShowSlideShow(false)}
           onNavigate={setCurrentIndex}
@@ -564,34 +713,22 @@ function App() {
 
       {/* メインエリア */}
       {!showSlideShow && (
-      <div className="flex-1 flex overflow-hidden">
+      <div 
+        ref={resizeContainerRef}
+        className={`flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}
+      >
         {/* プレビュー */}
-        <div className="flex flex-col p-4" style={{ width: '40%' }}>
-          <ToneDisplay
-            code={impressionCode}
-            onClick={() => {
-              setIsTonmanaSelected(true)
-              setSelectedItemId(null)
-            }}
-          />
-
-          <FormatTabs
-            currentFormat={currentFormat}
-            onFormatChange={setCurrentFormat}
-          />
-
+        <div className="flex flex-col p-4" style={{ width: `${100 - editorWidth}%` }}>
           {/* プレビューエリア */}
           <div
-            className="flex-1 rounded-b-lg p-4 flex items-center justify-center relative overflow-hidden"
-            style={{ 
-              paddingTop: 0, 
-              marginTop: '-1px', 
-              borderTop: '1.5px solid var(--app-border-primary)', 
-              backgroundColor: 'var(--app-bg-primary)',
-              minWidth: 0,
-              minHeight: 0
-            }}
+            className="flex-1 flex items-center justify-center overflow-hidden"
+            style={{ minWidth: 0, minHeight: 0, position: 'relative' }}
           >
+            {/* FormatTabs を左上に絶対配置 */}
+            <FormatTabs
+              currentFormat={currentFormat}
+              onFormatChange={setCurrentFormat}
+            />
             <Preview
               slides={slides}
               currentIndex={currentIndex}
@@ -599,6 +736,7 @@ function App() {
               currentTone={currentTone}
               impressionCode={impressionCode}
               styleOverrides={styleOverrides}
+              selectedBiomeId={selectedBiomeId}
               previewRef={previewRef}
               items={items}
               onNavigate={handleNavigate}
@@ -612,6 +750,9 @@ function App() {
             />
           </div>
 
+          {/* プレビューとカルーセルの区切り線 */}
+          <div className="preview-carousel-divider" />
+
           <SlideCarousel
             slides={slides}
             currentIndex={currentIndex}
@@ -619,297 +760,76 @@ function App() {
             currentTone={currentTone}
             impressionCode={impressionCode}
             styleOverrides={styleOverrides}
+            selectedBiomeId={selectedBiomeId}
             items={items}
             setCurrentIndex={setCurrentIndex}
           />
         </div>
 
+        {/* リサイズハンドル */}
+        <div 
+          className="resize-handle"
+          onMouseDown={handleResizeStart}
+        />
+
         {/* エディター + アイテムタブバー */}
-        <div className="flex flex-col" style={{ minHeight: 0, width: '35%', overflow: 'hidden' }}>
-          {/* アイテム名表示 */}
-          {(selectedItemId || isTonmanaSelected) && (() => {
-            // トンマナ選択時
-            if (isTonmanaSelected) {
-              const preset = findMatchingPreset(impressionCode)
-              return (
-                <div className="editor-file-header" style={{ borderBottom: '1px solid var(--app-border-primary)', backgroundColor: 'var(--app-bg-primary)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="material-icons" style={{ fontSize: '1rem', color: 'var(--app-highlight)' }}>palette</span>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--app-text-secondary)', fontWeight: 500 }}>
-                      トンマナ{preset ? ` - ${preset.nameJa}` : ''}
-                    </span>
-                  </div>
-                </div>
-              )
-            }
-            
-            const selectedItem = items.find(item => item.id === selectedItemId)
-            if (!selectedItem) return null
-            
-            const getItemIcon = (type: Item['type']): string => {
-              switch (type) {
-                case 'slide':
-                  return 'slideshow'
-                case 'table':
-                  return 'table_chart'
-                case 'image':
-                  return 'image'
-                case 'text':
-                  return 'notes'
-                default:
-                  return 'inventory_2'
-              }
-            }
-            
-            const handleHeaderNameDoubleClick = (item: Item, e: React.MouseEvent) => {
-              e.stopPropagation()
-              e.preventDefault()
-              if (item.id === MAIN_SLIDE_ITEM_ID) return
-              setEditingHeaderItemId(item.id)
-              setEditingHeaderName(item.name)
-              setHeaderNameError('')
-              setTimeout(() => {
-                headerNameInputRef.current?.focus()
-                headerNameInputRef.current?.select()
-              }, 0)
-            }
-
-            const validateHeaderName = (value: string, currentItem: Item): boolean => {
-              if (!value.trim()) {
-                setHeaderNameError('Name is required')
-                return false
-              }
-              const isDuplicate = items.some(
-                i => i.name === value && currentItem.name !== value
-              )
-              if (isDuplicate) {
-                setHeaderNameError('Name already exists')
-                return false
-              }
-              setHeaderNameError('')
-              return true
-            }
-
-            const handleHeaderNameChange = (value: string, item: Item) => {
-              setEditingHeaderName(value)
-              validateHeaderName(value, item)
-            }
-
-            const handleHeaderNameSave = (item: Item) => {
-              if (validateHeaderName(editingHeaderName, item) && editingHeaderName.trim() !== item.name) {
-                handleUpdateItem(item.id, { name: editingHeaderName.trim() })
-              }
-              setEditingHeaderItemId(null)
-              setHeaderNameError('')
-            }
-
-            const handleHeaderNameCancel = (item: Item) => {
-              setEditingHeaderName(item.name)
-              setHeaderNameError('')
-              setEditingHeaderItemId(null)
-            }
-
-            const handleHeaderNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, item: Item) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                handleHeaderNameSave(item)
-              } else if (e.key === 'Escape') {
-                e.preventDefault()
-                handleHeaderNameCancel(item)
-              }
-            }
-
-            return (
-              <div className="editor-file-header" style={{ borderBottom: '1px solid var(--app-border-primary)', backgroundColor: 'var(--app-bg-primary)' }}>
-                <div className="flex items-center gap-2">
-                  <span className="material-icons" style={{ fontSize: '1rem', color: 'var(--app-highlight)' }}>{getItemIcon(selectedItem.type)}</span>
-                  {editingHeaderItemId === selectedItem.id ? (
-                    <div style={{ position: 'relative', flex: 1 }}>
-                      <input
-                        ref={headerNameInputRef}
-                        type="text"
-                        value={editingHeaderName}
-                        onChange={(e) => handleHeaderNameChange(e.target.value, selectedItem)}
-                        onKeyDown={(e) => handleHeaderNameKeyDown(e, selectedItem)}
-                        style={{
-                          fontSize: '0.875rem',
-                          color: 'var(--app-text-primary)',
-                          fontWeight: 500,
-                          background: 'transparent',
-                          border: headerNameError ? '1px solid var(--app-error)' : '1px solid transparent',
-                          borderRadius: '0.25rem',
-                          padding: 0,
-                          margin: 0,
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          outline: 'none',
-                          lineHeight: '1.5',
-                          fontFamily: 'inherit'
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.border = headerNameError ? '1px solid var(--app-error)' : '1px solid var(--app-highlight)'
-                          e.target.style.background = 'var(--app-bg-secondary)'
-                          e.target.style.padding = '0.125rem 0.25rem'
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.border = '1px solid transparent'
-                          e.target.style.background = 'transparent'
-                          e.target.style.padding = '0'
-                          handleHeaderNameSave(selectedItem)
-                        }}
-                      />
-                      {headerNameError && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          marginTop: '0.25rem',
-                          fontSize: '0.625rem',
-                          color: 'var(--app-error)',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {headerNameError}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span 
-                      style={{ fontSize: '0.875rem', color: 'var(--app-text-secondary)', fontWeight: 500, cursor: selectedItem.id === MAIN_SLIDE_ITEM_ID ? 'default' : 'text' }}
-                      onDoubleClick={(e) => handleHeaderNameDoubleClick(selectedItem, e)}
-                      title={selectedItem.id === MAIN_SLIDE_ITEM_ID ? '' : 'Double-click to edit name'}
-                    >
-                      {selectedItem.name}
-                    </span>
-                  )}
-                </div>
-          </div>
-            )
-          })()}
-          
-          <div className="flex" style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-            {/* エディター部分（条件付き表示） */}
-            <div className="flex flex-col" style={{ minHeight: 0, minWidth: 0, flex: '1 1 0', position: 'relative', overflow: 'hidden' }}>
-            {/* トンマナ選択時：ImpressionPanelを表示 */}
-            {isTonmanaSelected ? (
-              <ImpressionPanel
-                code={impressionCode}
-                onCodeChange={handleImpressionCodeChange}
-                styleOverrides={styleOverrides}
-                onStyleOverride={handleStyleOverride}
-                stylePins={stylePins}
-                onStylePinChange={handleStylePinChange}
-              />
-            ) : isCreatingItem ? (
-              /* アイテム作成モード：ItemDetailPanelを作成モードで表示 */
-              <ItemDetailPanel
-                item={null}
-                onEdit={handleEditItem}
-                onUpdateItem={handleUpdateItem}
-                isCreatingItem={true}
-                onCreateItem={handleCreateItem}
-                onCancelCreate={handleCancelCreate}
-                existingNames={items.map(item => item.name)}
-              />
-            ) : selectedItemId && selectedItemId !== MAIN_SLIDE_ITEM_ID ? (
-              /* その他のアイテム選択時：ItemDetailPanelを表示 */
-              <ItemDetailPanel
-                item={items.find(item => item.id === selectedItemId) || null}
-                onEdit={handleEditItem}
-                onUpdateItem={handleUpdateItem}
-              />
-            ) : (
-              /* デフォルト（メインスライドアイテム選択時 or 未選択時）：エディタを表示 */
-              <Editor
-                lines={lines}
-                setLines={setLines}
-                isComposing={isComposing}
-                setIsComposing={setIsComposing}
-                errorMessages={consoleMessages}
-                onCurrentLineChange={handleCurrentLineChange}
-                onSelectionChange={handleSelectionChange}
-              />
-            )}
-      </div>
-
-            {/* アイテムタブバー（常時表示） */}
-            <div className="flex flex-col" style={{ width: '36px', minHeight: 0, borderLeft: '1px solid var(--app-border-primary)' }}>
-              <ItemTabBar
-                items={items}
-                selectedItemId={selectedItemId}
-                onSelectItem={(itemId) => {
-                  setSelectedItemId(itemId)
-                  setIsTonmanaSelected(false)
-                  setIsCreatingItem(false)  // 作成モードを解除
-                }}
-                onAddItem={handleAddItem}
-                onUpdateItem={handleUpdateItem}
-                existingNames={items.map(item => item.name)}
-                isTonmanaSelected={isTonmanaSelected}
-                onSelectTonmana={() => {
-                  setIsTonmanaSelected(true)
-                  setSelectedItemId(null)
-                  setIsCreatingItem(false)  // 作成モードを解除
-                }}
-              />
-            </div>
-          </div>
-          {/* Toast - FloatingNavBarの上に表示（エディタ選択時のみ） */}
-          {/* 行番号カラム(60px)を除いたテキスト部分の中央に配置 */}
-          {!isTonmanaSelected && !isCreatingItem && (!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
-            <div
-              className="pointer-events-none fixed z-40"
-              style={{ 
-                bottom: '64px',
-                left: 'calc(40% + 60px + (35% - 36px - 60px) / 2)', 
-                transform: 'translateX(-50%)',
-                maxWidth: '420px',
-                width: 'calc(35% - 150px)'
-              }}
-            >
-              <div className="pointer-events-auto w-full">
-                <Toast messages={consoleMessages} />
-              </div>
-            </div>
-          )}
-          {/* FloatingNavBar - エディタ領域の最下部（エディタ選択時のみ） */}
-          {/* 行番号カラム(60px)を除いたテキスト部分の中央に配置 */}
-          {!isTonmanaSelected && !isCreatingItem && (!selectedItemId || selectedItemId === MAIN_SLIDE_ITEM_ID) && (
-            <div
-              className="pointer-events-none fixed z-40"
-              style={{ 
-                bottom: '12px',
-                left: 'calc(40% + 60px + (35% - 36px - 60px) / 2)', 
-                transform: 'translateX(-50%)',
-                maxWidth: '420px',
-                width: 'calc(35% - 150px)'
-              }}
-            >
-              <div className="pointer-events-auto w-full">
-                <FloatingNavBar
-                  itemType="slide"
-                  currentLine={currentLineIndex + 1}
-                  currentAttribute={currentAttribute}
-                  selection={selection ? {
-                    startLine: selection.startLine + 1,
-                    endLine: selection.endLine + 1
-                  } : null}
-                  onSetAttribute={handleSetAttribute}
-                  onSetAttributesForRange={handleSetAttributesForRange}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* AIチャットパネル */}
-        <div className="flex flex-col" style={{ width: '25%', minHeight: 0 }}>
-          <ChatPanel
-            editorContent={editorContent}
-            onApplyEdit={(content) => handleSetEditorContent(content)}
-            onCreateTable={handleCreateTable}
-            existingItemNames={items.map(item => item.name)}
-          />
-          </div>
+        <EditorArea
+          width={editorWidth}
+          items={items}
+          selectedItemId={selectedItemId}
+          onLoad={() => loadPresentation(handleSetEditorContent, setCurrentIndex)}
+          onSelectItem={(itemId) => {
+            setSelectedItemId(itemId)
+            setIsTonmanaSelected(false)
+          }}
+          onEditItem={handleEditItem}
+          onUpdateItem={handleUpdateItem}
+          onDeleteItem={handleDeleteItem}
+          existingNames={items.map(item => item.name)}
+          onCreateItem={handleCreateItem}
+          isTonmanaSelected={isTonmanaSelected}
+          onSelectTonmana={() => {
+            setIsTonmanaSelected(true)
+            setSelectedItemId(null)
+          }}
+          impressionCode={impressionCode}
+          onImpressionCodeChange={handleImpressionCodeChange}
+          styleOverrides={styleOverrides}
+          onStyleOverride={handleStyleOverride}
+          stylePins={stylePins}
+          onStylePinChange={handleStylePinChange}
+          selectedBiomeId={selectedBiomeId}
+          onBiomeChange={setSelectedBiomeId}
+          lines={lines}
+          setLines={setLines}
+          isComposing={isComposing}
+          setIsComposing={setIsComposing}
+          consoleMessages={consoleMessages}
+          scrollToLine={scrollToLine}
+          onCurrentLineChange={handleCurrentLineChange}
+          onSelectionChange={handleSelectionChange}
+          currentLineIndex={currentLineIndex}
+          currentAttribute={currentAttribute}
+          selection={selection}
+          onSetAttribute={handleSetAttribute}
+          onSetAttributesForRange={handleSetAttributesForRange}
+          onScrollToCurrentSlide={handleScrollToCurrentSlide}
+          onCreateItemFromSelection={handleCreateItemFromSelection}
+          editorContent={editorContent}
+          onApplyEdit={handleSetEditorContent}
+          onCreateTable={handleCreateTable}
+          onScrollToLine={(lineIndex) => {
+            setScrollToLine(lineIndex)
+            setTimeout(() => setScrollToLine(null), 100)
+          }}
+          editingHeaderItemId={editingHeaderItemId}
+          setEditingHeaderItemId={setEditingHeaderItemId}
+          editingHeaderName={editingHeaderName}
+          setEditingHeaderName={setEditingHeaderName}
+          headerNameError={headerNameError}
+          setHeaderNameError={setHeaderNameError}
+          headerNameInputRef={headerNameInputRef}
+        />
         </div>
       )}
 

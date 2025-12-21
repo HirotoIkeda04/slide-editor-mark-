@@ -1,17 +1,16 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import type { ImpressionCode, ImpressionRange, ImpressionStyleVars, StylePins, ImpressionSubAttributes } from '../../types'
+import type { ImpressionCode, ImpressionStyleVars, StylePins, ImpressionSubAttributes, TonmanaFilterCategory } from '../../types'
 import { 
   getDisplayName,
   impressionCodeToString,
   stringToImpressionCode,
-  DEFAULT_IMPRESSION_RANGE,
   impressionCodesEqual,
 } from '../../constants/impressionConfigs'
-import { tonmanaBiomes, findMatchingBiome, getBiomesByCategory } from '../../constants/tonmanaBiomes'
+import { tonmanaBiomes, getBiomeById, getDefaultBiome } from '../../constants/tonmanaBiomes'
 import { generateStyleVars } from '../../utils/impressionStyle'
-import { ImpressionSamples } from './ImpressionSamples'
-import { ImpressionSliders } from './ImpressionSliders'
 import { ImpressionDetail } from './ImpressionDetail'
+import { TonmanaCategoryTabs } from './TonmanaCategoryTabs'
+import { TonmanaChipList } from './TonmanaChipList'
 import './ImpressionPanel.css'
 
 interface ImpressionPanelProps {
@@ -21,6 +20,9 @@ interface ImpressionPanelProps {
   onStyleOverride?: (overrides: Partial<ImpressionStyleVars>) => void
   stylePins?: StylePins
   onStylePinChange?: (pins: Partial<StylePins>) => void
+  selectedBiomeId?: string
+  onBiomeChange?: (biomeId: string) => void
+  usedBiomeIds?: string[]
 }
 
 export const ImpressionPanel = ({
@@ -30,15 +32,22 @@ export const ImpressionPanel = ({
   onStyleOverride,
   stylePins,
   onStylePinChange,
+  selectedBiomeId: externalBiomeId,
+  onBiomeChange,
+  usedBiomeIds = [],
 }: ImpressionPanelProps) => {
+  // 選択中のバイオームID（外部制御または内部状態）
+  const [internalBiomeId, setInternalBiomeId] = useState<string>(getDefaultBiome().id)
+  const selectedBiomeId = externalBiomeId ?? internalBiomeId
+  
   // 前回のコード（履歴）
   const [previousCode, setPreviousCode] = useState<ImpressionCode | null>(null)
   
-  // スライダーの区間
-  const [range, setRange] = useState<ImpressionRange>(DEFAULT_IMPRESSION_RANGE)
-  
   // サブ属性
   const [subAttributes, setSubAttributes] = useState<ImpressionSubAttributes>({})
+  
+  // Spotify風ドリルダウンの選択フィルターカテゴリ（配列で階層管理）
+  const [selectedCategories, setSelectedCategories] = useState<TonmanaFilterCategory[]>([])
   
   // 編集用state
   const [isEditingName, setIsEditingName] = useState(false)
@@ -52,23 +61,23 @@ export const ImpressionPanel = ({
   const nameInputRef = useRef<HTMLInputElement>(null)
   const codeInputRef = useRef<HTMLInputElement>(null)
   
+  // 現在選択中のバイオームを取得
+  const currentBiome = useMemo(() => 
+    getBiomeById(selectedBiomeId) ?? getDefaultBiome(), 
+    [selectedBiomeId]
+  )
+  
   // 現在のスタイル変数
   const styleVars = useMemo(() => {
-    const base = generateStyleVars(code, subAttributes)
+    const base = generateStyleVars(code, subAttributes, selectedBiomeId)
     if (styleOverrides) {
       return { ...base, ...styleOverrides }
     }
     return base
-  }, [code, subAttributes, styleOverrides])
+  }, [code, subAttributes, styleOverrides, selectedBiomeId])
   
   // 現在の表示名を取得
   const currentDisplayName = useMemo(() => getDisplayName(code), [code])
-  
-  // 現在マッチしているバイオームを取得
-  const currentBiome = useMemo(() => findMatchingBiome(code), [code])
-  
-  // カテゴリごとにグループ化されたバイオーム
-  const biomesByCategory = useMemo(() => getBiomesByCategory(), [])
   
   // 見本を選択
   const handleSelect = useCallback((newCode: ImpressionCode) => {
@@ -78,76 +87,41 @@ export const ImpressionPanel = ({
     }
   }, [code, onCodeChange])
   
-  // ダブルクリックで絞り込み
-  const handleDoubleClick = useCallback((baseCode: ImpressionCode) => {
-    // 基準コードの周辺に区間を絞る
-    const newRange: ImpressionRange = {
-      energy: [
-        Math.max(1, baseCode.energy - 1),
-        Math.min(5, baseCode.energy + 1),
-      ],
-      formality: [
-        Math.max(1, baseCode.formality - 1),
-        Math.min(5, baseCode.formality + 1),
-      ],
-      classicModern: [
-        Math.max(1, baseCode.classicModern - 1),
-        Math.min(5, baseCode.classicModern + 1),
-      ],
-      decoration: [
-        Math.max(1, baseCode.decoration - 1),
-        Math.min(5, baseCode.decoration + 1),
-      ],
-    }
-    setRange(newRange)
-    
-    if (!impressionCodesEqual(baseCode, code)) {
-      setPreviousCode(code)
-      onCodeChange(baseCode)
-    }
-  }, [code, onCodeChange])
-  
-  // 区間をリセット（広げる）
-  const handleExpand = useCallback(() => {
-    setRange(DEFAULT_IMPRESSION_RANGE)
-  }, [])
-  
   // バイオームを選択
   const handleBiomeClick = useCallback((biomeId: string) => {
     const biome = tonmanaBiomes.find(b => b.id === biomeId)
     if (biome) {
-      // バイオームの領域の中心点をコードとして設定
-      const centerCode: ImpressionCode = {
-        energy: Math.round((biome.region.energy[0] + biome.region.energy[1]) / 2),
-        formality: Math.round((biome.region.formality[0] + biome.region.formality[1]) / 2),
-        classicModern: Math.round((biome.region.classicModern[0] + biome.region.classicModern[1]) / 2),
-        decoration: Math.round((biome.region.decoration[0] + biome.region.decoration[1]) / 2),
+      // バイオームIDを更新
+      if (onBiomeChange) {
+        onBiomeChange(biomeId)
+      } else {
+        setInternalBiomeId(biomeId)
       }
-      handleSelect(centerCode)
-      // テック系の場合はデフォルトで「寒色」を設定
-      if (biome.category === 'テック系') {
+      
+      // Tech系の場合はサブ属性を設定
+      if (biome.baseStyle === 'Tech') {
         setSubAttributes(prev => ({ ...prev, colorTemperature: 'cool' }))
       }
     }
-  }, [handleSelect])
+  }, [onBiomeChange])
   
   // 名前編集開始
   const handleNameDoubleClick = useCallback(() => {
-    const displayName = customName || currentDisplayName.nameJa
+    const displayName = customName || currentBiome.nameJa
     setEditNameValue(displayName)
     setIsEditingName(true)
-  }, [customName, currentDisplayName.nameJa])
+  }, [customName, currentBiome.nameJa])
   
   // 名前編集確定
   const handleNameEditConfirm = useCallback(() => {
     const trimmed = editNameValue.trim()
-    if (trimmed && trimmed !== currentDisplayName.nameJa) {
+    if (trimmed && trimmed !== currentBiome.nameJa) {
       setCustomName(trimmed)
-    } else if (trimmed === currentDisplayName.nameJa) {
+    } else if (trimmed === currentBiome.nameJa) {
       setCustomName(null)  // プリセット名と同じならカスタム名をクリア
     }
     setIsEditingName(false)
-  }, [editNameValue, currentDisplayName.nameJa])
+  }, [editNameValue, currentBiome.nameJa])
   
   // 名前編集キャンセル
   const handleNameEditCancel = useCallback(() => {
@@ -208,9 +182,8 @@ export const ImpressionPanel = ({
   
   // クリップボードにコピー
   const handleCopyToClipboard = useCallback(async () => {
-    const displayName = customName || currentDisplayName.nameJa
-    const codeStr = impressionCodeToString(code)
-    const text = `${displayName} (${codeStr})`
+    const displayName = customName || currentBiome.nameJa
+    const text = `${displayName} (${currentBiome.name})`
     
     try {
       await navigator.clipboard.writeText(text)
@@ -219,7 +192,7 @@ export const ImpressionPanel = ({
     } catch (err) {
       console.error('Failed to copy to clipboard:', err)
     }
-  }, [customName, currentDisplayName.nameJa, code])
+  }, [customName, currentBiome])
   
   // 編集開始時にフォーカス
   useEffect(() => {
@@ -238,27 +211,11 @@ export const ImpressionPanel = ({
   
   return (
     <div className="impression-panel">
-      {/* 見本から選択 */}
+      {/* 適用中のTone & Manner */}
       <div className="impression-section">
-        <div className="impression-section-title">見本から選択</div>
-        <ImpressionSamples
-          currentCode={code}
-          previousCode={previousCode}
-          range={range}
-          onSelect={handleSelect}
-          onDoubleClick={handleDoubleClick}
-        />
-        <button className="impression-expand-btn" onClick={handleExpand}>
-          <span className="material-icons" style={{ fontSize: '0.875rem' }}>unfold_more</span>
-          広げる
-        </button>
-      </div>
-      
-      {/* 適用中のトンマナ */}
-      <div className="impression-section">
-        <div className="impression-section-title">適用中のトンマナ</div>
+        <div className="impression-section-title">適用中のTone & Manner</div>
         <div className="impression-current">
-          {/* トンマナ名（ダブルクリックで編集） */}
+          {/* Tone & Manner名（ダブルクリックで編集） */}
           {isEditingName ? (
             <input
               ref={nameInputRef}
@@ -275,7 +232,7 @@ export const ImpressionPanel = ({
               onDoubleClick={handleNameDoubleClick}
               title="ダブルクリックで編集"
             >
-              {customName || currentDisplayName.nameJa}
+              {customName || currentBiome.nameJa}
             </span>
           )}
           
@@ -298,7 +255,7 @@ export const ImpressionPanel = ({
               onDoubleClick={handleCodeDoubleClick}
               title="ダブルクリックで編集"
             >
-              {impressionCodeToString(code)}
+              {currentBiome.name}
             </span>
           )}
           
@@ -314,125 +271,33 @@ export const ImpressionPanel = ({
           </button>
         </div>
         
-        {/* バイオームチップ（カテゴリごとにグループ化） */}
-        <div className="impression-biomes" style={{ marginTop: '0.75rem' }}>
-          {Array.from(biomesByCategory.entries()).map(([category, biomes]) => (
-            <div key={category} className="impression-biome-category">
-              <div className="impression-biome-category-label">{category}</div>
-              <div className="impression-biome-chips">
-                {biomes.map(biome => (
-                  <button
-                    key={biome.id}
-                    className={`impression-preset-chip ${currentBiome.id === biome.id ? 'active' : ''}`}
-                    onClick={() => handleBiomeClick(biome.id)}
-                    title={`${biome.name} - E:${biome.region.energy[0]}-${biome.region.energy[1]} F:${biome.region.formality[0]}-${biome.region.formality[1]} C:${biome.region.classicModern[0]}-${biome.region.classicModern[1]} D:${biome.region.decoration[0]}-${biome.region.decoration[1]}`}
-                  >
-                    {biome.nameJa}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+        {/* フィルターカテゴリタブ（階層構造） */}
+        <div style={{ marginTop: '0.75rem' }}>
+          <TonmanaCategoryTabs
+            selectedCategories={selectedCategories}
+            onCategoryAdd={(cat) => setSelectedCategories(prev => [...prev, cat])}
+            onCategoriesClear={() => setSelectedCategories([])}
+            usedBiomeIds={usedBiomeIds}
+          />
+        </div>
+        
+        {/* Tone & Mannerチップ一覧（常に表示、フィルターで絞り込み） */}
+        <div style={{ marginTop: '0.5rem' }}>
+          <TonmanaChipList
+            categories={selectedCategories}
+            selectedBiomeId={selectedBiomeId}
+            onBiomeSelect={handleBiomeClick}
+            usedBiomeIds={usedBiomeIds}
+          />
         </div>
       </div>
       
-      {/* サブ属性 */}
-      <div className="impression-section">
-        <div className="impression-section-title">詳細設定</div>
-        <div className="impression-sub-attributes">
-          {/* テーマモード */}
-          <div className="impression-sub-attr-row">
-            <span className="impression-sub-attr-label">テーマ</span>
-            <div className="impression-sub-attr-buttons">
-              {(['light', 'auto', 'dark'] as const).map(mode => (
-                <button
-                  key={mode}
-                  className={`impression-sub-attr-btn ${subAttributes.themeMode === mode || (!subAttributes.themeMode && mode === 'auto') ? 'active' : ''}`}
-                  onClick={() => setSubAttributes(prev => ({ ...prev, themeMode: mode === 'auto' ? undefined : mode }))}
-                >
-                  {mode === 'light' ? 'ライト' : mode === 'dark' ? 'ダーク' : '自動'}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* 色温度 */}
-          <div className="impression-sub-attr-row">
-            <span className="impression-sub-attr-label">色温度</span>
-            <div className="impression-sub-attr-buttons">
-              {(['cool', 'neutral', 'warm'] as const).map(temp => (
-                <button
-                  key={temp}
-                  className={`impression-sub-attr-btn ${subAttributes.colorTemperature === temp || (!subAttributes.colorTemperature && temp === 'neutral') ? 'active' : ''}`}
-                  onClick={() => setSubAttributes(prev => ({ ...prev, colorTemperature: temp === 'neutral' ? undefined : temp }))}
-                >
-                  {temp === 'cool' ? '寒色' : temp === 'warm' ? '暖色' : '中性'}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* コントラスト */}
-          <div className="impression-sub-attr-row">
-            <span className="impression-sub-attr-label">コントラスト</span>
-            <div className="impression-sub-attr-buttons">
-              {(['low', 'medium', 'high'] as const).map(contrast => (
-                <button
-                  key={contrast}
-                  className={`impression-sub-attr-btn ${subAttributes.contrast === contrast || (!subAttributes.contrast && contrast === 'medium') ? 'active' : ''}`}
-                  onClick={() => setSubAttributes(prev => ({ ...prev, contrast: contrast === 'medium' ? undefined : contrast }))}
-                >
-                  {contrast === 'low' ? '低' : contrast === 'high' ? '高' : '中'}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* 彩度 */}
-          <div className="impression-sub-attr-row">
-            <span className="impression-sub-attr-label">彩度</span>
-            <div className="impression-sub-attr-buttons">
-              {(['muted', 'normal', 'vivid'] as const).map(sat => (
-                <button
-                  key={sat}
-                  className={`impression-sub-attr-btn ${subAttributes.saturation === sat || (!subAttributes.saturation && sat === 'normal') ? 'active' : ''}`}
-                  onClick={() => setSubAttributes(prev => ({ ...prev, saturation: sat === 'normal' ? undefined : sat }))}
-                >
-                  {sat === 'muted' ? '控えめ' : sat === 'vivid' ? '鮮やか' : '標準'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* スライダー */}
-      <div className="impression-section">
-        <div className="impression-section-title">軸ごとに調整</div>
-        <ImpressionSliders
-          code={code}
-          range={range}
-          onCodeChange={(newCode) => {
-            if (!impressionCodesEqual(newCode, code)) {
-              setPreviousCode(code)
-              onCodeChange(newCode)
-            }
-          }}
-          onRangeChange={setRange}
-        />
-      </div>
-      
-      {/* 詳細設定 */}
+      {/* カラー情報 */}
       <div className="impression-section">
         <ImpressionDetail
-          code={code}
-          styleVars={styleVars}
-          onStyleOverride={onStyleOverride}
-          stylePins={stylePins}
-          onStylePinChange={onStylePinChange}
+          selectedBiomeId={selectedBiomeId}
         />
       </div>
     </div>
   )
 }
-

@@ -147,7 +147,7 @@
   letter-spacing: 0.05em;
 }
 
-/* コードブロックはトンマナの影響を受けない */
+/* コードブロックはTone & Mannerの影響を受けない */
 .code-block-wrapper {
   background: var(--app-bg-primary) !important;
   color: var(--app-text-primary) !important;
@@ -157,7 +157,13 @@
   background: var(--app-bg-primary) !important;
 }
 
-/* トンマナのスタイルがコードブロックに適用されないようにする */
+/* コードブロック内の要素がフォントサイズを親から継承するようにする */
+.code-block-wrapper code,
+.code-block-wrapper span {
+  font-size: inherit !important;
+}
+
+/* Tone & Mannerのスタイルがコードブロックに適用されないようにする */
 .tone-simple .code-block-wrapper,
 .tone-casual .code-block-wrapper,
 .tone-luxury .code-block-wrapper,
@@ -736,6 +742,20 @@
   font-size: 0.875rem;
 }
 
+.item-modal-hint {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.item-modal-hint .material-icons {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
 .item-type-selector {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1075,47 +1095,40 @@
   position: relative;
 }
 
-.item-tab-add-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: transparent; /* Outlinedスタイル: 背景を透明に */
-  border: none;
-  color: var(--app-text-muted); /* 非選択状態と同じグレー */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  outline: none; /* ブラウザのデフォルトフォーカススタイルを無効化 */
+/* 新しいアイテムタブ（プレースホルダー） */
+.item-tab-new-item {
+  opacity: 0.6;
+  border: 1px dashed var(--app-border-primary) !important;
+  background: transparent !important;
 }
 
-/* 丸みを帯びた四角形のOutlinedボタンを作成 */
-.item-tab-add-button::before {
-  content: '';
-  position: absolute;
-  width: 16px; /* アイコンサイズに合わせて小さく */
-  height: 16px; /* アイコンサイズに合わせて小さく */
-  border: 1.5px solid var(--app-text-disabled); /* グレーのボーダー */
-  border-radius: 0.2rem; /* より小さな丸み */
-  transition: all 0.2s ease;
+.item-tab-new-item:hover {
+  opacity: 1;
+  border-color: var(--app-accent-light) !important;
 }
 
-.item-tab-add-button:hover {
-  background: transparent;
-  color: var(--app-accent-light); /* ホバー時にアクセントカラー */
+.item-tab-new-item.active {
+  opacity: 1;
+  border-color: var(--app-accent) !important;
+  background: var(--app-bg-tertiary) !important;
 }
 
-.item-tab-add-button:hover::before {
-  border-color: var(--app-accent-light); /* ホバー時にアクセントカラー */
-  background: rgba(245, 230, 211, 0.1); /* ホバー時に薄い背景 */
+.item-tab-new-item .material-icons {
+  font-size: 1.125rem;
 }
 
-.item-tab-add-button .material-icons {
-  font-size: 0.875rem; /* 他のアイコンより少し小さく */
-  font-weight: 300; /* プラスアイコンを細く */
-  position: relative;
-  z-index: 1; /* ボーダーの上に表示 */
+/* 名前バーの新しいアイテム */
+.item-name-bar-new-item {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.item-name-bar-new-item:hover {
+  opacity: 1;
+}
+
+.item-name-bar-new-item.active {
+  opacity: 1;
 }
 
 .item-tab-items {
@@ -1123,7 +1136,7 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding: 0;
+  padding: 0.5rem 0 0 0;
   align-items: center;
   gap: 0;
   /* スクロールバーを非表示 */
@@ -1173,7 +1186,7 @@
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  padding: 0;
+  padding: 0.5rem 0 0 0;
   overflow: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1199,11 +1212,13 @@
 .item-name-bar-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 32px;
   padding: 0 0.75rem;
   cursor: pointer;
   transition: background 0.15s ease;
   flex-shrink: 0;
+  gap: 0.5rem;
 }
 
 .item-name-bar-item:hover {
@@ -1229,8 +1244,39 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
   transition: color 0.2s ease;
+}
+
+.item-name-bar-delete-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  border-radius: 0.25rem;
+}
+
+.item-name-bar-item:hover .item-name-bar-delete-button {
+  opacity: 1;
+}
+
+.item-name-bar-delete-button:hover {
+  background: rgba(255, 83, 112, 0.15);
+  color: var(--app-error);
+}
+
+.item-name-bar-delete-button .material-icons {
+  font-size: 0.875rem;
 }
 
 .item-name-bar-separator {
@@ -1270,7 +1316,7 @@
   font-size: 1.125rem;
 }
 
-/* トンマナタブ専用スタイル */
+/* Tone & Mannerタブ専用スタイル */
 .item-tab-icon-button.tonmana-tab {
   color: var(--app-accent);
 }
@@ -1962,6 +2008,12 @@
   width: 100%;
 }
 
+/* Pictogram Editor用 - 高さを広く確保 */
+.item-detail-edit:has(.picto-editor) {
+  height: 100%;
+  min-height: 500px;
+}
+
 .item-detail-edit-content {
   display: flex;
   flex-direction: column;
@@ -2134,6 +2186,32 @@
   color: var(--color-gray-500);
 }
 
+/* テーブルエディタラッパー（ポップアップ配置用） */
+.table-editor-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+
+.table-editor-wrapper > .table-editor-modern {
+  flex: 1;
+  min-width: 0;
+}
+
+/* グラフ選択UI */
+.table-graph-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.375rem;
+}
+
 /* 数式バー */
 .table-formula-bar {
   display: flex;
@@ -2215,8 +2293,8 @@
   vertical-align: middle;
   text-align: center;
   height: 36px;
-  border-right: 1px solid var(--app-bg-tertiary);
-  border-bottom: 1px solid var(--app-bg-tertiary);
+  border-right: 1px solid rgba(80, 90, 100, 0.5);
+  border-bottom: 1px solid rgba(80, 90, 100, 0.5);
   box-sizing: border-box;
   padding: 0;
 }
@@ -2514,6 +2592,37 @@
   padding-top: 22px !important;
 }
 
+/* ホバー時の行/列追加ボタン */
+.table-hover-add-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--app-bg-primary);
+  border: 1px solid var(--app-border-secondary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.table-hover-add-btn:hover {
+  background: var(--app-accent-primary);
+  border-color: var(--app-accent-primary);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.table-hover-add-btn .material-icons {
+  font-size: 14px;
+  color: var(--app-text-secondary);
+}
+
+.table-hover-add-btn:hover .material-icons {
+  color: white;
+}
+
 /* コンテキストメニュー */
 .table-context-menu {
   background: var(--app-bg-primary);
@@ -2704,28 +2813,6 @@
   background: rgba(245, 230, 211, 0.1);
 }
 
-/* 拡大ボタン */
-.table-expand-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--app-bg-tertiary);
-  border: 1px solid var(--app-border-primary);
-  border-radius: 0.375rem;
-  color: var(--app-text-primary);
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-left: auto;
-}
-
-.table-expand-button:hover {
-  background: var(--app-border-primary);
-  border-color: var(--app-accent-light);
-  color: var(--app-accent-light);
-}
-
 /* セル結合ボタン */
 .table-merge-button,
 .table-merge-execute-button {
@@ -2803,113 +2890,6 @@
 
 .table-merge-action-button .material-icons {
   font-size: 1rem;
-}
-
-.table-expand-button .material-icons {
-  font-size: 1.125rem;
-}
-
-/* 拡大表示オーバーレイ */
-.table-expand-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 2000;
-  animation: fadeIn 0.2s ease;
-}
-
-.table-expand-content {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
-  right: 2rem;
-  bottom: 2rem;
-  background: var(--app-bg-primary);
-  border: 1px solid var(--app-border-primary);
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: slideUp 0.2s ease;
-}
-
-.table-expand-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--app-border-primary);
-  flex-shrink: 0;
-}
-
-.table-expand-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--app-text-primary);
-}
-
-.table-expand-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  border: 1px solid var(--app-border-primary);
-  border-radius: 0.375rem;
-  color: var(--app-text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.table-expand-close:hover {
-  background: var(--app-border-primary);
-  border-color: var(--app-error);
-  color: var(--app-error);
-}
-
-.table-expand-close .material-icons {
-  font-size: 1.125rem;
-}
-
-.table-expand-content .table-editor-modern {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 1.5rem;
-  min-height: 0;
-}
-
-.table-expand-content .table-editor-toolbar {
-  flex-shrink: 0;
-  margin-bottom: 1rem;
-}
-
-.table-expand-content .table-spreadsheet-grid {
-  margin-right: 1.5rem;
-}
-
-.table-expand-content .table-spreadsheet-container {
-  flex: 1;
-  overflow: auto;
-  min-height: 0;
-}
-
-.table-expand-content .table-formula-bar {
-  flex-shrink: 0;
-  margin-bottom: 1rem;
-}
-
-.table-expand-content .table-add-row-container {
-  flex-shrink: 0;
-}
-
-.table-expand-content .table-add-col-container {
-  flex-shrink: 0;
-  margin-right: 1rem;
 }
 
 /* 列のデータ型バッジ */
@@ -3271,13 +3251,21 @@
   cursor: pointer;
 }
 
-/* 非表示行・列のスタイル（エディターで薄く表示） */
+/* 非表示セルのスタイル（エディターで薄く表示） */
+/* セル単位での非表示判定（行または列が非表示の場合）*/
+.hidden-cell {
+  opacity: 0.4;
+  position: relative;
+}
+
+/* 後方互換性のため、hidden-row, hidden-column も維持 */
 .hidden-row,
 .hidden-column {
   opacity: 0.4;
   position: relative;
 }
 
+.hidden-cell::after,
 .hidden-row::after,
 .hidden-column::after {
   content: '';
@@ -3296,20 +3284,116 @@
   pointer-events: none;
 }
 
+.table-row-number.hidden-cell,
+.table-col-header.hidden-cell,
 .table-row-number.hidden-row,
 .table-col-header.hidden-column {
   background-color: rgba(100, 100, 100, 0.2);
 }
 
+.table-data-cell.hidden-cell,
+.table-header-cell.hidden-cell,
 .table-data-cell.hidden-row,
 .table-data-cell.hidden-column,
 .table-header-cell.hidden-column {
   background-color: rgba(80, 80, 80, 0.3);
 }
 
+/* 非表示セルの枠線は通常の枠線のまま（境界のみ点線はdisplay-range-borderで制御） */
+
 /* 非表示行・列の両方が適用される場合 */
 .table-data-cell.hidden-row.hidden-column {
   opacity: 0.25;
+}
+
+/* ===== Display Range Border (スライド表示範囲の枠線) ===== */
+/* 入力済みセルの範囲を暗い枠線で示す */
+
+/* 実線ボーダー */
+.table-data-cell.display-range-border-top,
+.table-header-cell.display-range-border-top {
+  border-top: 2px solid rgba(100, 120, 140, 0.9) !important;
+}
+
+.table-data-cell.display-range-border-right,
+.table-header-cell.display-range-border-right {
+  border-right: 2px solid rgba(100, 120, 140, 0.9) !important;
+}
+
+.table-data-cell.display-range-border-bottom,
+.table-header-cell.display-range-border-bottom {
+  border-bottom: 2px solid rgba(100, 120, 140, 0.9) !important;
+}
+
+.table-data-cell.display-range-border-left,
+.table-header-cell.display-range-border-left {
+  border-left: 2px solid rgba(100, 120, 140, 0.9) !important;
+}
+
+/* 点線ボーダー（非表示行/列に隣接する場合） */
+.table-data-cell.display-range-border-top-dashed,
+.table-header-cell.display-range-border-top-dashed {
+  border-top: 2px dashed rgba(100, 120, 140, 0.9) !important;
+}
+
+.table-data-cell.display-range-border-right-dashed,
+.table-header-cell.display-range-border-right-dashed {
+  border-right: 2px dashed rgba(100, 120, 140, 0.9) !important;
+}
+
+.table-data-cell.display-range-border-bottom-dashed,
+.table-header-cell.display-range-border-bottom-dashed {
+  border-bottom: 2px dashed rgba(100, 120, 140, 0.9) !important;
+}
+
+.table-data-cell.display-range-border-left-dashed,
+.table-header-cell.display-range-border-left-dashed {
+  border-left: 2px dashed rgba(100, 120, 140, 0.9) !important;
+}
+
+/* 複数の境界が重なる場合のコーナー処理 */
+.table-data-cell.display-range-border-top.display-range-border-left,
+.table-data-cell.display-range-border-top-dashed.display-range-border-left,
+.table-data-cell.display-range-border-top.display-range-border-left-dashed,
+.table-data-cell.display-range-border-top-dashed.display-range-border-left-dashed,
+.table-header-cell.display-range-border-top.display-range-border-left,
+.table-header-cell.display-range-border-top-dashed.display-range-border-left,
+.table-header-cell.display-range-border-top.display-range-border-left-dashed,
+.table-header-cell.display-range-border-top-dashed.display-range-border-left-dashed {
+  border-top-left-radius: 2px;
+}
+
+.table-data-cell.display-range-border-top.display-range-border-right,
+.table-data-cell.display-range-border-top-dashed.display-range-border-right,
+.table-data-cell.display-range-border-top.display-range-border-right-dashed,
+.table-data-cell.display-range-border-top-dashed.display-range-border-right-dashed,
+.table-header-cell.display-range-border-top.display-range-border-right,
+.table-header-cell.display-range-border-top-dashed.display-range-border-right,
+.table-header-cell.display-range-border-top.display-range-border-right-dashed,
+.table-header-cell.display-range-border-top-dashed.display-range-border-right-dashed {
+  border-top-right-radius: 2px;
+}
+
+.table-data-cell.display-range-border-bottom.display-range-border-left,
+.table-data-cell.display-range-border-bottom-dashed.display-range-border-left,
+.table-data-cell.display-range-border-bottom.display-range-border-left-dashed,
+.table-data-cell.display-range-border-bottom-dashed.display-range-border-left-dashed,
+.table-header-cell.display-range-border-bottom.display-range-border-left,
+.table-header-cell.display-range-border-bottom-dashed.display-range-border-left,
+.table-header-cell.display-range-border-bottom.display-range-border-left-dashed,
+.table-header-cell.display-range-border-bottom-dashed.display-range-border-left-dashed {
+  border-bottom-left-radius: 2px;
+}
+
+.table-data-cell.display-range-border-bottom.display-range-border-right,
+.table-data-cell.display-range-border-bottom-dashed.display-range-border-right,
+.table-data-cell.display-range-border-bottom.display-range-border-right-dashed,
+.table-data-cell.display-range-border-bottom-dashed.display-range-border-right-dashed,
+.table-header-cell.display-range-border-bottom.display-range-border-right,
+.table-header-cell.display-range-border-bottom-dashed.display-range-border-right,
+.table-header-cell.display-range-border-bottom.display-range-border-right-dashed,
+.table-header-cell.display-range-border-bottom-dashed.display-range-border-right-dashed {
+  border-bottom-right-radius: 2px;
 }
 
 /* ===== Markdown Import Button ===== */
@@ -3668,21 +3752,32 @@
   gap: 0.25rem;
 }
 
-.item-create-footer {
+.item-create-hint {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--app-border-primary);
-  background: var(--app-bg-secondary);
-  flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
 }
 
-.item-create-footer .modal-button {
-  padding: 0.625rem 1.25rem;
+.item-create-hint .material-icons {
+  font-size: 1.125rem;
+  opacity: 0.7;
+}
+
+.item-create-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.item-create-action .modal-button {
+  padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -3691,23 +3786,12 @@
   border: none;
 }
 
-.item-create-footer .modal-button.secondary {
-  background: var(--app-bg-tertiary);
-  color: var(--app-text-primary);
-  border: 1px solid var(--app-border-primary);
-}
-
-.item-create-footer .modal-button.secondary:hover {
-  background: var(--app-bg-hover);
-  border-color: var(--app-border-hover);
-}
-
-.item-create-footer .modal-button.primary {
+.item-create-action .modal-button.primary {
   background: var(--app-accent);
   color: white;
 }
 
-.item-create-footer .modal-button.primary:hover {
+.item-create-action .modal-button.primary:hover {
   background: var(--app-accent-light);
 }
 

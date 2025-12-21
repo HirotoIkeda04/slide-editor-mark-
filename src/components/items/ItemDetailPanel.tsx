@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import type { Item, ItemType, TableItem, ImageItem, TextItem, ImageDisplayMode, CellDataType, CellFormat, TableDisplayFormat } from '../../types'
+import type { Item, ItemType, TableItem, ImageItem, TextItem, PictoItem, EulerItem, ImageDisplayMode, CellDataType, CellFormat, TableDisplayFormat, GraphCategory, TableChartConfig, TreeData, TreeSettings } from '../../types'
+import { createDefaultTreeData, DEFAULT_TREE_SETTINGS } from '../../types'
+import { NEW_ITEM_ID } from '../../types'
 import { cropImage } from '../../utils/imageProcessing'
 import { 
   getCellKey, 
@@ -10,32 +12,47 @@ import {
   validateCellValue, 
   inferCellDataType,
   getDefaultCellFormat,
-  parseMarkdownTable
+  parseMarkdownTable,
+  getFilledRange,
+  getCellBorderPositionWithDashed,
+  isCellHidden,
+  type FilledRange
 } from '../../utils/tableUtils'
 import { FormulaEvaluator } from '../../utils/formulaEvaluator'
 import { FloatingNavBar } from '../floatingNavBar/FloatingNavBar'
+import { PictoEditor } from '../picto/PictoEditor'
+import { EulerEditor, EulerIcon } from '../euler'
+import { GraphCategoryChips, GraphTypeCarousel, GraphSettingsPanel, GraphTypeModal, type PanelOpenedFrom } from '../graph'
+import { TreeInput, TreeSettingsPanel } from '../tree'
+import { isTreeInputChart } from '../../constants/graphConfigs'
+import { DEFAULT_CANVAS_SIZE } from '../../constants/pictoConfigs'
+import { DEFAULT_EULER_CANVAS_SIZE } from '../../constants/eulerConfigs'
+import '../graph/GraphPanel.css'
 
 const MAIN_SLIDE_ITEM_ID = 'main-slide'
+
+// Excel風グリッドサイズ（26行×26列 = A-Z列）
+const GRID_ROWS = 26
+const GRID_COLS = 26
 
 interface ItemDetailPanelProps {
   item: Item | null
   onEdit: (item: Item) => void
   onUpdateItem?: (itemId: string, updates: Partial<Item>) => void
-  // 作成モード用のプロパティ
-  isCreatingItem?: boolean
+  // 新しいアイテム作成用のプロパティ
   onCreateItem?: (itemData: Partial<Item>) => void
-  onCancelCreate?: () => void
   existingNames?: string[]
+  // テーブル用: 外部からMarkdownインポートを開くトリガー
+  markdownImportTrigger?: number
 }
 
 export const ItemDetailPanel = ({ 
   item, 
   onEdit, 
   onUpdateItem,
-  isCreatingItem = false,
   onCreateItem,
-  onCancelCreate,
   existingNames = [],
+  markdownImportTrigger = 0,
 }: ItemDetailPanelProps) => {
   const [, setDisplayMode] = useState<ImageDisplayMode>('contain')
   
@@ -56,12 +73,22 @@ export const ItemDetailPanel = ({
   const [formatDialogColumn, setFormatDialogColumn] = useState<number | null>(null)
   const [formatDialogDataType, setFormatDialogDataType] = useState<CellDataType>('text')
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-  const [isTableExpanded, setIsTableExpanded] = useState(false)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [tableDisplayFormat, setTableDisplayFormat] = useState<TableDisplayFormat>('table')
   const [hiddenRows, setHiddenRows] = useState<number[]>([])
   const [hiddenColumns, setHiddenColumns] = useState<number[]>([])
   const tableScrollViewportRef = useRef<HTMLDivElement | null>(null)
+  
+  // Graph panel state
+  const [graphCategory, setGraphCategory] = useState<GraphCategory>('all')
+  const [showGraphPanel, setShowGraphPanel] = useState(false)
+  const [graphPanelOpenedFrom, setGraphPanelOpenedFrom] = useState<PanelOpenedFrom>('settings')
+  const [showGraphTypeModal, setShowGraphTypeModal] = useState(false)
+  const [chartConfig, setChartConfig] = useState<TableChartConfig>({})
+  
+  // Tree input state (for hierarchy charts)
+  const [treeData, setTreeData] = useState<TreeData | undefined>(undefined)
+  const [treeSettings, setTreeSettings] = useState<TreeSettings | undefined>(undefined)
   
   // Markdown import state
   const [showMarkdownImport, setShowMarkdownImport] = useState(false)
@@ -77,6 +104,7 @@ export const ItemDetailPanel = ({
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const imageRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
   
   // Text specific state
   const [textContent, setTextContent] = useState('')
@@ -89,6 +117,15 @@ export const ItemDetailPanel = ({
     cellCol?: number
     x: number
     y: number
+  } | null>(null)
+
+  // ホバー時の追加ボタン状態
+  const [hoverAddButton, setHoverAddButton] = useState<{
+    type: 'row' | 'column'
+    index: number
+    position: 'before' | 'after'  // before = 上/左, after = 下/右
+    top: number
+    left: number
   } | null>(null)
 
   // Selected cell state for formula bar
@@ -107,7 +144,39 @@ export const ItemDetailPanel = ({
 
   const COLUMN_BASE_WIDTH = 75
   const ROW_HEADER_WIDTH = 40
-  const colCount = tableData[0]?.length || 2
+
+  // 26x26グリッドを表示用に拡張（実データは保存されない）
+  const displayData = useMemo(() => {
+    const rows = Math.max(tableData.length, GRID_ROWS)
+    const cols = Math.max(tableData[0]?.length || 0, GRID_COLS)
+    
+    const expanded: string[][] = []
+    for (let r = 0; r < rows; r++) {
+      const row: string[] = []
+      for (let c = 0; c < cols; c++) {
+        row.push(tableData[r]?.[c] ?? '')
+      }
+      expanded.push(row)
+    }
+    return expanded
+  }, [tableData])
+
+  // 表示用ヘッダーを拡張
+  const displayHeaders = useMemo(() => {
+    const cols = Math.max(tableHeaders.length, GRID_COLS)
+    const expanded: string[] = []
+    for (let c = 0; c < cols; c++) {
+      expanded.push(tableHeaders[c] ?? '')
+    }
+    return expanded
+  }, [tableHeaders])
+
+  // 入力済みセルの範囲を計算（スライドに表示される範囲）
+  const filledRange = useMemo((): FilledRange | null => {
+    return getFilledRange(tableData, hiddenRows, hiddenColumns)
+  }, [tableData, hiddenRows, hiddenColumns])
+
+  const colCount = displayData[0]?.length || GRID_COLS
   const tableContentWidth = ROW_HEADER_WIDTH + colCount * COLUMN_BASE_WIDTH
   const tableWidthPx = `${tableContentWidth}px`
 
@@ -130,12 +199,17 @@ export const ItemDetailPanel = ({
         const imageItem = item as ImageItem
         setDisplayMode(imageItem.displayMode || 'contain')
       }
-      // アイテムが変更されたら拡大状態をリセット
-      if (item.type !== 'table') {
-        setIsTableExpanded(false)
-      }
     }
   }, [item?.id])
+
+  // 外部からMarkdownインポートを開くトリガー
+  useEffect(() => {
+    if (markdownImportTrigger > 0 && item?.type === 'table') {
+      setShowMarkdownImport(true)
+      setMarkdownInput('')
+      setMarkdownImportError('')
+    }
+  }, [markdownImportTrigger])
 
   // コンテキストメニューを外側クリックで閉じる
   useEffect(() => {
@@ -189,6 +263,9 @@ export const ItemDetailPanel = ({
         setTableDisplayFormat(tableItem.displayFormat || 'table')
         setHiddenRows(tableItem.hiddenRows || [])
         setHiddenColumns(tableItem.hiddenColumns || [])
+        setChartConfig(tableItem.chartConfig || {})
+        setTreeData(tableItem.treeData)
+        setTreeSettings(tableItem.treeSettings)
         setValidationErrors({})
         break
       case 'image':
@@ -333,8 +410,39 @@ export const ItemDetailPanel = ({
       })
     }
     
-    const newData = [...tableData]
+    // 実データの行数・列数を必要に応じて拡張
+    let newData = tableData.map(row => [...row])
+    const currentRows = newData.length
+    const currentCols = newData[0]?.length || 0
+    
+    // 行を拡張（必要な場合）
+    if (rowIndex >= currentRows) {
+      const colsToUse = Math.max(currentCols, colIndex + 1)
+      for (let r = currentRows; r <= rowIndex; r++) {
+        newData.push(Array(colsToUse).fill(''))
+      }
+    }
+    
+    // 列を拡張（必要な場合）
+    if (colIndex >= currentCols) {
+      newData = newData.map(row => {
+        const newRow = [...row]
+        for (let c = row.length; c <= colIndex; c++) {
+          newRow.push('')
+        }
+        return newRow
+      })
+    }
+    
     newData[rowIndex][colIndex] = normalizedValue
+    
+    // ヘッダーも拡張（必要な場合）
+    let newHeaders = [...tableHeaders]
+    if (colIndex >= newHeaders.length) {
+      for (let c = newHeaders.length; c <= colIndex; c++) {
+        newHeaders.push('')
+      }
+    }
     
     // データ型の自動推測（値が入力された場合）
     let updatedCellTypes = { ...cellTypes }
@@ -351,6 +459,7 @@ export const ItemDetailPanel = ({
     }
     
     setTableData(newData)
+    setTableHeaders(newHeaders)
     setCellTypes(updatedCellTypes)
     setCellFormats(updatedCellFormats)
     
@@ -358,7 +467,7 @@ export const ItemDetailPanel = ({
     if (item.type === 'table') {
       onUpdateItem(item.id, {
         data: newData,
-        headers: useHeaders ? tableHeaders : undefined,
+        headers: useHeaders ? newHeaders : undefined,
         cellTypes: updatedCellTypes,
         cellFormats: updatedCellFormats,
         mergedCells
@@ -369,14 +478,36 @@ export const ItemDetailPanel = ({
   const handleTableHeaderChange = (colIndex: number, value: string) => {
     if (!item || !onUpdateItem) return
     const normalizedValue = normalizeFullWidthNumberCharacters(value)
-    const newHeaders = [...tableHeaders]
+    
+    // ヘッダーを拡張（必要な場合）
+    let newHeaders = [...tableHeaders]
+    if (colIndex >= newHeaders.length) {
+      for (let c = newHeaders.length; c <= colIndex; c++) {
+        newHeaders.push('')
+      }
+    }
     newHeaders[colIndex] = normalizedValue
+    
+    // データの列も拡張（必要な場合）
+    let newData = tableData
+    const currentCols = tableData[0]?.length || 0
+    if (colIndex >= currentCols) {
+      newData = tableData.map(row => {
+        const newRow = [...row]
+        for (let c = row.length; c <= colIndex; c++) {
+          newRow.push('')
+        }
+        return newRow
+      })
+      setTableData(newData)
+    }
+    
     setTableHeaders(newHeaders)
     
     // 即座に保存
     if (item.type === 'table') {
       onUpdateItem(item.id, {
-        data: tableData,
+        data: newData,
         headers: useHeaders ? newHeaders : undefined,
         cellTypes,
         cellFormats,
@@ -849,6 +980,134 @@ export const ItemDetailPanel = ({
     })
   }
 
+// 追加ボタンを非表示にするハンドラ
+  const handleHeaderCellMouseLeave = () => {
+    setHoverAddButton(null)
+  }
+
+// 追加ボタンクリックハンドラ
+  const handleHoverAddButtonClick = () => {
+    if (!hoverAddButton) return
+
+    if (hoverAddButton.type === 'row') {
+      if (hoverAddButton.position === 'before') {
+        insertRowAbove(hoverAddButton.index)
+      } else {
+        insertRowBelow(hoverAddButton.index)
+      }
+    } else {
+      if (hoverAddButton.position === 'before') {
+        insertColumnLeft(hoverAddButton.index)
+      } else {
+        insertColumnRight(hoverAddButton.index)
+      }
+    }
+    setHoverAddButton(null)
+  }
+
+// テーブルコンテナのマウスムーブハンドラ（境界線基準で検出）
+  const handleTableContainerMouseMove = (e: React.MouseEvent) => {
+    if (!tableRef.current) return
+
+    const table = tableRef.current
+    const mouseX = e.clientX
+    const mouseY = e.clientY
+
+    // 行番号セルを取得
+    const rowNumberCells = table.querySelectorAll('td.table-row-number')
+    const colHeaderCells = table.querySelectorAll('th.table-col-header')
+
+    // 境界検出のしきい値（ピクセル）
+    const threshold = 12
+
+    let newState: typeof hoverAddButton = null
+
+    // === 行の境界線を収集して検出 ===
+    // 境界線の位置とボタン表示用のX座標を取得
+    let rowHeaderLeft = 0
+    let rowHeaderWidth = 0
+    const rowBoundaries: { y: number; rowIndex: number; position: 'before' | 'after' }[] = []
+    
+    rowNumberCells.forEach((cell, index) => {
+      const rect = cell.getBoundingClientRect()
+      if (index === 0) {
+        rowHeaderLeft = rect.left
+        rowHeaderWidth = rect.width
+        // 最初の行の上端（行0の前に挿入）
+        rowBoundaries.push({ y: rect.top, rowIndex: 0, position: 'before' })
+      }
+      // 各行の下端（行indexの後に挿入）
+      rowBoundaries.push({ y: rect.bottom, rowIndex: index, position: 'after' })
+    })
+
+    // マウスが行番号セルのX範囲内にあるかチェック
+    if (rowNumberCells.length > 0 && mouseX >= rowHeaderLeft - threshold && mouseX <= rowHeaderLeft + rowHeaderWidth + threshold) {
+      // 各境界線との距離をチェック
+      for (const boundary of rowBoundaries) {
+        if (Math.abs(mouseY - boundary.y) <= threshold) {
+          newState = {
+            type: 'row',
+            index: boundary.rowIndex,
+            position: boundary.position,
+            top: boundary.y,
+            left: rowHeaderLeft + rowHeaderWidth / 2
+          }
+          break
+        }
+      }
+    }
+
+    // === 列の境界線を収集して検出 ===
+    if (!newState) {
+      let colHeaderTop = 0
+      let colHeaderHeight = 0
+      const colBoundaries: { x: number; colIndex: number; position: 'before' | 'after' }[] = []
+      
+      colHeaderCells.forEach((cell, index) => {
+        const rect = cell.getBoundingClientRect()
+        if (index === 0) {
+          colHeaderTop = rect.top
+          colHeaderHeight = rect.height
+          // 最初の列の左端（列0の前に挿入）
+          colBoundaries.push({ x: rect.left, colIndex: 0, position: 'before' })
+        }
+        // 各列の右端（列indexの後に挿入）
+        colBoundaries.push({ x: rect.right, colIndex: index, position: 'after' })
+      })
+
+      // マウスが列ヘッダーセルのY範囲内にあるかチェック
+      if (colHeaderCells.length > 0 && mouseY >= colHeaderTop - threshold && mouseY <= colHeaderTop + colHeaderHeight + threshold) {
+        // 各境界線との距離をチェック
+        for (const boundary of colBoundaries) {
+          if (Math.abs(mouseX - boundary.x) <= threshold) {
+            newState = {
+              type: 'column',
+              index: boundary.colIndex,
+              position: boundary.position,
+              top: colHeaderTop + colHeaderHeight / 2,
+              left: boundary.x
+            }
+            break
+          }
+        }
+      }
+    }
+    
+    // 状態が変わった場合のみ更新（不要な再レンダリングを防ぐ）
+    const stateChanged = 
+      (newState === null && hoverAddButton !== null) ||
+      (newState !== null && hoverAddButton === null) ||
+      (newState !== null && hoverAddButton !== null && (
+        newState.type !== hoverAddButton.type ||
+        newState.index !== hoverAddButton.index ||
+        newState.position !== hoverAddButton.position
+      ))
+    
+    if (stateChanged) {
+      setHoverAddButton(newState)
+    }
+  }
+
   // 行削除（メニューから）
   const handleDeleteRow = (index: number) => {
     removeTableRow(index)
@@ -901,6 +1160,41 @@ export const ItemDetailPanel = ({
       case 'currency': return { icon: 'currency_yen', label: '通貨' }
       default: return { icon: 'notes', label: 'テキスト' }
     }
+  }
+
+  // 列の軸割り当てを取得（Phase 2: ヘッダーバッジ用）
+  const getColumnAxisBadge = (colIndex: number): { label: string; color: string } | null => {
+    // グラフ形式が表の場合はバッジなし
+    if (tableDisplayFormat === 'table') return null
+    
+    // X軸
+    if (chartConfig.xAxisColumn === colIndex) {
+      return { label: 'X', color: '#3b82f6' }  // blue
+    }
+    
+    // Z軸
+    if (chartConfig.zColumn === colIndex) {
+      const usage = chartConfig.zUsage || 'size'
+      return { label: `Z:${usage === 'size' ? 'サイズ' : usage === 'color' ? '色' : 'グループ'}`, color: '#8b5cf6' }  // purple
+    }
+    
+    // Y2軸（右）
+    if (chartConfig.yAxisRightColumns?.includes(colIndex)) {
+      // 系列設定があればタイプを表示
+      const seriesConfig = chartConfig.seriesConfigs?.find(sc => sc.column === colIndex)
+      const typeLabel = seriesConfig?.displayType === 'line' ? '線' : seriesConfig?.displayType === 'area' ? '面' : '棒'
+      return { label: `Y2:${typeLabel}`, color: '#f97316' }  // orange
+    }
+    
+    // Y軸（左）
+    if (chartConfig.yAxisColumns?.includes(colIndex)) {
+      // 系列設定があればタイプを表示
+      const seriesConfig = chartConfig.seriesConfigs?.find(sc => sc.column === colIndex)
+      const typeLabel = seriesConfig?.displayType === 'line' ? '線' : seriesConfig?.displayType === 'area' ? '面' : '棒'
+      return { label: `Y:${typeLabel}`, color: '#10b981' }  // green
+    }
+    
+    return null
   }
 
   // 選択中のセルの値を取得（生の値、数式バー用）
@@ -1226,36 +1520,47 @@ export const ItemDetailPanel = ({
       type: createType
     }
 
+    // 空のデフォルト値で作成し、実際の編集は追加後に行う
     let itemData: Partial<Item>
     switch (createType) {
       case 'table':
         itemData = {
           ...baseItem,
-          data: tableData,
-          headers: useHeaders ? tableHeaders : undefined
+          data: [['', ''], ['', '']],  // デフォルトの空テーブル
+          headers: undefined
         } as Partial<TableItem>
         break
       case 'image':
-        if (!imageDataUrl) {
-          alert('画像をアップロードしてください')
-          return
-        }
         itemData = {
           ...baseItem,
-          dataUrl: imageDataUrl,
-          alt: imageAlt,
+          dataUrl: '',
+          alt: '',
           displayMode: imageDisplayMode
         } as Partial<ImageItem>
         break
       case 'text':
-        if (!textContent.trim()) {
-          alert('テキストを入力してください')
-          return
-        }
         itemData = {
           ...baseItem,
-          content: textContent
+          content: ''
         } as Partial<TextItem>
+        break
+      case 'picto':
+        itemData = {
+          ...baseItem,
+          elements: [],
+          connectors: [],
+          groups: [],
+          comments: [],
+          canvasSize: DEFAULT_CANVAS_SIZE
+        } as Partial<PictoItem>
+        break
+      case 'euler':
+        itemData = {
+          ...baseItem,
+          circles: [],
+          elements: [],
+          canvasSize: DEFAULT_EULER_CANVAS_SIZE
+        } as Partial<EulerItem>
         break
       default:
         return
@@ -1273,30 +1578,14 @@ export const ItemDetailPanel = ({
     setTextContent('')
   }
 
-  // 作成モードのキャンセル
-  const handleCancelCreateMode = () => {
-    if (onCancelCreate) {
-      onCancelCreate()
-    }
-    // 状態をリセット
-    setCreateName('')
-    setCreateType('table')
-    setCreateNameError('')
-    setTableData([['', ''], ['', '']])
-    setTableHeaders(['', ''])
-    setUseHeaders(false)
-    setImageDataUrl('')
-    setImageAlt('')
-    setTextContent('')
-  }
 
-  // 作成モード時のUI
-  if (isCreatingItem) {
+  // 新しいアイテム（type: 'new'）選択時のUI
+  if (item?.type === 'new') {
     return (
       <div className="item-detail-panel">
         <div className="item-create-form">
           <div className="item-create-header">
-            <h2>新しいアイテムを作成</h2>
+            <h2>新しいアイテム</h2>
           </div>
 
           <div className="item-create-content">
@@ -1343,254 +1632,28 @@ export const ItemDetailPanel = ({
                   <span className="material-icons">image</span>
                   Image
                 </button>
+                <button
+                  className={`item-type-button ${createType === 'picto' ? 'active' : ''}`}
+                  onClick={() => setCreateType('picto')}
+                >
+                  <span className="material-icons">schema</span>
+                  Pictogram
+                </button>
+                <button
+                  className={`item-type-button ${createType === 'euler' ? 'active' : ''}`}
+                  onClick={() => setCreateType('euler')}
+                >
+                  <EulerIcon size={24} />
+                  Euler
+                </button>
+              </div>
+              <div className="item-create-action">
+                <button onClick={handleCreate} className="modal-button primary">
+                  作成
+                </button>
               </div>
             </div>
 
-            {/* タイプ別コンテンツ */}
-            {createType === 'table' && (
-              <div className="item-create-field">
-                <label>テーブルデータ</label>
-                <div className="item-table-controls">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={useHeaders}
-                      onChange={(e) => setUseHeaders(e.target.checked)}
-                    />
-                    ヘッダー行を使用
-                  </label>
-                  <button onClick={() => {
-                    const colCount = tableData[0]?.length || 2
-                    setTableData([...tableData, Array(colCount).fill('')])
-                  }} className="item-table-add-button">
-                    <span className="material-icons">add</span>
-                    行を追加
-                  </button>
-                  <button onClick={() => {
-                    setTableData(tableData.map(row => [...row, '']))
-                    setTableHeaders([...tableHeaders, ''])
-                  }} className="item-table-add-button">
-                    <span className="material-icons">add</span>
-                    列を追加
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMarkdownImport(true)
-                      setMarkdownInput('')
-                      setMarkdownImportError('')
-                    }}
-                    className="item-table-add-button table-markdown-import-button-modal"
-                  >
-                    <span className="material-icons">upload_file</span>
-                    Markdownからインポート
-                  </button>
-                </div>
-
-                {/* Markdownインポート */}
-                {showMarkdownImport && (
-                  <div className="table-markdown-import-inline">
-                    <div className="table-markdown-import-inline-header">
-                      <span>Markdownからインポート</span>
-                      <button
-                        className="table-markdown-import-inline-close"
-                        onClick={() => setShowMarkdownImport(false)}
-                      >
-                        <span className="material-icons">close</span>
-                      </button>
-                    </div>
-                    <p className="table-markdown-import-hint">
-                      Markdownテーブル形式のテキストを貼り付けてください。
-                    </p>
-                    <textarea
-                      className="table-markdown-import-textarea"
-                      value={markdownInput}
-                      onChange={(e) => {
-                        setMarkdownInput(e.target.value)
-                        setMarkdownImportError('')
-                      }}
-                      placeholder={`| 変数 | Model 1 | Model 2 |\n|-----|:---:|:---:|\n| データ1 | .036** | — |`}
-                      rows={6}
-                    />
-                    {markdownImportError && (
-                      <div className="table-markdown-import-error">
-                        <span className="material-icons">error</span>
-                        {markdownImportError}
-                      </div>
-                    )}
-                    <div className="table-markdown-import-inline-actions">
-                      <button
-                        className="table-markdown-import-cancel"
-                        onClick={() => setShowMarkdownImport(false)}
-                      >
-                        キャンセル
-                      </button>
-                      <button
-                        className="table-markdown-import-submit"
-                        onClick={() => {
-                          const parsed = parseMarkdownTable(markdownInput)
-                          if (!parsed) {
-                            setMarkdownImportError('有効なMarkdownテーブルが見つかりません')
-                            return
-                          }
-                          const colCount = parsed.hasHeaders ? parsed.headers.length : (parsed.data[0]?.length || 2)
-                          const normalizedHeaders = [...(parsed.hasHeaders ? parsed.headers : [])]
-                          while (normalizedHeaders.length < colCount) {
-                            normalizedHeaders.push('')
-                          }
-                          const normalizedData = parsed.data.length > 0 ? parsed.data : [Array(colCount).fill('')]
-                          setTableData(normalizedData)
-                          setTableHeaders(normalizedHeaders)
-                          setUseHeaders(parsed.hasHeaders)
-                          setShowMarkdownImport(false)
-                          setMarkdownInput('')
-                        }}
-                        disabled={!markdownInput.trim()}
-                      >
-                        インポート
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="item-table-editor">
-                  <table>
-                    {useHeaders && (
-                      <thead>
-                        <tr>
-                          {tableHeaders.map((header, colIndex) => (
-                            <th key={colIndex}>
-                              <input
-                                type="text"
-                                value={header}
-                                onChange={(e) => {
-                                  const newHeaders = [...tableHeaders]
-                                  newHeaders[colIndex] = e.target.value
-                                  setTableHeaders(newHeaders)
-                                }}
-                                placeholder={`ヘッダー ${colIndex + 1}`}
-                              />
-                              <button
-                                onClick={() => {
-                                  if (tableData[0]?.length <= 1) return
-                                  setTableData(tableData.map(row => row.filter((_, i) => i !== colIndex)))
-                                  setTableHeaders(tableHeaders.filter((_, i) => i !== colIndex))
-                                }}
-                                className="item-table-remove-button"
-                                title="列を削除"
-                              >
-                                <span className="material-icons">close</span>
-                              </button>
-                            </th>
-                          ))}
-                          <th></th>
-                        </tr>
-                      </thead>
-                    )}
-                    <tbody>
-                      {tableData.map((row, rowIndex) => (
-                        <tr key={rowIndex}>
-                          {row.map((cell, colIndex) => (
-                            <td key={colIndex}>
-                              <input
-                                type="text"
-                                value={cell}
-                                onChange={(e) => {
-                                  const newData = [...tableData]
-                                  newData[rowIndex][colIndex] = e.target.value
-                                  setTableData(newData)
-                                }}
-                                placeholder={`${rowIndex + 1},${colIndex + 1}`}
-                              />
-                            </td>
-                          ))}
-                          <td>
-                            <button
-                              onClick={() => {
-                                if (tableData.length <= 1) return
-                                setTableData(tableData.filter((_, i) => i !== rowIndex))
-                              }}
-                              className="item-table-remove-button"
-                              title="行を削除"
-                            >
-                              <span className="material-icons">close</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {createType === 'text' && (
-              <div className="item-create-field">
-                <label htmlFor="create-text-content">テキスト *</label>
-                <textarea
-                  id="create-text-content"
-                  value={textContent}
-                  onChange={(e) => setTextContent(e.target.value)}
-                  placeholder="テキストを入力..."
-                  rows={10}
-                />
-              </div>
-            )}
-
-            {createType === 'image' && (
-              <div className="item-create-field">
-                <label>画像 *</label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    if (file.size > 5 * 1024 * 1024) {
-                      alert('画像サイズは5MB以下にしてください')
-                      return
-                    }
-                    const reader = new FileReader()
-                    reader.onload = () => {
-                      setImageDataUrl(reader.result as string)
-                    }
-                    reader.readAsDataURL(file)
-                  }}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`item-image-upload-button ${imageDataUrl ? 'item-image-change-button' : ''}`}
-                >
-                  <span className="material-icons">upload</span>
-                  {imageDataUrl ? '画像を変更' : '画像をアップロード'}
-                </button>
-
-                {imageDataUrl && (
-                  <div className="item-image-preview">
-                    <img src={imageDataUrl} alt="Preview" />
-                  </div>
-                )}
-
-                <label htmlFor="create-image-alt">代替テキスト</label>
-                <input
-                  id="create-image-alt"
-                  type="text"
-                  value={imageAlt}
-                  onChange={(e) => setImageAlt(e.target.value)}
-                  placeholder="代替テキスト（オプション）"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="item-create-footer">
-            <button onClick={handleCancelCreateMode} className="modal-button secondary">
-              キャンセル
-            </button>
-            <button onClick={handleCreate} className="modal-button primary">
-              作成
-            </button>
           </div>
         </div>
       </div>
@@ -1633,32 +1696,35 @@ export const ItemDetailPanel = ({
     switch (item.type) {
       case 'table':
         const tableEditorContent = (
+          <div className="table-editor-wrapper">
           <div className="table-editor-modern">
-            {/* ヘッダー切り替えトグルとインポートボタン */}
-            <div className="table-editor-toolbar">
-              <label className="table-header-toggle">
-                <input
-                  type="checkbox"
-                  checked={useHeaders}
-                  onChange={(e) => handleUseHeadersChange(e.target.checked)}
+              {/* グラフ選択UI */}
+              <div className="table-graph-selector">
+                <GraphCategoryChips
+                  selectedCategory={graphCategory}
+                  onCategoryChange={setGraphCategory}
                 />
-                <span className="toggle-switch"></span>
-                <span className="toggle-label">ヘッダー行を使用</span>
-              </label>
-              <button
-                className="table-markdown-import-button"
-                onClick={() => {
-                  setShowMarkdownImport(true)
-                  setMarkdownInput('')
-                  setMarkdownImportError('')
-                }}
-                title="Markdownからインポート"
-              >
-                <span className="material-icons">upload_file</span>
-                <span>Markdownからインポート</span>
-              </button>
-            </div>
-
+                <GraphTypeCarousel
+                  selectedCategory={graphCategory}
+                  currentFormat={tableDisplayFormat}
+                  onFormatChange={handleGraphFormatChange}
+                  onSettingsClick={() => handleOpenGraphPanel('settings')}
+                  onMoreClick={() => setShowGraphTypeModal(true)}
+                />
+              </div>
+              
+            {/* 入力モードに応じたUI切り替え */}
+            {isTreeInputChart(tableDisplayFormat) ? (
+              /* ツリー入力UI（サンキー、ツリーマップ等） */
+              <TreeInput
+                treeData={treeData}
+                treeSettings={treeSettings}
+                onTreeDataChange={handleTreeDataChange}
+                onTreeSettingsChange={handleTreeSettingsChange}
+              />
+            ) : (
+              /* スプレッドシート入力UI（デフォルト） */
+              <>
             {/* 数式バーとデータ型選択 */}
             <div className="table-formula-bar">
               <div className="table-formula-fx-label">fx</div>
@@ -1781,19 +1847,29 @@ export const ItemDetailPanel = ({
               <div className="table-scroll-viewport" ref={tableScrollViewportRef}>
             <div className="table-spreadsheet-grid">
               {/* テーブル本体 */}
-              <div className="table-spreadsheet-container">
-                <table className="table-spreadsheet" style={{ width: tableWidthPx, minWidth: tableWidthPx }}>
+              <div 
+                className="table-spreadsheet-container"
+                onMouseMove={handleTableContainerMouseMove}
+                onMouseLeave={handleHeaderCellMouseLeave}
+              >
+                <table ref={tableRef} className="table-spreadsheet" style={{ width: tableWidthPx, minWidth: tableWidthPx }}>
                   <thead>
                     {/* 列ヘッダー（A, B, C...） */}
                     <tr className="table-col-headers">
                       <th className="table-corner"></th>
-                      {(tableData[0] || []).map((_, colIndex) => {
+                      {(displayData[0] || []).map((_, colIndex) => {
                         // 列のデータ型を取得（最初のセルのデータ型）
                         const firstCellKey = getCellKey(0, colIndex)
                         const colType = cellTypes[firstCellKey] || 'text'
-                        const isColumnHidden = hiddenColumns.includes(colIndex)
+                        // 列ヘッダーの非表示判定（列が非表示ならこのヘッダーも非表示）
+                        const isColHeaderHidden = hiddenColumns.includes(colIndex)
+                        // 軸割り当てバッジを取得
+                        const axisBadge = getColumnAxisBadge(colIndex)
                         return (
-                        <th key={colIndex} className={`table-col-header ${isColumnHidden ? 'hidden-column' : ''}`}>
+<th
+                          key={colIndex}
+                          className={`table-col-header ${isColHeaderHidden ? 'hidden-cell' : ''}`}
+                        >
                           <button
                             className="table-grip-icon column-grip"
                             onClick={(e) => handleGripClick(e, 'column', colIndex)}
@@ -1807,6 +1883,25 @@ export const ItemDetailPanel = ({
                                 {colType === 'number' ? '#' : colType === 'date' ? '📅' : colType === 'percentage' ? '%' : '¥'}
                               </span>
                             )}
+                            {/* 軸割り当てバッジ（Phase 2） */}
+                            {axisBadge && (
+                              <span
+                                className="table-axis-badge"
+                                style={{
+                                  display: 'inline-block',
+                                  marginLeft: 4,
+                                  padding: '1px 4px',
+                                  fontSize: 9,
+                                  fontWeight: 600,
+                                  borderRadius: 3,
+                                  backgroundColor: axisBadge.color,
+                                  color: '#fff',
+                                }}
+                                title={`軸設定: ${axisBadge.label}`}
+                              >
+                                {axisBadge.label}
+                              </span>
+                            )}
                         </th>
                         )
                       })}
@@ -1818,12 +1913,23 @@ export const ItemDetailPanel = ({
                         <th className="table-row-number">
                           <span>H</span>
                         </th>
-                        {tableHeaders.map((header, colIndex) => {
-                          const isColumnHidden = hiddenColumns.includes(colIndex)
+                        {displayHeaders.map((header, colIndex) => {
+                          // ヘッダーセルの非表示判定（列が非表示ならこのヘッダーも非表示）
+                          const isHeaderCellHidden = hiddenColumns.includes(colIndex)
+                          // ヘッダー行の表示範囲境界を計算
+                          // ヘッダーがある場合、ヘッダー行が上端になる
+                          const isInColRange = filledRange && colIndex >= filledRange.minCol && colIndex <= filledRange.maxCol
+                          
+                          // すべて実線で表示
+                          const headerBorderClasses = filledRange && isInColRange ? [
+                            'display-range-border-top',
+                            colIndex === filledRange.maxCol ? 'display-range-border-right' : '',
+                            colIndex === filledRange.minCol ? 'display-range-border-left' : ''
+                          ].filter(Boolean).join(' ') : ''
                           return (
                           <th 
                             key={colIndex} 
-                            className={`table-header-cell ${selectedCell?.isHeader && selectedCell?.col === colIndex ? 'table-cell-selected' : ''} ${isColumnHidden ? 'hidden-column' : ''}`}
+                            className={`table-header-cell ${selectedCell?.isHeader && selectedCell?.col === colIndex ? 'table-cell-selected' : ''} ${isHeaderCellHidden ? 'hidden-cell' : ''} ${headerBorderClasses}`}
                           >
                             <input
                               type="text"
@@ -1841,11 +1947,11 @@ export const ItemDetailPanel = ({
                   </thead>
                   <tbody>
                     {/* データ行 */}
-                    {tableData.map((row, rowIndex) => {
+                    {displayData.map((row, rowIndex) => {
                       const isRowHidden = hiddenRows.includes(rowIndex)
                       return (
-                      <tr key={rowIndex} className={`table-data-row ${isRowHidden ? 'hidden-row' : ''}`}>
-                        <td className={`table-row-number ${isRowHidden ? 'hidden-row' : ''}`}>
+                      <tr key={rowIndex} className={`table-data-row ${isRowHidden ? 'hidden-cell' : ''}`}>
+                        <td className={`table-row-number ${isRowHidden ? 'hidden-cell' : ''}`}>
                           <button
                             className="table-grip-icon row-grip"
                             onClick={(e) => handleGripClick(e, 'row', rowIndex)}
@@ -1862,7 +1968,19 @@ export const ItemDetailPanel = ({
                           const cellType = cellTypes[cellKey] || 'text'
                           const hasError = validationErrors[cellKey]
                           const displayValue = getCellDisplayValue(rowIndex, colIndex)
-                          const isColumnHidden = hiddenColumns.includes(colIndex)
+                          // セル単位で非表示判定（行または列が非表示ならこのセルは非表示）
+                          const isCellHiddenFlag = isCellHidden(rowIndex, colIndex, hiddenRows, hiddenColumns)
+                          
+                          // 表示範囲の境界位置を計算（点線判定付き）
+                          const borderPos = getCellBorderPositionWithDashed(rowIndex, colIndex, filledRange, hiddenRows, hiddenColumns)
+                          // ヘッダーがある場合、最初のデータ行の上枠線は不要（ヘッダー行が上端）
+                          const showTopBorder = borderPos.top.show && !useHeaders
+                          const borderClasses = [
+                            showTopBorder ? (borderPos.top.dashed ? 'display-range-border-top-dashed' : 'display-range-border-top') : '',
+                            borderPos.right.show ? (borderPos.right.dashed ? 'display-range-border-right-dashed' : 'display-range-border-right') : '',
+                            borderPos.bottom.show ? (borderPos.bottom.dashed ? 'display-range-border-bottom-dashed' : 'display-range-border-bottom') : '',
+                            borderPos.left.show ? (borderPos.left.dashed ? 'display-range-border-left-dashed' : 'display-range-border-left') : ''
+                          ].filter(Boolean).join(' ')
                           
                           // 結合セルの場合、開始セル以外は非表示
                           if (merged && !isStartCell) {
@@ -1872,7 +1990,7 @@ export const ItemDetailPanel = ({
                           return (
                           <td 
                             key={colIndex} 
-                              className={`table-data-cell ${selectedCell && !selectedCell.isHeader && selectedCell.row === rowIndex && selectedCell.col === colIndex ? 'table-cell-selected' : ''} ${hasError ? 'table-cell-error' : ''} ${isRowHidden ? 'hidden-row' : ''} ${isColumnHidden ? 'hidden-column' : ''} ${cellRangeSelection.start && cellRangeSelection.end && (
+                              className={`table-data-cell ${selectedCell && !selectedCell.isHeader && selectedCell.row === rowIndex && selectedCell.col === colIndex ? 'table-cell-selected' : ''} ${hasError ? 'table-cell-error' : ''} ${isCellHiddenFlag ? 'hidden-cell' : ''} ${borderClasses} ${cellRangeSelection.start && cellRangeSelection.end && (
                                 (rowIndex >= Math.min(cellRangeSelection.start.row, cellRangeSelection.end.row) && 
                                  rowIndex <= Math.max(cellRangeSelection.start.row, cellRangeSelection.end.row) &&
                                  colIndex >= Math.min(cellRangeSelection.start.col, cellRangeSelection.end.col) &&
@@ -1997,6 +2115,36 @@ export const ItemDetailPanel = ({
                   
                   </tbody>
                 </table>
+                
+                {/* ホバー時の行/列追加ボタン */}
+                {hoverAddButton && (
+                  <button
+                    className="table-hover-add-btn"
+                    style={{
+                      position: 'fixed',
+                      top: hoverAddButton.top,
+                      left: hoverAddButton.left,
+                      transform: 'translate(-50%, -50%)',
+                      zIndex: 100
+                    }}
+                    onClick={handleHoverAddButtonClick}
+                    onMouseEnter={(e) => {
+                      // ボタン上にマウスがある間は親へのイベント伝播を止める
+                      e.stopPropagation()
+                    }}
+                    onMouseLeave={() => {
+                      // ボタンから離れた時は何もしない
+                      // コンテナ内ならmousemoveで再検出される
+                      // コンテナ外ならcontainerのmouseleaveで非表示になる
+                    }}
+                    title={hoverAddButton.type === 'row'
+                      ? (hoverAddButton.position === 'before' ? '上に行を挿入' : '下に行を挿入')
+                      : (hoverAddButton.position === 'before' ? '左に列を挿入' : '右に列を挿入')
+                    }
+                  >
+                    <span className="material-icons">add</span>
+                  </button>
+                )}
               </div>
               {/* 列追加ボタン */}
               <div className="table-add-col-container">
@@ -2449,15 +2597,6 @@ export const ItemDetailPanel = ({
                   </>
                 ) : contextMenu.type === 'row' ? (
                   <>
-                    <button className="table-context-menu-item" onClick={() => insertRowAbove(contextMenu.index)}>
-                      <span className="material-icons">arrow_upward</span>
-                      上に行を挿入
-                    </button>
-                    <button className="table-context-menu-item" onClick={() => insertRowBelow(contextMenu.index)}>
-                      <span className="material-icons">arrow_downward</span>
-                      下に行を挿入
-                    </button>
-                    <div className="table-context-menu-divider" />
                     <button className="table-context-menu-item" onClick={() => duplicateRow(contextMenu.index)}>
                       <span className="material-icons">content_copy</span>
                       複製
@@ -2489,15 +2628,6 @@ export const ItemDetailPanel = ({
                   </>
                 ) : (
                   <>
-                    <button className="table-context-menu-item" onClick={() => insertColumnLeft(contextMenu.index)}>
-                      <span className="material-icons">arrow_back</span>
-                      左に列を挿入
-                    </button>
-                    <button className="table-context-menu-item" onClick={() => insertColumnRight(contextMenu.index)}>
-                      <span className="material-icons">arrow_forward</span>
-                      右に列を挿入
-                    </button>
-                    <div className="table-context-menu-divider" />
                     <button className="table-context-menu-item" onClick={() => duplicateColumn(contextMenu.index)}>
                       <span className="material-icons">content_copy</span>
                       複製
@@ -2547,29 +2677,30 @@ export const ItemDetailPanel = ({
                 )}
               </div>
             )}
+            </>
+            )}
+            
+            {/* グラフ設定パネル（ポップアップ） */}
+            <GraphSettingsPanel
+              isOpen={showGraphPanel}
+              openedFrom={graphPanelOpenedFrom}
+              table={item as TableItem}
+              onClose={handleCloseGraphPanel}
+              onUpdateTable={handleUpdateTableItem}
+              selectedCategory={graphCategory}
+              onCategoryChange={setGraphCategory}
+            />
+            
+            {/* グラフタイプ選択モーダル */}
+            <GraphTypeModal
+              isOpen={showGraphTypeModal}
+              currentFormat={tableDisplayFormat}
+              onFormatChange={handleGraphFormatChange}
+              onClose={() => setShowGraphTypeModal(false)}
+            />
+          </div>
           </div>
         )
-        
-        // 拡大表示の場合、モーダルで表示
-        if (isTableExpanded) {
-          return (
-            <div className="table-expand-overlay" onClick={() => setIsTableExpanded(false)}>
-              <div className="table-expand-content" onClick={(e) => e.stopPropagation()}>
-                <div className="table-expand-header">
-                  <h3>{item.name}</h3>
-                  <button
-                    className="table-expand-close"
-                    onClick={() => setIsTableExpanded(false)}
-                    title="閉じる"
-                  >
-                    <span className="material-icons">close</span>
-                  </button>
-                </div>
-                {tableEditorContent}
-              </div>
-            </div>
-          )
-        }
         
         return tableEditorContent
 
@@ -2654,6 +2785,30 @@ export const ItemDetailPanel = ({
           </div>
         )
       
+      case 'picto':
+        return (
+          <PictoEditor
+            item={item as PictoItem}
+            onUpdateItem={(updates) => {
+              if (onUpdateItem) {
+                onUpdateItem(item.id, updates as Partial<Item>)
+              }
+            }}
+          />
+        )
+      
+      case 'euler':
+        return (
+          <EulerEditor
+            item={item as EulerItem}
+            onUpdateItem={(updates) => {
+              if (onUpdateItem) {
+                onUpdateItem(item.id, updates as Partial<Item>)
+              }
+            }}
+          />
+        )
+      
       default:
         return null
     }
@@ -2699,9 +2854,6 @@ export const ItemDetailPanel = ({
           setShowFormatDialog(true)
         }
         break
-      case 'toggleExpand':
-        setIsTableExpanded(!isTableExpanded)
-        break
       case 'setDisplayFormat':
         const format = args[0] as TableDisplayFormat
         if (format && item && item.type === 'table' && onUpdateItem) {
@@ -2714,6 +2866,14 @@ export const ItemDetailPanel = ({
         break
       case 'showAllColumns':
         showAllColumns()
+        break
+      case 'toggleHeaders':
+        handleUseHeadersChange(!useHeaders)
+        break
+      case 'openMarkdownImport':
+        setShowMarkdownImport(true)
+        setMarkdownInput('')
+        setMarkdownImportError('')
         break
     }
   }
@@ -2732,6 +2892,63 @@ export const ItemDetailPanel = ({
     }
   }
 
+  // グラフ設定パネルを開く
+  const handleOpenGraphPanel = useCallback((from: PanelOpenedFrom) => {
+    setGraphPanelOpenedFrom(from)
+    setShowGraphPanel(true)
+  }, [])
+
+  // グラフ設定パネルを閉じる
+  const handleCloseGraphPanel = useCallback(() => {
+    setShowGraphPanel(false)
+  }, [])
+
+  // グラフタイプを変更
+  const handleGraphFormatChange = useCallback((format: TableDisplayFormat) => {
+    setTableDisplayFormat(format)
+    if (item && item.type === 'table' && onUpdateItem) {
+      onUpdateItem(item.id, { displayFormat: format } as Partial<TableItem>)
+    }
+  }, [item, onUpdateItem])
+
+  // チャート設定を更新
+  const handleChartConfigChange = useCallback((updates: Partial<TableChartConfig>) => {
+    const newConfig = { ...chartConfig, ...updates }
+    setChartConfig(newConfig)
+    if (item && item.type === 'table' && onUpdateItem) {
+      onUpdateItem(item.id, { chartConfig: newConfig } as Partial<TableItem>)
+    }
+  }, [item, chartConfig, onUpdateItem])
+
+  // ツリーデータを更新
+  const handleTreeDataChange = useCallback((newTreeData: TreeData) => {
+    setTreeData(newTreeData)
+    if (item && item.type === 'table' && onUpdateItem) {
+      onUpdateItem(item.id, { treeData: newTreeData } as Partial<TableItem>)
+    }
+  }, [item, onUpdateItem])
+
+  // ツリー設定を更新
+  const handleTreeSettingsChange = useCallback((newTreeSettings: TreeSettings) => {
+    setTreeSettings(newTreeSettings)
+    if (item && item.type === 'table' && onUpdateItem) {
+      onUpdateItem(item.id, { treeSettings: newTreeSettings } as Partial<TableItem>)
+    }
+  }, [item, onUpdateItem])
+
+  // テーブルアイテムの更新ハンドラ（GraphSettingsPanel用）
+  const handleUpdateTableItem = useCallback((updates: Partial<TableItem>) => {
+    if (updates.displayFormat) {
+      setTableDisplayFormat(updates.displayFormat)
+    }
+    if (updates.chartConfig) {
+      setChartConfig(updates.chartConfig)
+    }
+    if (item && item.type === 'table' && onUpdateItem) {
+      onUpdateItem(item.id, updates)
+    }
+  }, [item, onUpdateItem])
+
   // セル選択状態からFloatingNavBar用の情報を取得
   const getTableState = () => {
     const hasSelection = !!selectedCell
@@ -2744,10 +2961,10 @@ export const ItemDetailPanel = ({
       hasSelection, 
       canMerge: !!canMerge, 
       canUnmerge: !!canUnmerge, 
-      isExpanded: isTableExpanded,
       displayFormat: tableDisplayFormat,
       hiddenRowsCount: hiddenRows.length,
-      hiddenColumnsCount: hiddenColumns.length
+      hiddenColumnsCount: hiddenColumns.length,
+      useHeaders
     }
   }
 
@@ -2810,6 +3027,7 @@ export const ItemDetailPanel = ({
           </div>
         </div>
       )}
+
     </div>
   )
 }

@@ -434,7 +434,7 @@ button:disabled.disabled\:cursor-not-allowed {
 
 /* ============================================
  * Prose styles (スライドコンテンツ用)
- * --tone-* 変数はトンマナシステムから提供される
+ * --tone-* 変数はTone & Mannerシステムから提供される
  * ============================================ */
 .prose {
   color: var(--tone-text, #374151) !important;
@@ -471,8 +471,8 @@ button:disabled.disabled\:cursor-not-allowed {
   font-family: var(--tone-font-family-heading, var(--tone-font-family, "Noto Sans JP", system-ui)) !important;
   color: var(--tone-primary, inherit) !important;
   line-height: 1.6;
-  margin-top: 1.6em;
-  margin-bottom: 0.6em;
+  margin-top: 1em; /* 通常の見出し余白を縮小 */
+  margin-bottom: 0.4em;
   word-wrap: break-word;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -482,6 +482,27 @@ button:disabled.disabled\:cursor-not-allowed {
 
 .prose h1 {
   margin-top: 0;
+}
+
+/* スライドの先頭要素は上部余白なし */
+.prose > :first-child {
+  margin-top: 0 !important;
+}
+
+/* コンテンツの後に来る見出しにセクション区切り余白を追加 */
+.prose p + h2,
+.prose ul + h2,
+.prose ol + h2,
+.prose table + h2,
+.prose blockquote + h2,
+.prose pre + h2,
+.prose p + h3,
+.prose ul + h3,
+.prose ol + h3,
+.prose table + h3,
+.prose blockquote + h3,
+.prose pre + h3 {
+  margin-top: 2.5em;
 }
 
 /* テキストグラデーション（見出し用） */
@@ -541,11 +562,12 @@ button:disabled.disabled\:cursor-not-allowed {
 }
 
 /* コンサル風テーブルスタイル - スライドコンテンツ用 */
+/* Tone & MannerのheadingColorに基づいた色分け */
 .prose table {
   border-collapse: separate;
-  border-spacing: 0.5rem 0.75rem;
-  width: 100%;
-  margin: 1.5em 0;
+  border-spacing: 0.15rem 0.25rem;
+  width: auto; /* 内容に応じた幅 */
+  margin: 0.75em auto; /* 上下マージン + 左右中央配置 */
   font-size: inherit; /* 本文と同じフォントサイズ */
 }
 
@@ -553,35 +575,42 @@ button:disabled.disabled\:cursor-not-allowed {
   border-bottom: none;
 }
 
+/* ヘッダー行：背景透明、下線はheadingColor */
 .prose th {
   border: none;
-  border-bottom: 2px solid var(--tone-table-header-border, #374151);
+  border-bottom: 3px solid var(--tone-primary, #374151);
   font-weight: 600;
-  padding: 0.75rem 1rem;
+  font-size: 0.80em;
+  padding: 0.75rem 2.5rem;
   text-align: center;
-  background: var(--tone-table-cell-bg, white);
-  color: var(--tone-table-text, #374151);
+  background: transparent; /* 透明でスライド背景が見える */
+  color: var(--tone-text, #374151);
 }
 
 .prose tbody tr {
   border: none;
 }
 
+/* 2列目以降のセル：白背景 */
 .prose td {
-  border: none;
-  padding: 1rem 1.25rem;
-  background-color: var(--tone-table-cell-bg, white);
+  font-size: 0.80em;
+  font-weight: 600;
+  padding: 1rem 2.5rem;
+  background-color: white;
   color: var(--tone-table-text, #374151);
   vertical-align: top;
+  border: none;
 }
 
-/* 最初の列のスタイル（行ヘッダー） */
+/* 最初の列のスタイル（行ヘッダー）：薄いheadingColor（color-mixで生成） */
+/* 白と混ぜるため背景は常に明るくなる → テキストは常に暗い色で視認性確保 */
 .prose tbody td:first-child {
-  background-color: var(--tone-table-row-header-bg, oklch(0.92 0 0));
-  color: var(--tone-table-text, #374151);
+  background-color: color-mix(in oklch, var(--tone-primary, #374151) 25%, white);
+  color: oklch(0.25 0.00 0);
   font-weight: 600;
   text-align: center;
   vertical-align: middle;
+  border: none;
 }
 
 /* テーブル内のリスト */
@@ -593,4 +622,48 @@ button:disabled.disabled\:cursor-not-allowed {
 
 .prose td li {
   margin: 0.25em 0;
+}
+
+/* ============================================ */
+/* ネオングロー効果                             */
+/* ============================================ */
+
+/* ネオンピンク グロー */
+[data-neon-glow="pink"] h1,
+[data-neon-glow="pink"] h2,
+[data-neon-glow="pink"] h3 {
+  text-shadow: 
+    0 0 4px #ff6ec7,
+    0 0 12px #ff6ec7,
+    0 0 30px rgba(255, 110, 199, 0.5);
+}
+
+/* ネオンシアン グロー */
+[data-neon-glow="cyan"] h1,
+[data-neon-glow="cyan"] h2,
+[data-neon-glow="cyan"] h3 {
+  text-shadow: 
+    0 0 4px #00ffff,
+    0 0 12px #00ffff,
+    0 0 30px rgba(0, 255, 255, 0.5);
+}
+
+/* ネオンライム グロー */
+[data-neon-glow="lime"] h1,
+[data-neon-glow="lime"] h2,
+[data-neon-glow="lime"] h3 {
+  text-shadow: 
+    0 0 4px #39ff14,
+    0 0 12px #39ff14,
+    0 0 30px rgba(57, 255, 20, 0.5);
+}
+
+/* ネオンイエロー グロー */
+[data-neon-glow="yellow"] h1,
+[data-neon-glow="yellow"] h2,
+[data-neon-glow="yellow"] h3 {
+  text-shadow: 
+    0 0 4px #ffff00,
+    0 0 12px #ffff00,
+    0 0 30px rgba(255, 255, 0, 0.5);
 }

@@ -20,6 +20,52 @@ export function parseCellKey(key: string): { row: number; col: number } | null {
 }
 
 /**
+ * セルが非表示かどうかを判定
+ * 行または列が非表示の場合、そのセルは非表示
+ */
+export function isCellHidden(
+  row: number,
+  col: number,
+  hiddenRows: number[] = [],
+  hiddenColumns: number[] = []
+): boolean {
+  return hiddenRows.includes(row) || hiddenColumns.includes(col)
+}
+
+/**
+ * 非表示セルのSetを生成（行・列の非表示設定から）
+ * データ範囲内のセルのみを対象とする
+ */
+export function getHiddenCellsSet(
+  dataRows: number,
+  dataCols: number,
+  hiddenRows: number[] = [],
+  hiddenColumns: number[] = []
+): Set<string> {
+  const hiddenCells = new Set<string>()
+  
+  // 非表示行のすべてのセルを追加
+  for (const row of hiddenRows) {
+    if (row >= 0 && row < dataRows) {
+      for (let col = 0; col < dataCols; col++) {
+        hiddenCells.add(getCellKey(row, col))
+      }
+    }
+  }
+  
+  // 非表示列のすべてのセルを追加
+  for (const col of hiddenColumns) {
+    if (col >= 0 && col < dataCols) {
+      for (let row = 0; row < dataRows; row++) {
+        hiddenCells.add(getCellKey(row, col))
+      }
+    }
+  }
+  
+  return hiddenCells
+}
+
+/**
  * セルの値をデータ型に応じてパース
  */
 export function parseCellValue(value: string, type: CellDataType): any {
@@ -69,9 +115,9 @@ export function formatCellValue(value: any, type: CellDataType, format?: CellFor
       const numValue = typeof value === 'number' ? value : parseFloat(String(value))
       if (isNaN(numValue)) return String(value)
       
-      const decimalPlaces = format?.decimalPlaces ?? 2
+      const decimalPlaces = format?.decimalPlaces ?? 0
       const useThousandsSeparator = format?.useThousandsSeparator ?? true
-      
+
       let formatted = numValue.toFixed(decimalPlaces)
       if (useThousandsSeparator) {
         const parts = formatted.split('.')
@@ -97,41 +143,40 @@ export function formatCellValue(value: any, type: CellDataType, format?: CellFor
     case 'currency': {
       const currencyValue = typeof value === 'number' ? value : parseFloat(String(value))
       if (isNaN(currencyValue)) return String(value)
-      
+
       const currencySymbol = format?.currencySymbol || '¥'
-      const decimalPlaces = format?.decimalPlaces ?? 2
+      const decimalPlaces = format?.decimalPlaces ?? 0
       const useThousandsSeparator = format?.useThousandsSeparator ?? true
       const currencyScale = format?.currencyScale || 'none'
-      
-      // スケールに応じて値を調整
-      let scaledValue = Math.abs(currencyValue)
+
+      // 入力値をそのまま表示（単位は接尾辞として追加）
+      // 例: 150と入力 → ¥150百万円 と表示
+      const displayValue = Math.abs(currencyValue)
       let scaleSuffix = ''
-      
+
       switch (currencyScale) {
         case 'thousand':
-          scaledValue = scaledValue / 1000
-          scaleSuffix = '千'
+          scaleSuffix = '千円'
           break
         case 'million':
-          scaledValue = scaledValue / 1000000
-          scaleSuffix = '百万'
+          scaleSuffix = '百万円'
           break
         case 'billion':
-          scaledValue = scaledValue / 1000000000
-          scaleSuffix = '十億'
+          scaleSuffix = '十億円'
           break
         default:
-          // 'none': そのまま
+          // 'none': 円のみ
+          scaleSuffix = '円'
           break
       }
-      
-      let formatted = scaledValue.toFixed(decimalPlaces)
-      if (useThousandsSeparator && currencyScale === 'none') {
+
+      let formatted = displayValue.toFixed(decimalPlaces)
+      if (useThousandsSeparator) {
         const parts = formatted.split('.')
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
         formatted = parts.join('.')
       }
-      
+
       return (currencyValue < 0 ? '-' : '') + currencySymbol + formatted + scaleSuffix
     }
     default:
@@ -197,7 +242,7 @@ export function getDefaultCellFormat(type: CellDataType): CellFormat {
     case 'number':
       return {
         type: 'number',
-        decimalPlaces: 2,
+        decimalPlaces: 0,
         useThousandsSeparator: true
       }
     case 'date':
@@ -215,7 +260,7 @@ export function getDefaultCellFormat(type: CellDataType): CellFormat {
         type: 'currency',
         currencySymbol: '¥',
         currencyScale: 'none',
-        decimalPlaces: 2,
+        decimalPlaces: 0,
         useThousandsSeparator: true
       }
     default:
@@ -261,6 +306,176 @@ export function inferCellDataType(value: string): CellDataType {
   }
 
   return 'text'
+}
+
+// ============================================
+// テーブル表示範囲計算機能
+// ============================================
+
+/**
+ * テーブルの表示範囲（入力済みセルの範囲）
+ */
+export interface FilledRange {
+  minRow: number
+  maxRow: number
+  minCol: number
+  maxCol: number
+}
+
+/**
+ * 入力済みセルが存在する範囲を計算
+ * 空でないセルを持つ最小/最大の行・列を特定
+ * 非表示行/列は除外
+ * 
+ * @param data - テーブルデータ（2次元配列）
+ * @param hiddenRows - 非表示行のインデックス配列
+ * @param hiddenColumns - 非表示列のインデックス配列
+ * @returns 入力済み範囲、またはすべて空の場合はnull
+ */
+export function getFilledRange(
+  data: string[][],
+  hiddenRows: number[] = [],
+  hiddenColumns: number[] = []
+): FilledRange | null {
+  if (!data || data.length === 0) {
+    return null
+  }
+
+  let minRow = -1
+  let maxRow = -1
+  let minCol = -1
+  let maxCol = -1
+
+  for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+    const row = data[rowIndex]
+    if (!row) continue
+
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      // セル単位で非表示判定（行または列が非表示ならスキップ）
+      if (isCellHidden(rowIndex, colIndex, hiddenRows, hiddenColumns)) {
+        continue
+      }
+
+      const cell = row[colIndex]
+      // 空でないセルを検出
+      if (cell && cell.trim() !== '') {
+        // 最小行を更新
+        if (minRow === -1 || rowIndex < minRow) {
+          minRow = rowIndex
+        }
+        // 最大行を更新
+        if (rowIndex > maxRow) {
+          maxRow = rowIndex
+        }
+        // 最小列を更新
+        if (minCol === -1 || colIndex < minCol) {
+          minCol = colIndex
+        }
+        // 最大列を更新
+        if (colIndex > maxCol) {
+          maxCol = colIndex
+        }
+      }
+    }
+  }
+
+  // すべて空の場合はnull
+  if (minRow === -1 || minCol === -1) {
+    return null
+  }
+
+  return { minRow, maxRow, minCol, maxCol }
+}
+
+/**
+ * セル境界の情報（実線か点線か）
+ */
+export interface CellBorderInfo {
+  show: boolean   // 境界線を表示するか
+  dashed: boolean // 点線で表示するか（非表示行/列に隣接する場合）
+}
+
+/**
+ * セルが表示範囲の境界上にあるかどうかを判定
+ * 
+ * @param rowIndex - 行インデックス
+ * @param colIndex - 列インデックス
+ * @param range - 表示範囲
+ * @returns 境界情報（上/右/下/左）
+ */
+export function getCellBorderPosition(
+  rowIndex: number,
+  colIndex: number,
+  range: FilledRange | null
+): { top: boolean; right: boolean; bottom: boolean; left: boolean } {
+  if (!range) {
+    return { top: false, right: false, bottom: false, left: false }
+  }
+
+  const isInRange = 
+    rowIndex >= range.minRow && 
+    rowIndex <= range.maxRow && 
+    colIndex >= range.minCol && 
+    colIndex <= range.maxCol
+
+  if (!isInRange) {
+    return { top: false, right: false, bottom: false, left: false }
+  }
+
+  return {
+    top: rowIndex === range.minRow,
+    right: colIndex === range.maxCol,
+    bottom: rowIndex === range.maxRow,
+    left: colIndex === range.minCol
+  }
+}
+
+/**
+ * セルが表示範囲の境界上にあるかを判定（点線判定付き）
+ * 表示範囲内に非表示の行/列が存在する場合は点線で表示
+ * 
+ * @param rowIndex - 行インデックス
+ * @param colIndex - 列インデックス
+ * @param range - 表示範囲
+ * @param hiddenRows - 非表示行のインデックス配列
+ * @param hiddenColumns - 非表示列のインデックス配列
+ * @returns 境界情報（上/右/下/左、それぞれ実線か点線か）
+ */
+export function getCellBorderPositionWithDashed(
+  rowIndex: number,
+  colIndex: number,
+  range: FilledRange | null,
+  hiddenRows: number[] = [],
+  hiddenColumns: number[] = []
+): { top: CellBorderInfo; right: CellBorderInfo; bottom: CellBorderInfo; left: CellBorderInfo } {
+  const noBorder: CellBorderInfo = { show: false, dashed: false }
+  
+  if (!range) {
+    return { top: noBorder, right: noBorder, bottom: noBorder, left: noBorder }
+  }
+
+  const isInRange = 
+    rowIndex >= range.minRow && 
+    rowIndex <= range.maxRow && 
+    colIndex >= range.minCol && 
+    colIndex <= range.maxCol
+
+  if (!isInRange) {
+    return { top: noBorder, right: noBorder, bottom: noBorder, left: noBorder }
+  }
+
+  const isLeftBorder = colIndex === range.minCol
+  const isRightBorder = colIndex === range.maxCol
+  const isTopBorder = rowIndex === range.minRow
+  const isBottomBorder = rowIndex === range.maxRow
+
+  // すべて実線で表示（点線は使用しない）
+  return {
+    top: { show: isTopBorder, dashed: false },
+    right: { show: isRightBorder, dashed: false },
+    bottom: { show: isBottomBorder, dashed: false },
+    left: { show: isLeftBorder, dashed: false }
+  }
 }
 
 // ============================================

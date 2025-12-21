@@ -49,6 +49,28 @@
   padding-left: 1.5em;
 }
 
+/* 目次レイアウト - CSS Gridによる2カラム表示（上揃え） */
+.toc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 3rem;
+  align-items: start;      /* 両カラムを上揃え */
+}
+
+.toc-grid ol,
+.toc-grid ul {
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.toc-grid ol {
+  list-style-type: decimal;
+}
+
+.toc-grid ul {
+  list-style-type: disc;
+}
+
 /* 中扉レイアウト */
 .prose.layout-section {
   text-align: center;
@@ -90,6 +112,16 @@
   display: grid !important;
   gap: 2rem !important;
   width: 100% !important;
+  margin-top: 2em; /* キーメッセージとの間に余白 */
+}
+
+/* セレクタ互換性のため残す */
+.prose p + .h2-grid-layout,
+.prose ul + .h2-grid-layout,
+.prose ol + .h2-grid-layout,
+.prose table + .h2-grid-layout,
+.prose .key-message + .h2-grid-layout {
+  margin-top: 2em;
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -109,7 +141,7 @@
 }
 
 .h2-grid-item.prose {
-  text-align: left; /* .prose.layout-sectionのtext-align: centerを上書き */
+  text-align: left; /* 表紙レイアウトのtext-align: centerを上書き */
 }
 
 .h2-grid-item h1 {
@@ -128,8 +160,16 @@
 .h2-grid-item h3 {
   font-size: 1em;
   margin-top: 0.8em;
-  margin-bottom: 0.4em;
+  margin-bottom: 0.15em;
   text-align: left; /* 見出しも左寄せ */
+}
+
+/* グリッドアイテム内でもコンテンツ後の見出しに余白 */
+.h2-grid-item p + h3,
+.h2-grid-item ul + h3,
+.h2-grid-item ol + h3,
+.h2-grid-item table + h3 {
+  margin-top: 2em;
 }
 
 .h2-grid-item p,
@@ -141,8 +181,39 @@
   text-align: left; /* テキストも左寄せ */
 }
 
+.h2-grid-item table {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  text-align: left;
+}
+
+.h2-grid-item table th,
+.h2-grid-item table td {
+  font-size: 0.95em;
+}
+
 .h2-grid-item li {
   margin-top: 0.3em;
   margin-bottom: 0.3em;
+}
+
+/* 表紙・中扉のテキストカラー */
+.slide-cover-background .prose,
+.slide-cover-background .prose h1,
+.slide-cover-background .prose h2,
+.slide-cover-background .prose h3,
+.slide-cover-background .prose p {
+  color: white !important;
+}
+
+/* 表紙でのグラデーションテキストを白色に上書き */
+.slide-cover-background .prose h1.text-gradient,
+.slide-cover-background .prose h2.text-gradient,
+.slide-cover-background .prose h3.text-gradient {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: white !important;
+  background-clip: unset !important;
+  color: white !important;
 }
 

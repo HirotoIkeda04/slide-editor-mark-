@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import './FloatingNavBar.css'
-import type { TableDisplayFormat } from '../../types'
+import type { TableDisplayFormat, PictoElementType } from '../../types'
 
-type ItemType = 'slide' | 'table' | 'image' | 'text' | null
+type ItemType = 'slide' | 'table' | 'image' | 'text' | 'pictogram' | 'euler' | null
+
+// Pictogramのエディタモード
+export type PictogramEditorMode = 'select' | 'connect' | 'comment'
+
+// Eulerのエディタモード
+export type EulerEditorMode = 'select' | 'add'
 
 interface FloatingNavBarProps {
   itemType: ItemType
@@ -12,16 +19,18 @@ interface FloatingNavBarProps {
   selection?: { startLine: number; endLine: number } | null  // 1-based line numbers
   onSetAttribute?: (lineNumber: number, attribute: string | null) => void
   onSetAttributesForRange?: (startLine: number, endLine: number, attribute: string | null) => void
+  onScrollToCurrentSlide?: () => void  // 現在のスライドにスクロール
+  onCreateItemFromSelection?: () => void  // 選択テキストからアイテムを作成
   // Table用
   onTableOperation?: (operation: string, ...args: unknown[]) => void
   tableState?: {
     hasSelection: boolean
     canMerge: boolean
     canUnmerge: boolean
-    isExpanded?: boolean
     displayFormat?: TableDisplayFormat
     hiddenRowsCount?: number
     hiddenColumnsCount?: number
+    useHeaders?: boolean
   }
   // Image用
   onImageOperation?: (operation: string, ...args: unknown[]) => void
@@ -29,6 +38,20 @@ interface FloatingNavBarProps {
     displayMode: 'contain' | 'cover'
     isCropping: boolean
   }
+  // Pictogram用
+  onPictogramOperation?: (operation: string, ...args: unknown[]) => void
+  pictogramState?: {
+    mode: PictogramEditorMode
+    canDelete: boolean
+    canGroup: boolean
+  }
+  onAddPictogramElement?: (type: PictoElementType) => void
+  // Euler用
+  mode?: 'euler'
+  eulerEditorMode?: EulerEditorMode
+  onEulerModeChange?: (mode: EulerEditorMode) => void
+  onAddEulerCircle?: () => void
+  onAddEulerElement?: () => void
   // 位置調整用（行番号カラムを除いた中央配置）
   leftOffset?: string
 }
@@ -51,10 +74,20 @@ export const FloatingNavBar = ({
   selection,
   onSetAttribute,
   onSetAttributesForRange,
+  onScrollToCurrentSlide,
+  onCreateItemFromSelection,
   onTableOperation,
   tableState,
   onImageOperation,
   imageState,
+  onPictogramOperation,
+  pictogramState,
+  onAddPictogramElement,
+  mode,
+  eulerEditorMode,
+  onEulerModeChange,
+  onAddEulerCircle,
+  onAddEulerElement,
   leftOffset: _leftOffset,
 }: FloatingNavBarProps) => {
   const [visibleCount, setVisibleCount] = useState<number>(Infinity)
@@ -68,9 +101,14 @@ export const FloatingNavBar = ({
 
   // Slide用ボタン定義（優先順位順）
   const slideButtons: ButtonConfig[] = [
-    { id: 'h1', label: 'H1', title: '見出し1 (#)', attribute: '#', isActive: (a) => a === '#', group: 1 },
-    { id: 'h2', label: 'H2', title: '見出し2 (##)', attribute: '##', isActive: (a) => a === '##', group: 1 },
-    { id: 'h3', label: 'H3', title: '見出し3 (###)', attribute: '###', isActive: (a) => a === '###', group: 1 },
+    // レイアウト属性値（表紙、目次、まとめ）
+    { id: 'title', label: 'TTL', title: '表紙 (#ttl)', attribute: '#ttl', isActive: (a) => a === '#ttl', group: 0 },
+    { id: 'agenda', label: 'AGD', title: '目次 (#agd)', attribute: '#agd', isActive: (a) => a === '#agd', group: 0 },
+    { id: 'summary', label: '#!', title: 'まとめ (#!)', attribute: '#!', isActive: (a) => a === '#!', group: 0 },
+    // 見出し属性値
+    { id: 'h1', label: 'H1', title: 'チャプター (#)', attribute: '#', isActive: (a) => a === '#', group: 1 },
+    { id: 'h2', label: 'H2', title: 'セクション (##)', attribute: '##', isActive: (a) => a === '##', group: 1 },
+    { id: 'h3', label: 'H3', title: 'サブセクション (###)', attribute: '###', isActive: (a) => a === '###', group: 1 },
     { id: 'bullet', label: <span className="material-icons">format_list_bulleted</span>, title: '箇条書き (-)', attribute: '-', isActive: (a) => a === '-', group: 2 },
     { id: 'numbered', label: <span className="material-icons">format_list_numbered</span>, title: '番号付きリスト (1.)', attribute: '1.', isActive: (a) => /^\d+\.$/.test(a || ''), group: 3 },
     { id: 'asterisk', label: '*', title: 'アスタリスク (*)', attribute: '*', isActive: (a) => a === '*', group: 2 },
@@ -84,22 +122,24 @@ export const FloatingNavBar = ({
     const visible: ButtonConfig[] = []
     const overflow: ButtonConfig[] = []
     let currentCount = 0
-    let currentGroup = 0
+    const processedGroups = new Set<number>()
 
     for (const btn of buttons) {
-      if (btn.group !== currentGroup) {
-        currentGroup = btn.group
-        // 新しいグループを追加できるか確認
-        const groupButtons = buttons.filter(b => b.group === btn.group)
-        if (currentCount + groupButtons.length <= maxVisible) {
-          // グループ全体を追加
-          visible.push(...groupButtons)
-          currentCount += groupButtons.length
-        } else {
-          // グループ全体をオーバーフローに
-          overflow.push(...buttons.filter(b => b.group >= btn.group))
-          break
-        }
+      // 既に処理済みのグループはスキップ
+      if (processedGroups.has(btn.group)) continue
+      
+      processedGroups.add(btn.group)
+      // 新しいグループを追加できるか確認
+      const groupButtons = buttons.filter(b => b.group === btn.group)
+      if (currentCount + groupButtons.length <= maxVisible) {
+        // グループ全体を追加
+        visible.push(...groupButtons)
+        currentCount += groupButtons.length
+      } else {
+        // このグループ以降をオーバーフローに
+        const remainingButtons = buttons.filter(b => !processedGroups.has(b.group) || b.group === btn.group)
+        overflow.push(...remainingButtons)
+        break
       }
     }
 
@@ -139,14 +179,14 @@ export const FloatingNavBar = ({
     const x = rect.left + rect.width / 2
     const y = rect.top - gap
     
-    // 少し遅延を設けてツールチップを表示
+    // 少し遅延を設けてツールチップを表示（150msに短縮）
     tooltipShowTimeoutRef.current = setTimeout(() => {
       setTooltip({
         text,
         x,
         y
       })
-    }, 300)
+    }, 150)
   }
 
   const handleTooltipMouseLeave = () => {
@@ -178,13 +218,13 @@ export const FloatingNavBar = ({
     const availableWidth = containerWidth - padding - overflowButtonWidth
 
     // ボタン数を計算（グループごとの区切り線も考慮）
-    // 簡易的に、1グループあたり平均3ボタン + 1区切り線として計算
-    const buttonsPerGroup = 3
+    // ボタン幅と区切り線を考慮して、より多くのボタンを表示
+    const buttonsPerGroup = 2.5 // 平均ボタン数を少なく見積もり
     const widthPerGroup = buttonsPerGroup * buttonWidth + dividerWidth
     const maxGroups = Math.floor(availableWidth / widthPerGroup)
-    const maxButtons = maxGroups * buttonsPerGroup
+    const maxButtons = Math.ceil(maxGroups * buttonsPerGroup * 1.2) // 1.2倍で余裕を持たせる
 
-    setVisibleCount(Math.max(3, maxButtons)) // 最低3ボタン（H1,H2,H3）は表示
+    setVisibleCount(Math.max(6, maxButtons)) // 最低6ボタンは表示
   }, [])
 
   useEffect(() => {
@@ -200,6 +240,88 @@ export const FloatingNavBar = ({
 
     return () => resizeObserver.disconnect()
   }, [updateVisibleCount])
+
+  // Euler用のナビゲーションバー（itemTypeより先にチェック）
+  if (mode === 'euler') {
+    return (
+      <>
+      <div className="floating-nav-bar-container">
+        <div className="floating-nav-bar">
+          {/* モード切替 */}
+          <div className="floating-nav-bar-group">
+            <button
+              className={`floating-nav-bar-btn ${eulerEditorMode === 'select' ? 'active' : ''}`}
+              onClick={() => onEulerModeChange?.('select')}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '選択モード')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">near_me</span>
+            </button>
+            <button
+              className={`floating-nav-bar-btn ${eulerEditorMode === 'add' ? 'active' : ''}`}
+              onClick={() => onEulerModeChange?.('add')}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '追加モード（クリックで円を追加）')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">add_circle_outline</span>
+            </button>
+          </div>
+
+          <div className="floating-nav-bar-divider" />
+
+          {/* 円を追加 */}
+          <div className="floating-nav-bar-group">
+            <button
+              className="floating-nav-bar-btn"
+              onClick={() => onAddEulerCircle?.()}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '円（集合）を追加')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">radio_button_unchecked</span>
+            </button>
+            <button
+              className="floating-nav-bar-btn"
+              onClick={() => onAddEulerElement?.()}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '要素を追加')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">fiber_manual_record</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+        
+        {/* ツールチップ - createPortalでbodyに直接レンダリング */}
+        {tooltip && createPortal(
+          <div
+            className="floating-nav-bar-tooltip"
+            style={{
+              position: 'fixed',
+              left: `${tooltip.x}px`,
+              top: `${tooltip.y}px`,
+              transform: 'translateX(-50%) translateY(-100%)',
+              pointerEvents: 'none',
+              zIndex: 10000,
+              marginTop: '-8px'
+            }}
+            onMouseEnter={() => {
+              if (tooltipTimeoutRef.current) {
+                clearTimeout(tooltipTimeoutRef.current)
+                tooltipTimeoutRef.current = null
+              }
+            }}
+            onMouseLeave={() => {
+              setTooltip(null)
+            }}
+          >
+            {tooltip.text}
+          </div>,
+          document.body
+        )}
+      </>
+    )
+  }
 
   if (!itemType) return null
 
@@ -314,11 +436,45 @@ export const FloatingNavBar = ({
               </div>
             </>
           )}
+
+          {/* 現在のスライドに移動ボタン */}
+          {onScrollToCurrentSlide && (
+            <>
+              <div className="floating-nav-bar-divider" />
+              <div className="floating-nav-bar-group">
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={onScrollToCurrentSlide}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, '現在のスライドに移動')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">near_me</span>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* 選択テキストからアイテムを作成ボタン */}
+          {selection && onCreateItemFromSelection && (
+            <>
+              <div className="floating-nav-bar-divider" />
+              <div className="floating-nav-bar-group">
+                <button
+                  className="floating-nav-bar-btn floating-nav-bar-btn-accent"
+                  onClick={onCreateItemFromSelection}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, '選択テキストをアイテムとして追加')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">inventory_2</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
         
-        {/* ツールチップ */}
-        {tooltip && (
+        {/* ツールチップ - createPortalでbodyに直接レンダリング */}
+        {tooltip && createPortal(
           <div
             className="floating-nav-bar-tooltip"
             style={{
@@ -341,7 +497,8 @@ export const FloatingNavBar = ({
             }}
           >
             {tooltip.text}
-          </div>
+          </div>,
+          document.body
         )}
       </>
     )
@@ -360,28 +517,14 @@ export const FloatingNavBar = ({
   }
 
   const tableButtons: TableButtonConfig[] = [
-    // グループ1: 行操作
-    { id: 'addRow', icon: 'table_rows', title: '行を追加', operation: 'addRow', group: 1 },
-    { id: 'deleteRow', icon: 'delete_sweep', title: '行を削除', operation: 'deleteRow', isDisabled: () => !tableState?.hasSelection, group: 1 },
-    // グループ2: 列操作
-    { id: 'addColumn', icon: 'view_column', title: '列を追加', operation: 'addColumn', group: 2 },
-    { id: 'deleteColumn', icon: 'delete', title: '列を削除', operation: 'deleteColumn', isDisabled: () => !tableState?.hasSelection, group: 2 },
-    // グループ3: セル結合
-    { id: 'mergeCells', icon: 'call_merge', title: 'セルを結合', operation: 'mergeCells', isDisabled: () => !tableState?.canMerge, group: 3 },
-    { id: 'unmergeCells', icon: 'call_split', title: 'セルの結合を解除', operation: 'unmergeCells', isDisabled: () => !tableState?.canUnmerge, group: 3 },
-    // グループ4: 非表示の行/列を表示
-    { id: 'showAllRows', icon: 'visibility', title: `非表示の行を表示 (${tableState?.hiddenRowsCount || 0}件)`, operation: 'showAllRows', isDisabled: () => !tableState?.hiddenRowsCount, group: 4 },
-    { id: 'showAllColumns', icon: 'visibility', title: `非表示の列を表示 (${tableState?.hiddenColumnsCount || 0}件)`, operation: 'showAllColumns', isDisabled: () => !tableState?.hiddenColumnsCount, group: 4 },
-    // グループ5: フォーマット
-    { id: 'formatCells', icon: 'text_format', title: 'フォーマット設定', operation: 'formatCells', group: 5 },
-    // グループ6: 表示形式
-    { id: 'formatTable', icon: 'table_chart', title: '表形式', operation: 'setDisplayFormat', operationArg: 'table', isActive: () => tableState?.displayFormat === 'table' || !tableState?.displayFormat, group: 6 },
-    { id: 'formatLine', icon: 'show_chart', title: '折れ線グラフ', operation: 'setDisplayFormat', operationArg: 'line', isActive: () => tableState?.displayFormat === 'line', group: 6 },
-    { id: 'formatArea', icon: 'area_chart', title: '面グラフ', operation: 'setDisplayFormat', operationArg: 'area', isActive: () => tableState?.displayFormat === 'area', group: 6 },
-    { id: 'formatBar', icon: 'bar_chart', title: '棒グラフ', operation: 'setDisplayFormat', operationArg: 'bar', isActive: () => tableState?.displayFormat === 'bar', group: 6 },
-    { id: 'formatScatter', icon: 'scatter_plot', title: '散布図', operation: 'setDisplayFormat', operationArg: 'scatter', isActive: () => tableState?.displayFormat === 'scatter', group: 6 },
-    // グループ7: 拡大/縮小
-    { id: 'toggleExpand', icon: tableState?.isExpanded ? 'fullscreen_exit' : 'fullscreen', title: tableState?.isExpanded ? '縮小' : '拡大', operation: 'toggleExpand', isActive: () => !!tableState?.isExpanded, group: 7 },
+    // グループ0: ヘッダー行トグル
+    { id: 'toggleHeaders', icon: 'border_top', title: tableState?.useHeaders ? 'ヘッダー行: ON' : 'ヘッダー行: OFF', operation: 'toggleHeaders', isActive: () => !!tableState?.useHeaders, group: 0 },
+    // グループ1: セル結合
+    { id: 'mergeCells', icon: 'call_merge', title: 'セルを結合', operation: 'mergeCells', isDisabled: () => !tableState?.canMerge, group: 1 },
+    { id: 'unmergeCells', icon: 'call_split', title: 'セルの結合を解除', operation: 'unmergeCells', isDisabled: () => !tableState?.canUnmerge, group: 1 },
+    // グループ2: 非表示の行/列を表示
+    { id: 'showAllRows', icon: 'visibility', title: `非表示の行を表示 (${tableState?.hiddenRowsCount || 0}件)`, operation: 'showAllRows', isDisabled: () => !tableState?.hiddenRowsCount, group: 2 },
+    { id: 'showAllColumns', icon: 'visibility', title: `非表示の列を表示 (${tableState?.hiddenColumnsCount || 0}件)`, operation: 'showAllColumns', isDisabled: () => !tableState?.hiddenColumnsCount, group: 2 },
   ]
 
   // テーブルボタンをグループごとにまとめる
@@ -477,8 +620,8 @@ export const FloatingNavBar = ({
           </div>
         </div>
         
-        {/* ツールチップ */}
-        {tooltip && (
+        {/* ツールチップ - createPortalでbodyに直接レンダリング */}
+        {tooltip && createPortal(
           <div
             className="floating-nav-bar-tooltip"
             style={{
@@ -501,7 +644,8 @@ export const FloatingNavBar = ({
             }}
           >
             {tooltip.text}
-      </div>
+          </div>,
+          document.body
         )}
       </>
     )
@@ -550,8 +694,8 @@ export const FloatingNavBar = ({
           </div>
         </div>
         
-        {/* ツールチップ */}
-        {tooltip && (
+        {/* ツールチップ - createPortalでbodyに直接レンダリング */}
+        {tooltip && createPortal(
           <div
             className="floating-nav-bar-tooltip"
             style={{
@@ -574,7 +718,183 @@ export const FloatingNavBar = ({
             }}
           >
             {tooltip.text}
+          </div>,
+          document.body
+        )}
+      </>
+    )
+  }
+
+  // Pictogram用のナビゲーションバー
+  if (itemType === 'pictogram') {
+    return (
+      <>
+      <div className="floating-nav-bar-container">
+        <div className="floating-nav-bar">
+          {/* モード切替 */}
+          <div className="floating-nav-bar-group">
+            <button
+              className={`floating-nav-bar-btn ${pictogramState?.mode === 'select' ? 'active' : ''}`}
+              onClick={() => onPictogramOperation?.('setMode', 'select')}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '選択モード (V)')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">near_me</span>
+            </button>
+            <button
+              className={`floating-nav-bar-btn ${pictogramState?.mode === 'connect' ? 'active' : ''}`}
+              onClick={() => onPictogramOperation?.('setMode', 'connect')}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '接続モード (C)')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">trending_flat</span>
+            </button>
+            <button
+              className={`floating-nav-bar-btn ${pictogramState?.mode === 'comment' ? 'active' : ''}`}
+              onClick={() => onPictogramOperation?.('setMode', 'comment')}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, 'コメントモード (T)')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">chat_bubble_outline</span>
+            </button>
+          </div>
+
+          <div className="floating-nav-bar-divider" />
+
+          {/* 削除・グループ化 */}
+          <div className="floating-nav-bar-group">
+            <button
+              className="floating-nav-bar-btn"
+              onClick={() => onPictogramOperation?.('delete')}
+              disabled={!pictogramState?.canDelete}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '削除 (Delete)')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">delete_outline</span>
+            </button>
+            <button
+              className="floating-nav-bar-btn"
+              onClick={() => onPictogramOperation?.('group')}
+              disabled={!pictogramState?.canGroup}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, 'グループ化 (Ctrl+G)')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">group_work</span>
+            </button>
+          </div>
+
+          <div className="floating-nav-bar-divider" />
+
+          {/* 要素追加パレット */}
+          <div className="floating-nav-bar-group" ref={overflowRef}>
+            <button
+              className={`floating-nav-bar-btn ${showOverflow ? 'active' : ''}`}
+              onClick={() => setShowOverflow(!showOverflow)}
+              onMouseEnter={(e) => handleTooltipMouseEnter(e, '要素を追加')}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              <span className="material-icons">add</span>
+            </button>
+
+            {/* 要素追加メニュー */}
+            {showOverflow && (
+              <div className="floating-nav-bar-overflow-menu floating-nav-bar-picto-palette">
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('person'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, 'ヒト')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">person</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('company'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, '会社')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">business</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('money'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, 'カネ')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">payments</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('product'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, 'モノ')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">inventory_2</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('info'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, '情報')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">info</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('smartphone'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, 'スマホ')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">smartphone</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('store'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, '店舗')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">storefront</span>
+                </button>
+                <button
+                  className="floating-nav-bar-btn"
+                  onClick={() => { onAddPictogramElement?.('other'); setShowOverflow(false) }}
+                  onMouseEnter={(e) => handleTooltipMouseEnter(e, 'その他')}
+                  onMouseLeave={handleTooltipMouseLeave}
+                >
+                  <span className="material-icons">category</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+        
+        {/* ツールチップ - createPortalでbodyに直接レンダリング */}
+        {tooltip && createPortal(
+          <div
+            className="floating-nav-bar-tooltip"
+            style={{
+              position: 'fixed',
+              left: `${tooltip.x}px`,
+              top: `${tooltip.y}px`,
+              transform: 'translateX(-50%) translateY(-100%)',
+              pointerEvents: 'none',
+              zIndex: 10000,
+              marginTop: '-8px'
+            }}
+            onMouseEnter={() => {
+              if (tooltipTimeoutRef.current) {
+                clearTimeout(tooltipTimeoutRef.current)
+                tooltipTimeoutRef.current = null
+              }
+            }}
+            onMouseLeave={() => {
+              setTooltip(null)
+            }}
+          >
+            {tooltip.text}
+          </div>,
+          document.body
         )}
       </>
     )

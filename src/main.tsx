@@ -8,6 +8,9 @@ import './styles/tones.css'
 import './styles/formats.css'
 import App from './App.tsx'
 
+// 開発時のみ: 視認性チェッカーをグローバルに公開
+import './utils/visibilityChecker'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

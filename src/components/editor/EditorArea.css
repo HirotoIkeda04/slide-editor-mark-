@@ -1,0 +1,61 @@
+/* EditorArea - エディタ側全体のラッパー */
+.editor-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* width is controlled by inline style */
+  overflow: hidden;
+  position: relative;
+}
+
+/* メインコンテンツ + タブバーのコンテナ */
+.editor-area-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* コンテンツエリア（Editor / ImpressionPanel / ItemDetailPanel） */
+.editor-area-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  position: relative;
+  overflow: hidden;
+  background-color: oklch(0.235 0.006 55); /* 行番号カラム(0.250)より暗め */
+}
+
+/* アイテムタブバー */
+.editor-area-tabbar {
+  display: flex;
+  flex-direction: column;
+  width: 36px;
+  min-height: 0;
+  border-left: 1px solid var(--app-border-primary);
+}
+
+/* Toast配置 - FloatingNavBarの上 */
+.editor-area-toast {
+  pointer-events: none;
+  position: fixed;
+  z-index: 40;
+  bottom: 64px;
+  /* left, width are controlled by inline style */
+  transform: translateX(-50%);
+  max-width: 420px;
+}
+
+/* FloatingNavBar配置 - エディタ領域の最下部 */
+.editor-area-navbar {
+  pointer-events: none;
+  position: fixed;
+  z-index: 40;
+  bottom: 12px;
+  /* left, width are controlled by inline style */
+  transform: translateX(-50%);
+  max-width: 420px;
+}

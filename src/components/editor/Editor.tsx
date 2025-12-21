@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type JSX } from 'react'
-import type { ConsoleMessage, EditorLine, EditorSelection } from '../../types'
+import type { ConsoleMessage, EditorLine, EditorSelection, Item } from '../../types'
+import { useMentionPopup } from '../../hooks'
+import { MentionPopup } from '../common/MentionPopup'
 import './Editor.css'
 
 // UUID generator
@@ -18,6 +20,8 @@ interface EditorProps {
   errorMessages: ConsoleMessage[]
   onCurrentLineChange?: (lineIndex: number, attribute: string | null) => void
   onSelectionChange?: (selection: EditorSelection | null) => void
+  scrollToLine?: number | null  // 外部からスクロール指示を受ける（0-based行インデックス）
+  items?: Item[]  // @メンション補完用のアイテムリスト
 }
 
 export const Editor = ({
@@ -28,6 +32,8 @@ export const Editor = ({
   errorMessages,
   onCurrentLineChange,
   onSelectionChange,
+  scrollToLine,
+  items = [],
 }: EditorProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -37,6 +43,39 @@ export const Editor = ({
   const dragStartRef = useRef<{ line: number; char: number } | null>(null)
   const lastClickRef = useRef<{ time: number; line: number; char: number } | null>(null)
   const shiftAnchorRef = useRef<{ line: number; char: number } | null>(null)
+  
+  // @メンション補完機能
+  const mentionLineIndexRef = useRef<number>(0)
+  const handleMentionInsert = useCallback((itemName: string, replaceStart: number, replaceEnd: number) => {
+    const lineIndex = mentionLineIndexRef.current
+    const line = lines[lineIndex]
+    if (!line) return
+    
+    const indent = line.text.match(/^[\t ]*/)?.[0] || ''
+    const textWithoutIndent = line.text.replace(/^[\t ]+/, '')
+    
+    // @から検索クエリまでを置換して@アイテム名にする
+    const newText = textWithoutIndent.slice(0, replaceStart) + '@' + itemName + textWithoutIndent.slice(replaceEnd)
+    
+    const newLines = [...lines]
+    newLines[lineIndex] = { ...line, text: indent + newText }
+    setLines(newLines)
+    
+    // カーソルを挿入したアイテム名の後ろに移動
+    const newCursorPos = replaceStart + 1 + itemName.length
+    setTimeout(() => {
+      const input = inputRefs.current[lineIndex]
+      if (input) {
+        input.focus()
+        input.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }, [lines, setLines])
+  
+  const mentionPopup = useMentionPopup({
+    items,
+    onInsert: handleMentionInsert,
+  })
 
   // Error lines set
   const errorLines = new Set(errorMessages.map(msg => msg.line))
@@ -54,6 +93,66 @@ export const Editor = ({
       onSelectionChange(selection)
     }
   }, [selection, onSelectionChange])
+
+  // Handle external scroll request
+  useEffect(() => {
+    if (scrollToLine !== null && scrollToLine !== undefined && scrollToLine >= 0 && scrollToLine < lines.length) {
+      // 行要素を取得してスクロール
+      const input = inputRefs.current[scrollToLine]
+      const container = containerRef.current
+      if (input && container) {
+        // カスタムイージングアニメーションでスクロール
+        const inputRect = input.getBoundingClientRect()
+        const containerRect = container.getBoundingClientRect()
+        
+        // 目標位置（中央に配置）
+        const rawTargetScrollTop = container.scrollTop + (inputRect.top - containerRect.top) - (containerRect.height / 2) + (inputRect.height / 2)
+        // スクロール可能な範囲にクランプ（0 〜 scrollHeight - clientHeight）
+        const maxScrollTop = container.scrollHeight - container.clientHeight
+        const targetScrollTop = Math.max(0, Math.min(rawTargetScrollTop, maxScrollTop))
+        const startScrollTop = container.scrollTop
+        const distance = targetScrollTop - startScrollTop
+        
+        // 距離が非常に小さい場合はアニメーションをスキップ
+        if (Math.abs(distance) < 1) {
+          setCurrentLineIndex(scrollToLine)
+          input.focus({ preventScroll: true })
+          input.setSelectionRange(0, 0)
+          return
+        }
+        
+        // アニメーション設定
+        const duration = 800 // ミリ秒（長めにして緩急を感じやすく）
+        let startTime: number | null = null
+        
+        // easeOutExpo イージング関数（最初は速く、終わりに向かって大きく減速）
+        const easeOutExpo = (t: number): number => {
+          return t === 1 ? 1 : 1 - Math.pow(2, -10 * t)
+        }
+        
+        const animateScroll = (currentTime: number) => {
+          if (startTime === null) startTime = currentTime
+          const elapsed = currentTime - startTime
+          const progress = Math.min(elapsed / duration, 1)
+          
+          const easedProgress = easeOutExpo(progress)
+          container.scrollTop = startScrollTop + (distance * easedProgress)
+          
+          if (progress < 1) {
+            requestAnimationFrame(animateScroll)
+          } else {
+            // アニメーション完了後にフォーカスと行インデックスを設定
+            // preventScroll: true でブラウザの自動スクロールを防止
+            setCurrentLineIndex(scrollToLine)
+            input.focus({ preventScroll: true })
+            input.setSelectionRange(0, 0)
+          }
+        }
+        
+        requestAnimationFrame(animateScroll)
+      }
+    }
+  }, [scrollToLine, lines.length])
 
   // Focus input when current line changes
   const focusLine = useCallback((lineIndex: number, cursorPos?: number) => {
@@ -85,6 +184,11 @@ export const Editor = ({
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, lineIndex: number) => {
     const input = e.currentTarget
     const { selectionStart, selectionEnd, value } = input
+
+    // @メンション補完のキーイベントを先に処理
+    if (mentionPopup.handleKeyDown(e)) {
+      return
+    }
 
     // Arrow Up - move to previous line
     if (e.key === 'ArrowUp' && lineIndex > 0) {
@@ -365,12 +469,11 @@ export const Editor = ({
     if (!attribute) {
       return ''
     }
+    // 見出し属性値（#, ##, ###）およびレイアウト属性値（#ttl, #agd, #!）は黄色
     if (attribute.startsWith('#')) {
       return 'editor-attribute-heading'
     }
-    if (attribute === '!') {
-      return 'editor-attribute-key-message'
-    }
+    // ! はグレー（デフォルト）で表示
     return ''
   }
   
@@ -378,14 +481,7 @@ export const Editor = ({
   const renderSyntaxHighlight = (text: string): JSX.Element => {
     const parts: Array<{ text: string; className?: string }> = []
     let lastIndex = 0
-    
-    // レイアウトタイプ: [表紙] [目次] [まとめ] - 紫
-    const layoutPattern = /(\[[表紙目次まとめ]+\])/g
     let match
-    const layoutMatches: Array<{ index: number; length: number }> = []
-    while ((match = layoutPattern.exec(text)) !== null) {
-      layoutMatches.push({ index: match.index, length: match[0].length })
-    }
     
     // 比率・配置指定: {2} {mid} {2 mid} - オレンジ
     const ratioPattern = /\{([^}]+)\}/g
@@ -406,8 +502,8 @@ export const Editor = ({
     }
     
     // すべてのマッチをインデックス順にソート
+    // 注: レイアウト属性値(#ttl, #agd, #!)は属性オーバーレイで表示されるため、ここでは対象外
     const allMatches = [
-      ...layoutMatches.map(m => ({ ...m, className: 'editor-syntax-layout-type' })),
       ...ratioMatches.map(m => ({ ...m, className: 'editor-syntax-ratio-spec' })),
       ...itemMatches.map(m => ({ ...m, className: 'editor-syntax-item-ref' }))
     ].sort((a, b) => a.index - b.index)
@@ -460,6 +556,11 @@ export const Editor = ({
   // Detect attribute typed at the start of the input and return remaining text
   const extractAttributeFromInput = (text: string): { attribute?: string | null; text: string } => {
     const patterns: Array<{ regex: RegExp; getAttribute: (match: RegExpMatchArray) => string | null }> = [
+      // レイアウト属性値（#ttl, #agd, #!）は通常の見出しより先にマッチさせる
+      { regex: /^#ttl\s+/, getAttribute: () => '#ttl' },
+      { regex: /^#agd\s+/, getAttribute: () => '#agd' },
+      { regex: /^#!\s+/, getAttribute: () => '#!' },
+      // 通常の見出し属性値
       { regex: /^(#{1,3})\s+/, getAttribute: (match) => match[1] },
       { regex: /^-\s+/, getAttribute: () => '-' },
       { regex: /^\*\s+/, getAttribute: () => '*' },
@@ -928,92 +1029,126 @@ export const Editor = ({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [selection, handleCopy, handleCut, handlePaste, handleDeleteSelection, handleBold])
 
+  // 行番号カラムの幅を計算（3桁以上に対応、4桁以上は自動拡張）
+  // font-size: 10pxで1文字約6px、padding: 0 8pxで16px追加
+  const digits = Math.max(3, String(lines.length).length)
+  const lineNumberWidthPx = (digits * 6) + 16  // 桁数 × 文字幅 + パディング
+
   return (
     <div 
       ref={containerRef}
       className="editor-container"
+      style={{ '--line-number-width': `${lineNumberWidthPx}px` } as React.CSSProperties}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
-      {/* Line number column */}
-      <div className="editor-line-numbers">
-        {lines.map((_, idx) => {
-            const lineNumber = idx + 1
+      {/* 各行を1つの要素として統合 - サブピクセル問題を根本的に解決 */}
+      {lines.map((line, idx) => {
+          const lineNumber = idx + 1
           const isCurrentLine = idx === currentLineIndex
-            const hasError = errorLines.has(lineNumber)
+          const hasError = errorLines.has(lineNumber)
 
-          let lineColor = '#666'
+          let lineNumberColor = '#666'
           if (hasError) {
-            lineColor = 'var(--app-error-light)'
+            lineNumberColor = 'var(--app-error-light)'
           } else if (isCurrentLine) {
-            lineColor = 'var(--app-text-secondary)'
+            lineNumberColor = 'var(--app-text-secondary)'
           }
 
-            return (
-            <div key={idx} className="editor-line-number" style={{ color: lineColor }}>
+          return (
+            <div
+              key={line.id}
+              className={`editor-row ${isCurrentLine ? 'current' : ''}`}
+            >
+              {/* 行番号 */}
+              <div 
+                className="editor-line-number" 
+                style={{ 
+                  color: lineNumberColor,
+                  width: `${lineNumberWidthPx}px`,
+                }}
+              >
                 {lineNumber}
               </div>
-            )
-          })}
-        {/* Bottom spacer for FloatingNavBar clearance */}
-        <div className="editor-bottom-spacer" />
-        </div>
 
-      {/* Content area */}
-      <div className="editor-content">
-        {lines.map((line, idx) => (
-          <div
-            key={line.id}
-            className={`editor-line ${idx === currentLineIndex ? 'current' : ''}`}
-          >
-            {/* Leading whitespace (indent) */}
-            <span className="editor-indent">
-              {getLeadingWhitespace(line.text)}
-            </span>
+            {/* 行コンテンツ */}
+            <div className="editor-line-content">
+              {/* Leading whitespace (indent) */}
+              <span className="editor-indent">
+                {getLeadingWhitespace(line.text)}
+              </span>
 
-            {/* Attribute display (inline, next to text) */}
-            <span className={`editor-attribute ${getAttributeDisplayClass(line.attribute)}`}>
-              {getAttributeDisplay(line.attribute)}
-            </span>
+              {/* Attribute display (inline, next to text) */}
+              <span className={`editor-attribute ${getAttributeDisplayClass(line.attribute)}`}>
+                {getAttributeDisplay(line.attribute)}
+              </span>
 
-            {/* Text input with selection highlight (without leading whitespace) */}
-            <div className="editor-text-wrapper">
-              {renderSelectionHighlight(idx, getTextWithoutLeadingWhitespace(line.text))}
-              {/* シンタックスハイライトのオーバーレイ */}
-              {renderSyntaxHighlight(getTextWithoutLeadingWhitespace(line.text))}
-              <input
-                ref={(el) => { inputRefs.current[idx] = el }}
-                type="text"
-                className="editor-text-input"
-                value={getTextWithoutLeadingWhitespace(line.text)}
-                onChange={(e) => {
-                  const indent = getLeadingWhitespace(line.text)
-                  const newValue = e.target.value
-                  // 行頭での属性入力のみをチェック（パフォーマンス最適化）
-                  // 属性パターン（# , - , * など）で始まる場合のみ抽出を試みる
-                  const firstChar = newValue.charAt(0)
-                  if (firstChar === '#' || firstChar === '-' || firstChar === '*' || firstChar === '!' || /^[0-9A-Za-z]/.test(firstChar)) {
-                    const { attribute: newAttribute, text: textWithoutAttribute } = extractAttributeFromInput(newValue)
-                    if (newAttribute !== undefined) {
-                      handleTextChange(idx, indent + textWithoutAttribute, newAttribute)
-                      return
+              {/* Text input with selection highlight (without leading whitespace) */}
+              <div className="editor-text-wrapper">
+                {renderSelectionHighlight(idx, getTextWithoutLeadingWhitespace(line.text))}
+                {/* シンタックスハイライトのオーバーレイ */}
+                {renderSyntaxHighlight(getTextWithoutLeadingWhitespace(line.text))}
+                <input
+                  ref={(el) => { inputRefs.current[idx] = el }}
+                  type="text"
+                  className="editor-text-input"
+                  value={getTextWithoutLeadingWhitespace(line.text)}
+                  onChange={(e) => {
+                    const indent = getLeadingWhitespace(line.text)
+                    const newValue = e.target.value
+                    const cursorPos = e.target.selectionStart || 0
+                    
+                    // @メンション補完の処理
+                    mentionLineIndexRef.current = idx
+                    const inputRect = e.target.getBoundingClientRect()
+                    mentionPopup.handleChange(newValue, cursorPos, inputRect)
+                    
+                    // 行頭での属性入力のみをチェック（パフォーマンス最適化）
+                    // 属性パターン（# , - , * など）で始まる場合のみ抽出を試みる
+                    const firstChar = newValue.charAt(0)
+                    if (firstChar === '#' || firstChar === '-' || firstChar === '*' || firstChar === '!' || /^[0-9A-Za-z]/.test(firstChar)) {
+                      const { attribute: newAttribute, text: textWithoutAttribute } = extractAttributeFromInput(newValue)
+                      if (newAttribute !== undefined) {
+                        handleTextChange(idx, indent + textWithoutAttribute, newAttribute)
+                        return
+                      }
                     }
-                  }
-                  handleTextChange(idx, indent + newValue)
-                }}
-                onKeyDown={(e) => handleKeyDown(e, idx)}
-                onFocus={() => handleFocus(idx)}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => setIsComposing(false)}
-                spellCheck={false}
-              />
+                    handleTextChange(idx, indent + newValue)
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, idx)}
+                  onFocus={() => handleFocus(idx)}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
+                  spellCheck={false}
+                />
+              </div>
             </div>
-        </div>
-        ))}
-        {/* Bottom spacer for FloatingNavBar clearance */}
-        <div className="editor-bottom-spacer" />
-      </div>
+          </div>
+        )
+      })}
+      {/* Bottom spacer for FloatingNavBar clearance */}
+      <div className="editor-bottom-spacer" />
+      
+      {/* @メンション補完ポップアップ */}
+      {mentionPopup.isOpen && (
+        <MentionPopup
+          items={mentionPopup.filteredItems}
+          searchQuery={mentionPopup.searchQuery}
+          selectedIndex={mentionPopup.selectedIndex}
+          position={mentionPopup.position}
+          showAbove={mentionPopup.showAbove}
+          onSelect={(item) => {
+            handleMentionInsert(
+              item.name,
+              0, // will be recalculated in the hook
+              mentionPopup.searchQuery.length + 1
+            )
+            mentionPopup.close()
+          }}
+          onClose={mentionPopup.close}
+        />
+      )}
     </div>
   )
 }

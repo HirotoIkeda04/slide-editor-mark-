@@ -2,7 +2,6 @@ import { useThemeContext } from '../../contexts/ThemeContext'
 import './Toolbar.css'
 
 interface ToolbarProps {
-  onLoad: () => void
   onShowHelp: () => void
   onShowExport: () => void
   onUndo: () => void
@@ -12,7 +11,6 @@ interface ToolbarProps {
 }
 
 export const Toolbar = ({
-  onLoad,
   onShowHelp,
   onShowExport,
   onUndo,
@@ -54,9 +52,6 @@ export const Toolbar = ({
         </div>
         <div className="toolbar-divider" />
         <div className="toolbar-button-group">
-          <button onClick={onLoad} className="toolbar-button" data-tooltip="読み込み">
-            <span className="material-icons toolbar-icon">folder_open</span>
-          </button>
           <button onClick={onShowHelp} className="toolbar-button" data-tooltip="使い方">
             <span className="material-icons toolbar-icon">help_outline</span>
           </button>

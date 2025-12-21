@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { Item } from '../../types'
+import { NEW_ITEM_ID } from '../../types'
+import { EulerIcon } from '../euler/EulerIcon'
 import './Items.css'
 
 const MAIN_SLIDE_ITEM_ID = 'main-slide'
@@ -9,12 +11,11 @@ interface ItemTabBarProps {
   items: Item[]
   selectedItemId: string | null
   onSelectItem: (itemId: string | null) => void
-  onAddItem: () => void
   onUpdateItem?: (itemId: string, updates: Partial<Item>) => void
   onInsert?: (item: Item) => void
   onDelete?: (itemId: string) => void
   existingNames?: string[]
-  // トンマナタブ用
+  // Tone & Mannerタブ用
   isTonmanaSelected?: boolean
   onSelectTonmana?: () => void
 }
@@ -23,7 +24,6 @@ export const ItemTabBar = ({
   items, 
   selectedItemId, 
   onSelectItem, 
-  onAddItem,
   onUpdateItem,
   onInsert,
   onDelete,
@@ -43,7 +43,7 @@ export const ItemTabBar = ({
   const [showNameBar, setShowNameBar] = useState(false)
   const nameBarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const getItemIcon = (type: Item['type']): string => {
+  const getItemIcon = (type: Item['type']): string | null => {
     switch (type) {
       case 'slide':
         return 'slideshow'
@@ -53,9 +53,22 @@ export const ItemTabBar = ({
         return 'image'
       case 'text':
         return 'notes'
+      case 'picto':
+        return 'schema'
+      case 'euler':
+        return null // カスタムアイコンを使用
+      case 'new':
+        return 'add_circle_outline'
       default:
         return 'inventory_2'
     }
+  }
+
+  const renderItemIcon = (type: Item['type']) => {
+    if (type === 'euler') {
+      return <EulerIcon size={18} />
+    }
+    return <span className="material-icons">{getItemIcon(type)}</span>
   }
 
   const validateName = (value: string, currentItem: Item): boolean => {
@@ -77,7 +90,7 @@ export const ItemTabBar = ({
   const handleIconDoubleClick = (item: Item, e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    if (item.id === MAIN_SLIDE_ITEM_ID) {
+    if (item.id === MAIN_SLIDE_ITEM_ID || item.type === 'new') {
       return
     }
     // アクションポップアップを表示
@@ -257,13 +270,15 @@ export const ItemTabBar = ({
     setShowNameBar(false)
   }
 
-  // メインスライドアイテムとその他のアイテムを分離
+  // メインスライドアイテム、通常アイテム、新しいアイテムを分離
   const mainSlideItem = items.find(item => item.id === MAIN_SLIDE_ITEM_ID)
-  const otherItems = items.filter(item => item.id !== MAIN_SLIDE_ITEM_ID)
+  const newItem = items.find(item => item.id === NEW_ITEM_ID)
+  const otherItems = items.filter(item => item.id !== MAIN_SLIDE_ITEM_ID && item.id !== NEW_ITEM_ID)
 
   console.log('[ItemTabBar] Render', { 
     itemsCount: items.length, 
     otherItemsCount: otherItems.length,
+    hasNewItem: !!newItem,
     onUpdateItem: !!onUpdateItem,
     editingItemId 
   })
@@ -286,13 +301,13 @@ export const ItemTabBar = ({
           </div>
         )}
         
-        {/* トンマナ */}
+        {/* Tone & Manner */}
         {onSelectTonmana && (
           <div 
             className={`item-name-bar-item ${isTonmanaSelected ? 'active' : ''}`}
             onClick={onSelectTonmana}
           >
-            <span className="item-name-bar-text">トンマナ</span>
+            <span className="item-name-bar-text">Tone & Manner</span>
           </div>
         )}
         
@@ -309,11 +324,32 @@ export const ItemTabBar = ({
             onClick={() => onSelectItem(item.id)}
           >
             <span className="item-name-bar-text">{item.name}</span>
+            {onDelete && (
+              <button
+                className="item-name-bar-delete-button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (confirm('Are you sure you want to delete this item?')) {
+                    onDelete(item.id)
+                  }
+                }}
+                title="削除"
+              >
+                <span className="material-icons">close</span>
+              </button>
+            )}
           </div>
         ))}
         
-        {/* 追加ボタンのスペーサー */}
-        <div className="item-name-bar-add-spacer" />
+        {/* 新しいアイテム */}
+        {newItem && (
+          <div 
+            className={`item-name-bar-item item-name-bar-new-item ${selectedItemId === NEW_ITEM_ID ? 'active' : ''}`}
+            onClick={() => onSelectItem(NEW_ITEM_ID)}
+          >
+            <span className="item-name-bar-text">新しいアイテム</span>
+          </div>
+        )}
       </div>
 
       {/* アイテムリスト（縦一列） */}
@@ -329,11 +365,11 @@ export const ItemTabBar = ({
               e.currentTarget.blur()
             }}
           >
-            <span className="material-icons">{getItemIcon(mainSlideItem.type)}</span>
+            {renderItemIcon(mainSlideItem.type)}
           </button>
         )}
 
-        {/* トンマナタブ（Main Slideの直下） */}
+        {/* Tone & Mannerタブ（Main Slideの直下） */}
         {onSelectTonmana && (
           <button
             key={TONMANA_TAB_ID}
@@ -342,13 +378,13 @@ export const ItemTabBar = ({
               onSelectTonmana()
               e.currentTarget.blur()
             }}
-            title="トンマナ設定"
+            title="Tone & Manner設定"
           >
             <span className="material-icons">palette</span>
           </button>
         )}
 
-        {/* Main Slide/トンマナとその他のアイテムの区切り線 */}
+        {/* Main Slide/Tone & Mannerとその他のアイテムの区切り線 */}
         {mainSlideItem && otherItems.length > 0 && (
           <div className="item-tab-separator" />
         )}
@@ -373,18 +409,23 @@ export const ItemTabBar = ({
               handleIconDoubleClick(item, e)
             }}
           >
-            <span className="material-icons">{getItemIcon(item.type)}</span>
+            {renderItemIcon(item.type)}
           </button>
         ))}
 
-        {/* 追加ボタン（常に一番下） */}
-        <button
-          className="item-tab-add-button"
-          onClick={onAddItem}
-          title="Add new item"
-        >
-          <span className="material-icons">add</span>
-        </button>
+        {/* 新しいアイテム（常に一番下） */}
+        {newItem && (
+          <button
+            className={`item-tab-icon-button item-tab-new-item ${selectedItemId === NEW_ITEM_ID ? 'active' : ''}`}
+            onClick={(e) => {
+              onSelectItem(NEW_ITEM_ID)
+              e.currentTarget.blur()
+            }}
+            title="新しいアイテムを作成"
+          >
+            <span className="material-icons">add_circle_outline</span>
+          </button>
+        )}
       </div>
 
       {/* アクションポップアップ（Insert/Delete） */}
@@ -477,7 +518,7 @@ export const ItemTabBar = ({
                     <span>Insert</span>
                   </button>
                 )}
-                {onDelete && (
+                {onDelete && actionItem.id !== MAIN_SLIDE_ITEM_ID && actionItem.type !== 'new' && (
                   <button
                     className="item-tab-action-button delete"
                     onClick={() => {

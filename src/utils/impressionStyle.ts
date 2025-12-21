@@ -1,6 +1,6 @@
 
 import type { ImpressionCode, ImpressionStyleVars, ImpressionSubAttributes, GradientConfig, TonmanaStyle } from '../types'
-import { findMatchingBiome } from '../constants/tonmanaBiomes'
+import { getBiomeById, getDefaultBiome } from '../constants/tonmanaBiomes'
 
 // ============================================
 // グラデーションパーサー
@@ -222,10 +222,13 @@ export function isLightColor(colorStr: string): boolean {
  */
 export function generateStyleVars(
   code: ImpressionCode,
-  _subAttributes?: ImpressionSubAttributes
+  _subAttributes?: ImpressionSubAttributes,
+  selectedBiomeId?: string
 ): ImpressionStyleVars {
-  // バイオームマッチングでスタイルを取得
-  const biome = findMatchingBiome(code)
+  // バイオームを取得（選択されていればその ID、なければデフォルト）
+  const biome = selectedBiomeId 
+    ? getBiomeById(selectedBiomeId) ?? getDefaultBiome()
+    : getDefaultBiome()
   
   // TonmanaStyleからImpressionStyleVarsを構築
   return buildStyleVarsFromEntry(biome.style, code)
@@ -259,6 +262,14 @@ function buildStyleVarsFromEntry(entry: TonmanaStyle, code: ImpressionCode): Imp
     ? extractFirstColor(entry.bgCover)
     : entry.bgCover
   
+  // 表紙/中扉用の背景色とテキスト色
+  const bgCoverIsGradient = entry.bgCover.startsWith('linear-gradient(')
+  const backgroundCoverGradient = bgCoverIsGradient ? parseGradientString(entry.bgCover) ?? undefined : undefined
+  const backgroundCover = bgCoverIsGradient ? extractFirstColor(entry.bgCover) : entry.bgCover
+  
+  // 表紙のテキスト色は背景色の明るさに応じて決定
+  const textCover = isLightColor(backgroundCover) ? 'oklch(0.20 0.00 0)' : 'oklch(0.98 0.00 0)'
+  
   // 角丸（Decoration軸で決定 - シンプルは小さめ、装飾的は大きめ）
   const borderRadiusValue = Math.round(decorationRatio * 16)
   const borderRadius = `${borderRadiusValue}px`
@@ -277,11 +288,14 @@ function buildStyleVarsFromEntry(entry: TonmanaStyle, code: ImpressionCode): Imp
     primaryDark,
     background,
     backgroundAlt,
+    backgroundCover,
+    textCover,
     text: entry.textColor,
     textMuted,
     accent,
     backgroundGradient,
     textGradient,
+    backgroundCoverGradient,
     fontFamily: entry.fontBody,
     fontFamilyHeading: entry.fontHeading,
     fontWeight,
@@ -289,6 +303,7 @@ function buildStyleVarsFromEntry(entry: TonmanaStyle, code: ImpressionCode): Imp
     letterSpacing: entry.letterSpacing || '0',
     borderRadius,
     spacing,
+    chartColors: entry.chartColors,
   }
 }
 
@@ -396,11 +411,22 @@ export function styleVarsToCSSProperties(vars: ImpressionStyleVars): Record<stri
   // 背景色が明るいかどうかで表の色を決定
   const bgIsLight = isLightColor(vars.background)
   
-  // 表セル用の色（常に読みやすいコントラストを確保）
+  // テーブル用の色（headingColorをベースにTone & Mannerに沿った色を生成）
+  // グラデーションの場合は最初の色を抽出
+  const primaryColor = extractFirstColor(vars.primary)
+  
+  // ヘッダー下線とボーダーはheadingColor
+  const tableHeaderBorder = primaryColor
+  // 1列目（行ヘッダー）は薄いheadingColor
+  const tableRowHeaderBg = lightenOklch(primaryColor, 0.40)
+  // 2列目以降のセルは白背景
   const tableCellBg = bgIsLight ? 'oklch(1.00 0 0)' : 'oklch(0.98 0 0)'
-  const tableRowHeaderBg = bgIsLight ? 'oklch(0.92 0 0)' : 'oklch(0.90 0 0)'
-  const tableTextColor = 'oklch(0.25 0.01 250)' // 常に暗いテキスト
-  const tableHeaderBorder = 'oklch(0.30 0.01 250)' // 暗いボーダー
+  // 2列目以降のセルボーダーは薄いheadingColor
+  const tableCellBorder = lightenOklch(primaryColor, 0.30)
+  // テキスト色（1列目用）- 行ヘッダーの背景に対してコントラストを確保
+  const tableRowHeaderText = bgIsLight ? vars.text : 'oklch(0.25 0.00 0)'
+  // テキスト色（2列目以降用）- 白背景に対してコントラストを確保
+  const tableTextColor = 'oklch(0.25 0.00 0)'
   
   return {
     '--tone-primary': vars.primary,
@@ -418,11 +444,13 @@ export function styleVarsToCSSProperties(vars: ImpressionStyleVars): Record<stri
     '--tone-letter-spacing': vars.letterSpacing,
     '--tone-border-radius': vars.borderRadius,
     '--tone-spacing': vars.spacing,
-    // 表用の色変数
-    '--tone-table-cell-bg': tableCellBg,
-    '--tone-table-row-header-bg': tableRowHeaderBg,
-    '--tone-table-text': tableTextColor,
+    // 表用の色変数（Tone & Mannerに沿った色）
     '--tone-table-header-border': tableHeaderBorder,
+    '--tone-table-row-header-bg': tableRowHeaderBg,
+    '--tone-table-row-header-text': tableRowHeaderText,
+    '--tone-table-cell-bg': tableCellBg,
+    '--tone-table-cell-border': tableCellBorder,
+    '--tone-table-text': tableTextColor,
   }
 }
 

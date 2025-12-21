@@ -1,0 +1,538 @@
+/* ChatFAB - Floating Action Button for AI Chat */
+
+.chat-fab-container {
+  position: absolute;
+  bottom: 72px; /* FloatingNavBarの上に配置 */
+  right: 12px;
+  z-index: 50;
+}
+
+/* 状態遷移のコンテナアニメーション */
+.chat-fab-state-fab {
+  transition: all 0.2s ease;
+}
+
+.chat-fab-state-bar {
+  transition: all 0.2s ease;
+}
+
+.chat-fab-state-panel {
+  transition: all 0.25s ease;
+}
+
+/* =========================
+   FAB State - 丸いボタン
+   ========================= */
+
+.chat-fab-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--button-primary-bg);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fabAppear 0.3s ease-out;
+}
+
+@keyframes fabAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chat-fab-button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px oklch(0 0 0 / 0.35);
+  background: linear-gradient(135deg, var(--color-beige-400) 0%, var(--color-beige-500) 100%);
+}
+
+.chat-fab-button:active {
+  transform: scale(0.95);
+}
+
+.chat-fab-button:focus-visible {
+  outline: 2px solid var(--app-accent-light);
+  outline-offset: 2px;
+}
+
+.chat-fab-icon {
+  font-size: 1.375rem;
+  color: var(--button-primary-text);
+  transition: transform 0.2s ease;
+}
+
+.chat-fab-button:hover .chat-fab-icon {
+  transform: rotate(15deg);
+}
+
+/* =========================
+   Bar State - 入力バー
+   ========================= */
+
+.chat-fab-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  animation: fabBarExpand 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-fab-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--app-bg-secondary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 20px oklch(0 0 0 / 0.25);
+  min-width: 340px;
+  transform-origin: right center;
+}
+
+@keyframes fabBarExpand {
+  from {
+    opacity: 0;
+    transform: scaleX(0.3) scaleY(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1) scaleY(1);
+  }
+}
+
+/* 入力エリア（上部） */
+.chat-fab-input-area {
+  width: 100%;
+}
+
+/* コントロールバー（下部） */
+.chat-fab-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.chat-fab-controls-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chat-fab-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* 画像プレビュー */
+.chat-fab-image-preview-container {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--app-bg-secondary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.2);
+}
+
+.chat-fab-image-preview {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  border: 1px solid var(--app-border-primary);
+}
+
+.chat-fab-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-fab-image-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  background: oklch(0 0 0 / 0.7);
+  color: #fff;
+  border: none;
+  border-radius: 0 0 0 0.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.chat-fab-image-remove:hover {
+  background: oklch(0.5 0.2 25 / 0.9);
+}
+
+/* 画像追加ボタン */
+.chat-fab-image-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: 1px solid var(--app-border-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-text-muted);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chat-fab-image-button:hover {
+  background: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+  border-color: var(--app-border-hover);
+}
+
+.chat-fab-image-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* モードセレクター */
+.chat-fab-mode-selector {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-fab-mode-button {
+  height: 24px;
+  padding: 0 0.375rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: 1px solid var(--app-border-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  transition: all 0.15s ease;
+}
+
+.chat-fab-mode-button:hover {
+  background: var(--app-bg-tertiary);
+  border-color: var(--app-border-hover);
+}
+
+.chat-fab-mode-icon {
+  font-size: 16px;
+  color: var(--app-text-secondary);
+  line-height: 1;
+}
+
+.chat-fab-chevron {
+  color: var(--app-text-muted);
+  flex-shrink: 0;
+}
+
+.chat-fab-mode-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.5rem;
+  background: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.5rem;
+  box-shadow: var(--app-shadow-lg);
+  min-width: 120px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.chat-fab-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: none;
+  color: var(--app-text-primary);
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.chat-fab-mode-option:hover {
+  background: var(--app-border-primary);
+}
+
+.chat-fab-mode-option.active {
+  background: var(--app-border-primary);
+  color: var(--app-accent-light);
+}
+
+.chat-fab-mode-option-icon {
+  font-size: 14px;
+  line-height: 1;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.chat-fab-mode-option-label {
+  font-weight: 500;
+}
+
+/* モデルセレクター */
+.chat-fab-model-selector {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-fab-model-button {
+  height: 24px;
+  padding: 0 0.25rem;
+  border-radius: 0.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.chat-fab-model-button:hover {
+  background: var(--app-bg-tertiary);
+}
+
+.chat-fab-model-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chat-fab-model-dropdown {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 0.5rem;
+  background: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 0.5rem;
+  box-shadow: var(--app-shadow-lg);
+  min-width: 140px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.chat-fab-model-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: none;
+  color: var(--app-text-primary);
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.chat-fab-model-option:hover {
+  background: var(--app-border-primary);
+}
+
+.chat-fab-model-option.active {
+  background: var(--app-border-primary);
+  color: var(--app-accent-light);
+}
+
+.chat-fab-model-option-check {
+  font-size: 0.75rem;
+  width: 1rem;
+  text-align: center;
+  color: var(--app-accent-light);
+}
+
+.chat-fab-model-option-label {
+  font-weight: 500;
+}
+
+/* 入力フィールド */
+.chat-fab-bar-input {
+  width: 100%;
+  min-height: 20px;
+  max-height: 80px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--app-text-primary);
+  font-size: 12px;
+  min-width: 0;
+  caret-color: var(--app-accent-light);
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.chat-fab-bar-input::placeholder {
+  color: var(--app-text-muted);
+  transition: color 0.15s ease;
+}
+
+.chat-fab-bar-input:focus::placeholder {
+  color: var(--color-gray-600);
+}
+
+/* 展開ボタン */
+.chat-fab-expand-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: 1px solid var(--app-border-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-text-muted);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chat-fab-expand-button:hover {
+  background: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+  border-color: var(--app-border-hover);
+}
+
+.chat-fab-expand-button .material-icons {
+  font-size: 16px;
+}
+
+/* 送信ボタン */
+.chat-fab-send-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 0.375rem;
+  background: var(--button-primary-bg);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chat-fab-send-button svg {
+  width: 14px;
+  height: 14px;
+  color: var(--button-primary-text);
+}
+
+.chat-fab-send-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-beige-400) 0%, var(--color-beige-500) 100%);
+}
+
+.chat-fab-send-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--app-border-primary);
+}
+
+/* =========================
+   Panel State - フローティングパネル
+   ========================= */
+
+.chat-fab-panel {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 360px;
+  height: 500px;
+  background: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 1rem;
+  box-shadow: 
+    0 8px 32px oklch(0 0 0 / 0.25),
+    0 0 0 1px oklch(1 0 0 / 0.05) inset;
+  overflow: hidden;
+  animation: fabPanelExpand 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: bottom right;
+}
+
+@keyframes fabPanelExpand {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* パネル内のChatPanelスタイル調整 */
+.chat-fab-panel .chat-panel {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: linear-gradient(to bottom, var(--color-gray-1000) 0%, var(--color-gray-975) 100%);
+}
+
+.chat-fab-panel .chat-header {
+  border-radius: 1rem 1rem 0 0;
+}
+
+/* 閉じるボタンのスペース確保 */
+.chat-fab-panel .chat-header {
+  padding-right: 2.5rem;
+}
+
+/* パネル内のスクロールエリア */
+.chat-fab-panel .chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-border-primary) transparent;
+}
+
+.chat-fab-panel .chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-fab-panel .chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-fab-panel .chat-messages::-webkit-scrollbar-thumb {
+  background: var(--app-border-primary);
+  border-radius: 3px;
+}
+
+.chat-fab-panel .chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--app-border-hover);
+}

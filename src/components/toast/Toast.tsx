@@ -3,9 +3,10 @@ import type { ConsoleMessage } from '../../types'
 
 interface ToastProps {
   messages: ConsoleMessage[]
+  onScrollToLine?: (lineIndex: number) => void  // 0-based line index
 }
 
-export const Toast = ({ messages }: ToastProps) => {
+export const Toast = ({ messages, onScrollToLine }: ToastProps) => {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   // メッセージが変更されたら、最初のメッセージにリセット
@@ -114,8 +115,22 @@ export const Toast = ({ messages }: ToastProps) => {
         </button>
       )}
 
-      {/* メッセージ */}
-      <div className="flex-1 flex items-center gap-2" style={{ marginLeft: hasMultiple ? '8px' : '0', minWidth: 0 }}>
+      {/* メッセージ（クリックでその行にスクロール） */}
+      <div 
+        className="flex-1 flex items-center gap-2" 
+        style={{ 
+          marginLeft: hasMultiple ? '8px' : '0', 
+          minWidth: 0,
+          cursor: onScrollToLine ? 'pointer' : 'default',
+        }}
+        onClick={() => {
+          if (onScrollToLine) {
+            // line は 1-based なので 0-based に変換
+            onScrollToLine(currentMessage.line - 1)
+          }
+        }}
+        title={onScrollToLine ? 'クリックしてこの行に移動' : undefined}
+      >
         <span className="font-mono" style={{ color: messageStyle.color, fontSize: '10px', flexShrink: 0 }}>
           L{currentMessage.line}
         </span>

@@ -10,6 +10,7 @@ interface SlideShowViewProps {
   currentTone: Tone
   impressionCode?: ImpressionCode
   styleOverrides?: Partial<ImpressionStyleVars>
+  selectedBiomeId?: string
   items: Item[]
   onClose: () => void
   onNavigate: (index: number) => void
@@ -22,6 +23,7 @@ export const SlideShowView = ({
   currentTone,
   impressionCode,
   styleOverrides,
+  selectedBiomeId,
   items,
   onClose,
   onNavigate
@@ -93,21 +95,7 @@ export const SlideShowView = ({
 
   return (
     <div className="slideshow-container" ref={containerRef} onClick={handleClick}>
-      {/* 閉じるボタン */}
-      <button
-        onClick={onClose}
-        className="slideshow-close-button"
-        title="ESCキーでも閉じられます"
-      >
-        <span className="material-icons">close</span>
-      </button>
-
-      {/* スライド番号表示 */}
-      <div className="slideshow-slide-number">
-        {currentIndex + 1} / {slides.length}
-      </div>
-
-      {/* ナビゲーションヒント */}
+      {/* ナビゲーションヒント（右上） */}
       <div className="slideshow-hint">
         <div className="slideshow-hint-item">
           <span className="material-icons">keyboard_arrow_left</span>
@@ -123,6 +111,32 @@ export const SlideShowView = ({
         </div>
       </div>
 
+      {/* スライド番号表示（左下） */}
+      <div className="slideshow-slide-number">
+        {currentIndex + 1} / {slides.length}
+      </div>
+
+      {/* 閉じるボタン（右下） */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+        className="slideshow-close-button"
+        title="ESCキーでも閉じられます"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {/* 左上（中央に向かう鉤） */}
+          <path d="M9 4V9H4" />
+          {/* 右上（中央に向かう鉤） */}
+          <path d="M15 4V9H20" />
+          {/* 左下（中央に向かう鉤） */}
+          <path d="M9 20V15H4" />
+          {/* 右下（中央に向かう鉤） */}
+          <path d="M15 20V15H20" />
+        </svg>
+      </button>
+
       {/* スライドプレビュー */}
       <div className="slideshow-slide-wrapper">
         <Preview
@@ -132,6 +146,7 @@ export const SlideShowView = ({
           currentTone={currentTone}
           impressionCode={impressionCode}
           styleOverrides={styleOverrides}
+          selectedBiomeId={selectedBiomeId}
           previewRef={previewRef}
           items={items}
           isSlideShow={true}

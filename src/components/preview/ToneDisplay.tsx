@@ -15,7 +15,7 @@ export const ToneDisplay = ({ code, onClick }: ToneDisplayProps) => {
       className="tone-display"
       onClick={onClick}
       type="button"
-      title="トンマナ設定を開く"
+      title="Tone & Manner設定を開く"
     >
       <span className="material-icons tone-display-icon">palette</span>
       <span className="tone-display-name">{nameJa}</span>

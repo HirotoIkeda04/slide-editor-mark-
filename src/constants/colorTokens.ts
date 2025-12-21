@@ -2,7 +2,7 @@
 // OKLCH Color Token System
 // ============================================
 // 上品でニュートラルなカラーパターン
-// スライドのトンマナ（tonmanaBiomes.ts）とは独立して管理
+// スライドのTone & Manner（tonmanaBiomes.ts）とは独立して管理
 
 /**
  * プリミティブカラートークン
