@@ -3,46 +3,112 @@
  * 
  * テーブルエリアの右側に表示されるポップアップパネル
  * グラフタイプに応じた設定項目を表示
+ * インラインモードではホバーで展開
  */
 
-import { useEffect, useCallback, useState, useRef } from 'react'
-import type { TableItem, TableDisplayFormat, GraphCategory, TreeSettings } from '../../types'
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react'
+import type { 
+  TableItem, 
+  TableDisplayFormat, 
+  GraphCategory, 
+  TreeSettings,
+  NestedCategory,
+  ChartYAxisConfig,
+  TableChartConfig,
+} from '../../types'
 import { DEFAULT_TREE_SETTINGS } from '../../types'
 import { GraphListSection } from './sections/GraphListSection'
 import { DataSection } from './sections/DataSection'
-import { ChartSettingsSection } from './sections/ChartSettingsSection'
 import { ColorSection } from './sections/ColorSection'
 import { DisplaySection } from './sections/DisplaySection'
-import { AxisSection } from './sections/AxisSection'
+import { XAxisSection } from './sections/XAxisSection'
+import { YAxisSection } from './sections/YAxisSection'
+import { Y2AxisSection } from './sections/Y2AxisSection'
 import { TreeSettingsPanel } from '../tree'
-import { getGraphTypeConfig, isTreeInputChart, getChartZUsages, supportsSeriesDisplayType } from '../../constants/graphConfigs'
+import { getGraphTypeConfig, isTreeInputChart } from '../../constants/graphConfigs'
+import { createDefaultYAxisConfig } from '../../utils/chartUtils'
 import './GraphPanel.css'
 
 export type PanelOpenedFrom = 'settings' | 'more'
+export type PanelMode = 'popup' | 'inline'
+type HoverState = 'collapsed' | 'expanding' | 'expanded' | 'closing'
 
 interface GraphSettingsPanelProps {
-  isOpen: boolean
-  openedFrom: PanelOpenedFrom
+  isOpen?: boolean
+  openedFrom?: PanelOpenedFrom
   table: TableItem
-  onClose: () => void
+  onClose?: () => void
   onUpdateTable: (updates: Partial<TableItem>) => void
   selectedCategory?: GraphCategory
   onCategoryChange?: (category: GraphCategory) => void
+  mode?: PanelMode
 }
 
 export const GraphSettingsPanel = ({
-  isOpen,
-  openedFrom,
+  isOpen = true,
+  openedFrom = 'settings',
   table,
   onClose,
   onUpdateTable,
   selectedCategory = 'all',
   onCategoryChange,
+  mode = 'popup',
 }: GraphSettingsPanelProps) => {
   const [isClosing, setIsClosing] = useState(false)
+  const [hoverState, setHoverState] = useState<HoverState>('collapsed')
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousActiveElementRef = useRef<HTMLElement | null>(null)
+  
+  // ホバー展開用タイムアウト
+  const expandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const closingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const expandingPhaseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
+  // タイムアウトをすべてクリア
+  const clearAllTimeouts = useCallback(() => {
+    if (expandTimeoutRef.current) {
+      clearTimeout(expandTimeoutRef.current)
+      expandTimeoutRef.current = null
+    }
+    if (closingTimeoutRef.current) {
+      clearTimeout(closingTimeoutRef.current)
+      closingTimeoutRef.current = null
+    }
+    if (expandingPhaseRef.current) {
+      clearTimeout(expandingPhaseRef.current)
+      expandingPhaseRef.current = null
+    }
+  }, [])
+  
+  // マウスエンター時の処理（インラインモード用）
+  const handleMouseEnter = useCallback(() => {
+    if (mode !== 'inline') return
+    clearAllTimeouts()
+    setHoverState('expanding')
+    expandingPhaseRef.current = setTimeout(() => {
+      setHoverState('expanded')
+    }, 200)
+  }, [mode, clearAllTimeouts])
+  
+  // マウスリーブ時の処理（インラインモード用）
+  const handleMouseLeave = useCallback(() => {
+    if (mode !== 'inline') return
+    clearAllTimeouts()
+    expandTimeoutRef.current = setTimeout(() => {
+      setHoverState('closing')
+      closingTimeoutRef.current = setTimeout(() => {
+        setHoverState('collapsed')
+      }, 300)
+    }, 100)
+  }, [mode, clearAllTimeouts])
+  
+  // クリーンアップ
+  useEffect(() => {
+    return () => clearAllTimeouts()
+  }, [clearAllTimeouts])
+  
+  const isHoverOpen = hoverState === 'expanding' || hoverState === 'expanded'
   
   const displayFormat = table.displayFormat || 'table'
   const chartConfig = table.chartConfig || {}
@@ -50,12 +116,28 @@ export const GraphSettingsPanel = ({
   const graphTypeConfig = getGraphTypeConfig(displayFormat)
   const isTreeChart = isTreeInputChart(displayFormat)
   
+  // 新軸設定のデフォルト値
+  const xAxisCategory = chartConfig.xAxisCategory || null
+  const yAxisConfig = chartConfig.yAxisConfig || createDefaultYAxisConfig()
+  const y2AxisConfig = chartConfig.y2AxisConfig || createDefaultYAxisConfig()
+  
+  // Y軸で使用されているカラムインデックス
+  const usedColumnIndicesFromY1 = useMemo(() => {
+    const indices = new Set<number>()
+    for (const stack of yAxisConfig.stacks) {
+      for (const series of stack) {
+        indices.add(series.column)
+      }
+    }
+    return indices
+  }, [yAxisConfig.stacks])
+  
   // 閉じるアニメーション付きでパネルを閉じる
   const handleClose = useCallback(() => {
     setIsClosing(true)
     setTimeout(() => {
       setIsClosing(false)
-      onClose()
+      onClose?.()
     }, 200)
   }, [onClose])
   
@@ -101,7 +183,7 @@ export const GraphSettingsPanel = ({
   }, [onUpdateTable])
   
   // チャート設定を更新
-  const handleConfigChange = useCallback((updates: Partial<typeof chartConfig>) => {
+  const handleConfigChange = useCallback((updates: Partial<TableChartConfig>) => {
     onUpdateTable({
       chartConfig: {
         ...chartConfig,
@@ -116,6 +198,21 @@ export const GraphSettingsPanel = ({
       treeSettings: newSettings,
     })
   }, [onUpdateTable])
+  
+  // X軸カテゴリを更新
+  const handleXAxisCategoryChange = useCallback((category: NestedCategory | null) => {
+    handleConfigChange({ xAxisCategory: category ?? undefined })
+  }, [handleConfigChange])
+  
+  // Y軸設定を更新
+  const handleYAxisConfigChange = useCallback((config: ChartYAxisConfig) => {
+    handleConfigChange({ yAxisConfig: config })
+  }, [handleConfigChange])
+  
+  // Y2軸設定を更新
+  const handleY2AxisConfigChange = useCallback((config: ChartYAxisConfig) => {
+    handleConfigChange({ y2AxisConfig: config })
+  }, [handleConfigChange])
   
   // パネル外クリックで閉じる
   useEffect(() => {
@@ -138,12 +235,109 @@ export const GraphSettingsPanel = ({
     }
   }, [isOpen, isClosing, handleClose])
   
-  if (!isOpen && !isClosing) return null
+  // インラインモードの場合は常に表示
+  if (mode === 'popup' && !isOpen && !isClosing) return null
   
+  const panelClassName = mode === 'inline' 
+    ? `graph-settings-panel-inline hover-${hoverState}`
+    : `graph-settings-panel-popup ${isClosing ? 'closing' : ''}`
+  
+  // 軸設定を表示するかどうか（表以外、非ツリーベース）
+  const showAxisSections = displayFormat !== 'table' && !isTreeChart
+  
+  // インラインモードでホバー展開
+  if (mode === 'inline') {
+    return (
+      <div 
+        ref={panelRef}
+        className={panelClassName}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        role="region"
+        aria-label="グラフ設定"
+      >
+        {/* トリガーアイコン（閉じた状態） */}
+        <button
+          type="button"
+          className="graph-settings-trigger"
+          aria-expanded={hoverState === 'expanded' || hoverState === 'expanding'}
+          aria-haspopup="true"
+        >
+          <span className="material-icons">tune</span>
+          <span className="graph-settings-trigger-label">設定</span>
+        </button>
+        
+        {/* 展開パネル */}
+        <div className={`graph-settings-expand-panel ${hoverState}`}>
+          {/* ヘッダー */}
+          <div className="graph-panel-header">
+            <span id="graph-panel-title" className="graph-panel-title">グラフ設定</span>
+          </div>
+          
+          {/* コンテンツ */}
+          <div className="graph-panel-content">
+            {/* ツリー設定セクション（ツリーベースチャートの場合） */}
+            {isTreeChart && (
+              <TreeSettingsPanel
+                settings={treeSettings}
+                onSettingsChange={handleTreeSettingsChange}
+              />
+            )}
+            
+            {/* 新軸設定セクション（表以外、非ツリーベース） */}
+            {showAxisSections && (
+              <>
+                {/* X軸セクション */}
+                <XAxisSection
+                  table={table}
+                  category={xAxisCategory}
+                  onCategoryChange={handleXAxisCategoryChange}
+                />
+                
+                {/* Y軸セクション */}
+                <YAxisSection
+                  table={table}
+                  config={yAxisConfig}
+                  onConfigChange={handleYAxisConfigChange}
+                />
+                
+                {/* Y2軸セクション */}
+                <Y2AxisSection
+                  table={table}
+                  config={y2AxisConfig}
+                  onConfigChange={handleY2AxisConfigChange}
+                  usedColumnIndicesFromY1={usedColumnIndicesFromY1}
+                />
+              </>
+            )}
+            
+            {/* カラーセクション（表以外） */}
+            {displayFormat !== 'table' && (
+              <ColorSection
+                table={table}
+                chartConfig={chartConfig}
+                onConfigChange={handleConfigChange}
+              />
+            )}
+            
+            {/* 表示セクション（表以外） */}
+            {displayFormat !== 'table' && (
+              <DisplaySection
+                chartConfig={chartConfig}
+                onConfigChange={handleConfigChange}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  // ポップアップモード
   return (
     <div 
       ref={panelRef}
-      className={`graph-settings-panel-popup ${isClosing ? 'closing' : ''}`}
+      className={panelClassName}
       role="dialog"
       aria-modal="false"
       aria-labelledby="graph-panel-title"
@@ -151,15 +345,17 @@ export const GraphSettingsPanel = ({
       {/* ヘッダー */}
       <div className="graph-panel-header">
         <span id="graph-panel-title" className="graph-panel-title">グラフ設定</span>
-        <button
-          ref={closeButtonRef}
-          className="graph-panel-close-btn"
-          onClick={handleClose}
-          type="button"
-          aria-label="閉じる"
-        >
-          <span className="material-icons">close</span>
-        </button>
+        {onClose && (
+          <button
+            ref={closeButtonRef}
+            className="graph-panel-close-btn"
+            onClick={handleClose}
+            type="button"
+            aria-label="閉じる"
+          >
+            <span className="material-icons">close</span>
+          </button>
+        )}
       </div>
       
       {/* コンテンツ */}
@@ -182,22 +378,39 @@ export const GraphSettingsPanel = ({
           />
         )}
         
-        {/* データセクション（表以外、非ツリーベース） */}
-        {displayFormat !== 'table' && !isTreeChart && (
+        {/* 新軸設定セクション（表以外、非ツリーベース） */}
+        {showAxisSections && (
+          <>
+            {/* X軸セクション */}
+            <XAxisSection
+              table={table}
+              category={xAxisCategory}
+              onCategoryChange={handleXAxisCategoryChange}
+            />
+            
+            {/* Y軸セクション */}
+            <YAxisSection
+              table={table}
+              config={yAxisConfig}
+              onConfigChange={handleYAxisConfigChange}
+            />
+            
+            {/* Y2軸セクション */}
+            <Y2AxisSection
+              table={table}
+              config={y2AxisConfig}
+              onConfigChange={handleY2AxisConfigChange}
+              usedColumnIndicesFromY1={usedColumnIndicesFromY1}
+            />
+          </>
+        )}
+        
+        {/* データセクション（表以外、非ツリーベース、旧UIとの互換用） */}
+        {displayFormat !== 'table' && !isTreeChart && openedFrom === 'more' && (
           <DataSection
             table={table}
             displayFormat={displayFormat}
             chartConfig={chartConfig}
-            onConfigChange={handleConfigChange}
-          />
-        )}
-        
-        {/* グラフ設定セクション（設定項目がある場合のみ） */}
-        {graphTypeConfig && graphTypeConfig.chartSettings.length > 0 && (
-          <ChartSettingsSection
-            displayFormat={displayFormat}
-            chartConfig={chartConfig}
-            table={table}
             onConfigChange={handleConfigChange}
           />
         )}
@@ -216,18 +429,6 @@ export const GraphSettingsPanel = ({
           <DisplaySection
             chartConfig={chartConfig}
             onConfigChange={handleConfigChange}
-          />
-        )}
-        
-        {/* 軸セクション（軸設定がある場合のみ） */}
-        {graphTypeConfig?.hasAxisSection && (
-          <AxisSection
-            chartConfig={chartConfig}
-            onConfigChange={handleConfigChange}
-            table={table}
-            showSeriesConfig={supportsSeriesDisplayType(displayFormat)}
-            showZAxis={getChartZUsages(displayFormat).length > 0}
-            zAxisUsages={getChartZUsages(displayFormat)}
           />
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import type { Slide, SlideFormat, Tone, Item, ImpressionCode, ImpressionStyleVars } from '../../types'
 import { extractSlideTitle } from '../../utils/markdown'
 import { Preview } from '../preview/Preview'
@@ -15,8 +15,91 @@ interface SlideCarouselProps {
   setCurrentIndex: (index: number) => void
 }
 
+// チャプターグループの型
+interface ChapterGroup {
+  name: string
+  slides: { slide: Slide; originalIndex: number }[]
+}
+
+// スライドがチャプターの先頭（中扉）かどうかを判定
+const isChapterSlide = (slide: Slide): boolean => {
+  const content = slide.content
+  const lines = content.split('\n')
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) continue
+    // H1見出しで始まる場合はチャプタースライド
+    if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
+      return true
+    }
+    if (trimmed.startsWith('#ttl ')) {
+      return true
+    }
+    // 最初の非空行が見出しでなければfalse
+    return false
+  }
+  return false
+}
+
+// チャプター名を抽出する関数
+const extractChapterName = (slide: Slide): string | null => {
+  const content = slide.content
+  const lines = content.split('\n')
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) continue
+    // H1見出し
+    if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
+      return trimmed.substring(2).trim()
+    }
+    // レイアウト属性値
+    if (trimmed.startsWith('#ttl ')) {
+      return trimmed.substring(5).trim()
+    }
+    return null
+  }
+  return null
+}
+
+// スライドをチャプターごとにグループ化する関数
+const groupSlidesByChapter = (slides: Slide[]): ChapterGroup[] => {
+  const groups: ChapterGroup[] = []
+  let currentGroup: ChapterGroup | null = null
+  
+  slides.forEach((slide, idx) => {
+    const chapterName = extractChapterName(slide)
+    
+    if (chapterName !== null) {
+      // 新しいチャプターが始まる
+      currentGroup = {
+        name: chapterName,
+        slides: [{ slide, originalIndex: idx }]
+      }
+      groups.push(currentGroup)
+    } else if (currentGroup) {
+      // 既存のチャプターに追加
+      currentGroup.slides.push({ slide, originalIndex: idx })
+    } else {
+      // チャプターが始まる前のスライド（暗黙のチャプター）
+      currentGroup = {
+        name: '',
+        slides: [{ slide, originalIndex: idx }]
+      }
+      groups.push(currentGroup)
+    }
+  })
+  
+  return groups
+}
+
 export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone, impressionCode, styleOverrides, selectedBiomeId, items, setCurrentIndex }: SlideCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null)
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  
+  // スライドをチャプターごとにグループ化
+  const chapterGroups = useMemo(() => groupSlidesByChapter(slides), [slides])
 
   // 選択中のスライドがカルーセルに表示されるようにスクロール位置を調整
   useEffect(() => {
@@ -29,10 +112,11 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
   }, [currentIndex])
 
   // カルーセルの高さに基づいてスライドのサイズを計算
-  const carouselHeight = 120 // 固定高さ
-  const titleHeight = 20 // タイトル部分の高さ（概算）
+  const carouselHeight = 140 // チャプター名の行を含めた高さ
+  const chapterLabelHeight = 20 // チャプター名ラベルの高さ
+  const sectionLabelHeight = 20 // セクション名ラベルの高さ
   const padding = 8 // 上下のパディング
-  const availableHeight = carouselHeight - titleHeight - padding
+  const availableHeight = carouselHeight - chapterLabelHeight - sectionLabelHeight - padding
   
   // アスペクト比に基づいて幅を計算
   const getSlideDimensions = (format: SlideFormat) => {
@@ -89,8 +173,10 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
     rgba(0,0,0,0.04) 85%, 
     rgba(0,0,0,0) 100%)`
 
+  const { slideWidth, slideHeight } = getSlideDimensions(currentFormat)
+
   return (
-    <div style={{ marginTop: '16px', height: '120px', position: 'relative' }}>
+    <div style={{ marginTop: '16px', height: `${carouselHeight}px`, position: 'relative' }}>
       {/* 左側のフェードオーバーレイ（ease-outイージング + blur） */}
       <div 
         style={{ 
@@ -146,79 +232,189 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
         <div className="flex-1 min-w-0 h-full overflow-hidden">
           <div 
             ref={carouselRef}
-            className="flex gap-3 overflow-x-auto pb-2 no-scrollbar items-center h-full outline-none"
+            className="flex gap-0 overflow-x-auto pb-2 no-scrollbar items-stretch h-full outline-none"
             tabIndex={0}
             onKeyDown={handleKeyDown}
           >
             {/* 左側の余白 */}
             <div className="flex-shrink-0" style={{ width: '48px' }} />
-            {slides.map((slide, idx) => {
-              const slideTitle = extractSlideTitle(slide.content)
-              const { slideWidth, slideHeight } = getSlideDimensions(currentFormat)
-              // サムネイル用のスライド配列を作成
-              // 目次レイアウト（toc）の場合は全スライドを渡す（セクション見出し抽出のため）
-              // それ以外は単一スライドを渡す
-              const isTocLayout = slide.layout === 'toc'
-              const thumbnailSlides = isTocLayout 
-                ? slides.map((s, i) => i === idx 
-                    ? { content: s.content, layout: s.layout }
-                    : { content: s.content, layout: s.layout }
-                  )
-                : [{ content: slide.content, layout: slide.layout }]
-              const thumbnailCurrentIndex = isTocLayout ? idx : 0
+            
+            {chapterGroups.map((chapter, chapterIdx) => {
+              // チャプター内の全スライドの幅を計算
+              const chapterWidth = chapter.slides.length * slideWidth + (chapter.slides.length - 1) * 12 // gap: 12px
+              
+              // チャプターに含まれるスライドの範囲を計算
+              const firstSlideIndex = chapter.slides[0]?.originalIndex ?? 0
+              const lastSlideIndex = chapter.slides[chapter.slides.length - 1]?.originalIndex ?? 0
+              const slideRange = chapter.slides.length > 0 
+                ? `（${firstSlideIndex + 1}~${lastSlideIndex + 1}）`
+                : ''
+              
+              // チャプター区切り線の高さ（サムネイル行の高さの半分程度）
+              const dividerHeight = Math.round((slideHeight + sectionLabelHeight) / 2)
+              // スライドの中心軸の位置を計算（チャプター名の下からスライドの中心までの距離）
+              const slideCenterOffset = chapterLabelHeight + 8 + slideHeight / 2
+              // 区切り線をスライドの中心に揃えるためのマージン
+              const dividerMarginTop = slideCenterOffset - dividerHeight / 2
               
               return (
-                <div key={idx} className="flex flex-col items-center flex-shrink-0" style={{ width: `${slideWidth}px` }} data-slide-index={idx}>
-                  <button
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`transition-all border rounded-lg cursor-pointer overflow-hidden ${
-                      idx === currentIndex ? 'shadow-lg' : ''
-                    }`}
-                    style={{
-                      width: `${slideWidth}px`,
-                      height: `${slideHeight}px`,
-                      borderWidth: idx === currentIndex ? '3px' : '1px',
-                      borderColor: idx === currentIndex ? 'var(--app-accent)' : 'var(--color-gray-300)',
-                      backgroundColor: '#ffffff',
-                      padding: 0
-                    }}
-                    tabIndex={-1}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  >
-                    <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-                      <Preview
-                        slides={thumbnailSlides}
-                        currentIndex={thumbnailCurrentIndex}
-                        currentFormat={currentFormat}
-                        currentTone={currentTone}
-                        impressionCode={impressionCode}
-                        styleOverrides={styleOverrides}
-                        selectedBiomeId={selectedBiomeId}
-                        previewRef={{ current: null }}
-                        items={items}
-                        isThumbnail={true}
-                        thumbnailHeight={slideHeight}
-                      />
-                    </div>
-                  </button>
-                  {/* スライド番号とタイトル */}
+                <div 
+                  key={chapterIdx} 
+                  className="flex flex-shrink-0"
+                  style={{ gap: '0' }}
+                >
+                  {/* チャプター区切り線（最初のチャプター以外） */}
+                  {chapterIdx > 0 && (
+                    <div 
+                      style={{
+                        width: '1px',
+                        height: `${dividerHeight}px`,
+                        backgroundColor: 'var(--app-border-secondary)',
+                        marginLeft: '16px',
+                        marginRight: '16px',
+                        marginTop: `${dividerMarginTop}px`
+                      }}
+                    />
+                  )}
+                  
+                  {/* チャプターコンテナ */}
                   <div 
-                    className="text-left text-sm w-full"
-                    style={{ 
-                      marginTop: '4px',
-                      color: idx === currentIndex ? 'var(--app-accent-light)' : 'var(--app-text-disabled)',
-                      fontSize: '12px',
-                      lineHeight: '1.4',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
+                    className="flex flex-col flex-shrink-0"
+                    style={{ width: `${chapterWidth}px` }}
                   >
-                    {idx + 1}. {slideTitle}
+                    {/* チャプター名ラベル（上部、左寄せ、省略対応） */}
+                    {chapter.name && (
+                      <div
+                        style={{
+                          height: `${chapterLabelHeight}px`,
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          color: 'var(--app-text-disabled)',
+                          textAlign: 'left',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: `${chapterLabelHeight}px`,
+                          paddingRight: '8px',
+                          marginBottom: '8px'
+                        }}
+                        title={`${chapter.name}${slideRange}`}
+                      >
+                        {chapter.name}{slideRange}
+                      </div>
+                    )}
+                    {/* チャプター名がない場合のスペーサー */}
+                    {!chapter.name && (
+                      <div style={{ height: `${chapterLabelHeight}px` }} />
+                    )}
+                    
+                    {/* サムネイル行 */}
+                    <div 
+                      className="flex"
+                      style={{ gap: '12px' }}
+                    >
+                      {chapter.slides.map(({ slide, originalIndex }) => {
+                        const slideTitle = extractSlideTitle(slide.content)
+                        // サムネイル用のスライド配列を作成
+                        const isTocLayout = slide.layout === 'toc'
+                        const thumbnailSlides = isTocLayout 
+                          ? slides.map((s) => ({ content: s.content, layout: s.layout }))
+                          : [{ content: slide.content, layout: slide.layout }]
+                        const thumbnailCurrentIndex = isTocLayout ? originalIndex : 0
+                        
+                        // このスライドがチャプターの先頭（中扉）かどうか
+                        const isChapter = isChapterSlide(slide)
+                        
+                        return (
+                          <div 
+                            key={originalIndex}
+                            className="flex flex-col flex-shrink-0"
+                            style={{ width: `${slideWidth}px` }}
+                            data-slide-index={originalIndex}
+                            onMouseEnter={() => setHoveredIndex(originalIndex)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                          >
+                            {/* サムネイルボタン */}
+                            <button
+                              onClick={() => setCurrentIndex(originalIndex)}
+                              className={`transition-all border rounded-lg cursor-pointer overflow-hidden ${
+                                originalIndex === currentIndex ? 'shadow-lg' : ''
+                              }`}
+                              style={{
+                                width: `${slideWidth}px`,
+                                height: `${slideHeight}px`,
+                                borderWidth: originalIndex === currentIndex ? '3px' : '1px',
+                                borderColor: originalIndex === currentIndex ? 'var(--app-accent)' : 'var(--color-gray-300)',
+                                backgroundColor: '#ffffff',
+                                padding: 0,
+                                position: 'relative'
+                              }}
+                              tabIndex={-1}
+                              aria-label={`Go to slide ${originalIndex + 1}`}
+                            >
+                              <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+                                <Preview
+                                  slides={thumbnailSlides}
+                                  currentIndex={thumbnailCurrentIndex}
+                                  currentFormat={currentFormat}
+                                  currentTone={currentTone}
+                                  impressionCode={impressionCode}
+                                  styleOverrides={styleOverrides}
+                                  selectedBiomeId={selectedBiomeId}
+                                  previewRef={{ current: null }}
+                                  items={items}
+                                  isThumbnail={true}
+                                  thumbnailHeight={slideHeight}
+                                />
+                              </div>
+                              {/* ホバー時のスライド番号バッジ（左下） */}
+                              {hoveredIndex === originalIndex && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: '4px',
+                                    left: '4px',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                    color: 'white',
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    pointerEvents: 'none'
+                                  }}
+                                >
+                                  {originalIndex + 1}
+                                </div>
+                              )}
+                            </button>
+                            
+                            {/* セクション名（中扉以外のみ表示） */}
+                            <div 
+                              style={{ 
+                                height: `${sectionLabelHeight}px`,
+                                marginTop: '4px',
+                                color: originalIndex === currentIndex ? 'var(--app-accent-light)' : 'var(--app-text-disabled)',
+                                fontSize: '11px',
+                                lineHeight: '1.3',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                textAlign: 'left',
+                                opacity: isChapter ? 0 : 1 // 中扉の場合はラベル非表示（チャプター名と重複するため）
+                              }}
+                              title={isChapter ? '' : slideTitle}
+                            >
+                              {slideTitle}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               )
             })}
+            
             {/* 右側の余白 */}
             <div className="flex-shrink-0" style={{ width: '48px' }} />
           </div>
@@ -227,5 +423,3 @@ export const SlideCarousel = ({ slides, currentIndex, currentFormat, currentTone
     </div>
   )
 }
-
-

@@ -23,7 +23,8 @@ const createNewItemPlaceholder = (): NewItem => ({
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 })
-import { Toolbar } from './components/toolbar/Toolbar'
+import { Sidebar } from './components/sidebar/Sidebar'
+import { Header } from './components/header/Header'
 import { ExportModal } from './components/modal/ExportModal'
 import { HelpModal } from './components/modal/HelpModal'
 import { FormatTabs } from './components/preview/FormatTabs'
@@ -32,6 +33,7 @@ import { SlideCarousel } from './components/slideCarousel/SlideCarousel'
 import { EditorArea } from './components/editor/EditorArea'
 import { ItemModal } from './components/items/ItemModal'
 import { SlideShowView } from './components/slideshow/SlideShowView'
+import { getBiomeById } from './constants/tonmanaBiomes'
 import './App.css'
 
 // Default content
@@ -158,6 +160,27 @@ function App() {
   const [editingHeaderName, setEditingHeaderName] = useState('')
   const [headerNameError, setHeaderNameError] = useState('')
   const headerNameInputRef = useRef<HTMLInputElement>(null)
+  
+  // Document file name state
+  const [documentFileName, setDocumentFileName] = useState('企画書.md')
+  
+  // Project name state
+  const [projectName, setProjectName] = useState('新しいプロジェクト')
+  
+  // 選択中の項目名を取得
+  const selectedItemName = useMemo(() => {
+    if (isTonmanaSelected) {
+      return 'Tone & Manner'
+    }
+    if (selectedItemId === MAIN_SLIDE_ITEM_ID) {
+      return 'ドキュメント'
+    }
+    if (selectedItemId === NEW_ITEM_ID) {
+      return '新規アイテム'
+    }
+    const item = items.find(i => i.id === selectedItemId)
+    return item?.name || ''
+  }, [selectedItemId, isTonmanaSelected, items])
   
   // Undo/Redo用の履歴管理
   const historyRef = useRef<EditorLine[][]>([])
@@ -663,97 +686,74 @@ function App() {
     }
   }, [isResizing])
 
+  // Get current Tone & Manner name for header
+  const currentBiome = getBiomeById(selectedBiomeId)
+  const tonmanaDisplayName = currentBiome?.nameJa || 'プレーン グレー'
+
   return (
     <ThemeProvider>
-    <div className="h-screen max-h-screen flex flex-col overflow-hidden">
-      <Toolbar
+    <div className="h-screen max-h-screen flex overflow-hidden">
+      {/* サイドバー */}
+      <Sidebar
+        items={items}
+        selectedItemId={selectedItemId}
+        isTonmanaSelected={isTonmanaSelected}
+        projectName={projectName}
+        onProjectNameChange={setProjectName}
+        onSelectItem={(itemId) => {
+          setSelectedItemId(itemId)
+          setIsTonmanaSelected(false)
+        }}
+        onSelectTonmana={() => {
+          setIsTonmanaSelected(true)
+          setSelectedItemId(null)
+        }}
+        onDeleteItem={handleDeleteItem}
         onShowHelp={() => setShowHelpModal(true)}
-        onShowExport={() => setShowExportModal(true)}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        canUndo={canUndo}
-        canRedo={canRedo}
       />
 
-      <ExportModal
-        show={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        slides={slides}
-        currentIndex={currentIndex}
-        currentFormat={currentFormat}
-        previewRef={previewRef}
-        isBulkExporting={isBulkExporting}
-        isPptExporting={isPptExporting}
-        editorContent={editorContent}
-        setCurrentIndex={setCurrentIndex}
-        setIsBulkExporting={setIsBulkExporting}
-        setIsPptExporting={setIsPptExporting}
-      />
+      {/* メインエリア（ヘッダー + コンテンツ） */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* ヘッダー */}
+        <Header
+          projectName={projectName}
+          selectedItemName={selectedItemName}
+          tonmanaName={tonmanaDisplayName}
+          isTonmanaSelected={isTonmanaSelected}
+          onTonmanaClick={() => {
+            setIsTonmanaSelected(true)
+            setSelectedItemId(null)
+          }}
+          onShowExport={() => setShowExportModal(true)}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
 
-      <HelpModal
-        show={showHelpModal}
-        onClose={() => setShowHelpModal(false)}
-      />
-
-      {/* スライドショー表示 */}
-      {showSlideShow && (
-        <SlideShowView
+        <ExportModal
+          show={showExportModal}
+          onClose={() => setShowExportModal(false)}
           slides={slides}
           currentIndex={currentIndex}
           currentFormat={currentFormat}
-          currentTone={currentTone}
-          impressionCode={impressionCode}
-          styleOverrides={styleOverrides}
-          selectedBiomeId={selectedBiomeId}
-          items={items}
-          onClose={() => setShowSlideShow(false)}
-          onNavigate={setCurrentIndex}
+          previewRef={previewRef}
+          isBulkExporting={isBulkExporting}
+          isPptExporting={isPptExporting}
+          editorContent={editorContent}
+          setCurrentIndex={setCurrentIndex}
+          setIsBulkExporting={setIsBulkExporting}
+          setIsPptExporting={setIsPptExporting}
         />
-      )}
 
-      {/* メインエリア */}
-      {!showSlideShow && (
-      <div 
-        ref={resizeContainerRef}
-        className={`flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}
-      >
-        {/* プレビュー */}
-        <div className="flex flex-col p-4" style={{ width: `${100 - editorWidth}%` }}>
-          {/* プレビューエリア */}
-          <div
-            className="flex-1 flex items-center justify-center overflow-hidden"
-            style={{ minWidth: 0, minHeight: 0, position: 'relative' }}
-          >
-            {/* FormatTabs を左上に絶対配置 */}
-            <FormatTabs
-              currentFormat={currentFormat}
-              onFormatChange={setCurrentFormat}
-            />
-            <Preview
-              slides={slides}
-              currentIndex={currentIndex}
-              currentFormat={currentFormat}
-              currentTone={currentTone}
-              impressionCode={impressionCode}
-              styleOverrides={styleOverrides}
-              selectedBiomeId={selectedBiomeId}
-              previewRef={previewRef}
-              items={items}
-              onNavigate={handleNavigate}
-              onStartSlideShow={() => {
-                if (slides.length > 0) {
-                  setShowSlideShow(true)
-                } else {
-                  alert('スライドがありません')
-                }
-              }}
-            />
-          </div>
+        <HelpModal
+          show={showHelpModal}
+          onClose={() => setShowHelpModal(false)}
+        />
 
-          {/* プレビューとカルーセルの区切り線 */}
-          <div className="preview-carousel-divider" />
-
-          <SlideCarousel
+        {/* スライドショー表示 */}
+        {showSlideShow && (
+          <SlideShowView
             slides={slides}
             currentIndex={currentIndex}
             currentFormat={currentFormat}
@@ -762,88 +762,145 @@ function App() {
             styleOverrides={styleOverrides}
             selectedBiomeId={selectedBiomeId}
             items={items}
-            setCurrentIndex={setCurrentIndex}
+            onClose={() => setShowSlideShow(false)}
+            onNavigate={setCurrentIndex}
           />
-        </div>
+        )}
 
-        {/* リサイズハンドル */}
+        {/* コンテンツエリア（プレビュー + エディタ） */}
+        {!showSlideShow && (
         <div 
-          className="resize-handle"
-          onMouseDown={handleResizeStart}
-        />
+          ref={resizeContainerRef}
+          className={`flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}
+        >
+          {/* プレビュー */}
+          <div className="flex flex-col p-4" style={{ width: `${100 - editorWidth}%` }}>
+            {/* プレビューエリア */}
+            <div
+              className="flex-1 flex items-center justify-center overflow-hidden"
+              style={{ minWidth: 0, minHeight: 0, position: 'relative' }}
+            >
+              {/* FormatTabs を左上に絶対配置 */}
+              <FormatTabs
+                currentFormat={currentFormat}
+                onFormatChange={setCurrentFormat}
+              />
+              <Preview
+                slides={slides}
+                currentIndex={currentIndex}
+                currentFormat={currentFormat}
+                currentTone={currentTone}
+                impressionCode={impressionCode}
+                styleOverrides={styleOverrides}
+                selectedBiomeId={selectedBiomeId}
+                previewRef={previewRef}
+                items={items}
+                onNavigate={handleNavigate}
+                onStartSlideShow={() => {
+                  if (slides.length > 0) {
+                    setShowSlideShow(true)
+                  } else {
+                    alert('スライドがありません')
+                  }
+                }}
+              />
+            </div>
 
-        {/* エディター + アイテムタブバー */}
-        <EditorArea
-          width={editorWidth}
-          items={items}
-          selectedItemId={selectedItemId}
-          onLoad={() => loadPresentation(handleSetEditorContent, setCurrentIndex)}
-          onSelectItem={(itemId) => {
-            setSelectedItemId(itemId)
-            setIsTonmanaSelected(false)
+            {/* プレビューとカルーセルの区切り線 */}
+            <div className="preview-carousel-divider" />
+
+            <SlideCarousel
+              slides={slides}
+              currentIndex={currentIndex}
+              currentFormat={currentFormat}
+              currentTone={currentTone}
+              impressionCode={impressionCode}
+              styleOverrides={styleOverrides}
+              selectedBiomeId={selectedBiomeId}
+              items={items}
+              setCurrentIndex={setCurrentIndex}
+            />
+          </div>
+
+          {/* リサイズハンドル */}
+          <div 
+            className="resize-handle"
+            onMouseDown={handleResizeStart}
+          />
+
+          {/* エディター + アイテムタブバー */}
+          <EditorArea
+            width={editorWidth}
+            items={items}
+            selectedItemId={selectedItemId}
+            onLoad={() => loadPresentation(handleSetEditorContent, setCurrentIndex)}
+            onSelectItem={(itemId) => {
+              setSelectedItemId(itemId)
+              setIsTonmanaSelected(false)
+            }}
+            onEditItem={handleEditItem}
+            onUpdateItem={handleUpdateItem}
+            onDeleteItem={handleDeleteItem}
+            existingNames={items.map(item => item.name)}
+            onCreateItem={handleCreateItem}
+            isTonmanaSelected={isTonmanaSelected}
+            onSelectTonmana={() => {
+              setIsTonmanaSelected(true)
+              setSelectedItemId(null)
+            }}
+            impressionCode={impressionCode}
+            onImpressionCodeChange={handleImpressionCodeChange}
+            styleOverrides={styleOverrides}
+            onStyleOverride={handleStyleOverride}
+            stylePins={stylePins}
+            onStylePinChange={handleStylePinChange}
+            selectedBiomeId={selectedBiomeId}
+            onBiomeChange={setSelectedBiomeId}
+            lines={lines}
+            setLines={setLines}
+            isComposing={isComposing}
+            setIsComposing={setIsComposing}
+            consoleMessages={consoleMessages}
+            scrollToLine={scrollToLine}
+            onCurrentLineChange={handleCurrentLineChange}
+            onSelectionChange={handleSelectionChange}
+            currentLineIndex={currentLineIndex}
+            currentAttribute={currentAttribute}
+            selection={selection}
+            onSetAttribute={handleSetAttribute}
+            onSetAttributesForRange={handleSetAttributesForRange}
+            onScrollToCurrentSlide={handleScrollToCurrentSlide}
+            onCreateItemFromSelection={handleCreateItemFromSelection}
+            editorContent={editorContent}
+            onApplyEdit={handleSetEditorContent}
+            onCreateTable={handleCreateTable}
+            onScrollToLine={(lineIndex) => {
+              setScrollToLine(lineIndex)
+              setTimeout(() => setScrollToLine(null), 100)
+            }}
+            editingHeaderItemId={editingHeaderItemId}
+            setEditingHeaderItemId={setEditingHeaderItemId}
+            editingHeaderName={editingHeaderName}
+            setEditingHeaderName={setEditingHeaderName}
+            headerNameError={headerNameError}
+            setHeaderNameError={setHeaderNameError}
+            headerNameInputRef={headerNameInputRef}
+          />
+          </div>
+        )}
+
+        {/* アイテムモーダル */}
+        <ItemModal
+          isOpen={showItemModal}
+          onClose={() => {
+            setShowItemModal(false)
+            setEditingItem(null)
           }}
-          onEditItem={handleEditItem}
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}
+          onSave={handleSaveItem}
+          editingItem={editingItem}
           existingNames={items.map(item => item.name)}
-          onCreateItem={handleCreateItem}
-          isTonmanaSelected={isTonmanaSelected}
-          onSelectTonmana={() => {
-            setIsTonmanaSelected(true)
-            setSelectedItemId(null)
-          }}
-          impressionCode={impressionCode}
-          onImpressionCodeChange={handleImpressionCodeChange}
-          styleOverrides={styleOverrides}
-          onStyleOverride={handleStyleOverride}
-          stylePins={stylePins}
-          onStylePinChange={handleStylePinChange}
-          selectedBiomeId={selectedBiomeId}
-          onBiomeChange={setSelectedBiomeId}
-          lines={lines}
-          setLines={setLines}
-          isComposing={isComposing}
-          setIsComposing={setIsComposing}
-          consoleMessages={consoleMessages}
-          scrollToLine={scrollToLine}
-          onCurrentLineChange={handleCurrentLineChange}
-          onSelectionChange={handleSelectionChange}
-          currentLineIndex={currentLineIndex}
-          currentAttribute={currentAttribute}
-          selection={selection}
-          onSetAttribute={handleSetAttribute}
-          onSetAttributesForRange={handleSetAttributesForRange}
-          onScrollToCurrentSlide={handleScrollToCurrentSlide}
-          onCreateItemFromSelection={handleCreateItemFromSelection}
-          editorContent={editorContent}
-          onApplyEdit={handleSetEditorContent}
-          onCreateTable={handleCreateTable}
-          onScrollToLine={(lineIndex) => {
-            setScrollToLine(lineIndex)
-            setTimeout(() => setScrollToLine(null), 100)
-          }}
-          editingHeaderItemId={editingHeaderItemId}
-          setEditingHeaderItemId={setEditingHeaderItemId}
-          editingHeaderName={editingHeaderName}
-          setEditingHeaderName={setEditingHeaderName}
-          headerNameError={headerNameError}
-          setHeaderNameError={setHeaderNameError}
-          headerNameInputRef={headerNameInputRef}
         />
-        </div>
-      )}
-
-      {/* アイテムモーダル */}
-      <ItemModal
-        isOpen={showItemModal}
-        onClose={() => {
-          setShowItemModal(false)
-          setEditingItem(null)
-        }}
-        onSave={handleSaveItem}
-        editingItem={editingItem}
-        existingNames={items.map(item => item.name)}
-      />
+      </div>
     </div>
     </ThemeProvider>
   )

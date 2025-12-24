@@ -13,7 +13,7 @@ interface GraphTypeCarouselProps {
   selectedCategory: GraphCategory
   currentFormat: TableDisplayFormat
   onFormatChange: (format: TableDisplayFormat) => void
-  onSettingsClick: () => void
+  onSettingsClick?: () => void  // オプション（インラインパネルの場合は不要）
   onMoreClick: () => void
 }
 
@@ -98,16 +98,18 @@ export const GraphTypeCarousel = ({
         {showRightFade && <div className="graph-carousel-fade right" />}
       </div>
       
-      {/* 設定ボタン */}
-      <button
-        className={`graph-settings-btn ${!settingsEnabled ? 'disabled' : ''}`}
-        onClick={settingsEnabled ? onSettingsClick : undefined}
-        disabled={!settingsEnabled}
-        type="button"
-        title={settingsEnabled ? 'グラフ設定' : '表形式では設定できません'}
-      >
-        <span className="material-icons">settings</span>
-      </button>
+      {/* 設定ボタン（ポップアップモードの場合のみ表示） */}
+      {onSettingsClick && (
+        <button
+          className={`graph-settings-btn ${!settingsEnabled ? 'disabled' : ''}`}
+          onClick={settingsEnabled ? onSettingsClick : undefined}
+          disabled={!settingsEnabled}
+          type="button"
+          title={settingsEnabled ? 'グラフ設定' : '表形式では設定できません'}
+        >
+          <span className="material-icons">settings</span>
+        </button>
+      )}
     </div>
   )
 }

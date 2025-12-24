@@ -185,10 +185,18 @@ export const Editor = ({
     const input = e.currentTarget
     const { selectionStart, selectionEnd, value } = input
 
+    // #region agent log
+    if (e.key === 'Enter') { fetch('http://127.0.0.1:7242/ingest/3d96004e-9efe-481b-a1bb-1edda335d827',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Editor.tsx:handleKeyDown',message:'Enter key pressed',data:{lineIndex,isComposing,mentionIsOpen:mentionPopup.isOpen,value},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B'})}).catch(()=>{}); }
+    // #endregion
+
     // @メンション補完のキーイベントを先に処理
-    if (mentionPopup.handleKeyDown(e)) {
+    // #region agent log
+    const mentionResult = mentionPopup.handleKeyDown(e)
+    if (e.key === 'Enter') { fetch('http://127.0.0.1:7242/ingest/3d96004e-9efe-481b-a1bb-1edda335d827',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Editor.tsx:afterMentionHandleKeyDown',message:'Mention handleKeyDown result',data:{mentionResult,key:e.key},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,C'})}).catch(()=>{}); }
+    if (mentionResult) {
       return
     }
+    // #endregion
 
     // Arrow Up - move to previous line
     if (e.key === 'ArrowUp' && lineIndex > 0) {
@@ -229,6 +237,9 @@ export const Editor = ({
 
     // Enter - create new line
     if (e.key === 'Enter' && !isComposing) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3d96004e-9efe-481b-a1bb-1edda335d827',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Editor.tsx:EnterHandler',message:'Enter handler reached - creating new line',data:{lineIndex,selectionStart,selectionEnd,value},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       e.preventDefault()
       const beforeCursor = value.slice(0, selectionStart || 0)
       const afterCursor = value.slice(selectionEnd || 0)
@@ -274,6 +285,9 @@ export const Editor = ({
 
       setLines(newLines)
       setCurrentLineIndex(lineIndex + 1)
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3d96004e-9efe-481b-a1bb-1edda335d827',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Editor.tsx:afterSetLines',message:'New line created - setLines called',data:{newLinesLength:newLines.length,newLineIndex:lineIndex+1},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       setTimeout(() => focusLine(lineIndex + 1, 0), 0)
       return
     }
@@ -1043,6 +1057,9 @@ export const Editor = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
+      {/* Top spacer for visual breathing room */}
+      <div className="editor-top-spacer" />
+      
       {/* 各行を1つの要素として統合 - サブピクセル問題を根本的に解決 */}
       {lines.map((line, idx) => {
           const lineNumber = idx + 1

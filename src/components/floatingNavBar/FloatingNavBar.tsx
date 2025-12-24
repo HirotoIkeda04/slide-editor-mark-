@@ -517,14 +517,11 @@ export const FloatingNavBar = ({
   }
 
   const tableButtons: TableButtonConfig[] = [
-    // グループ0: ヘッダー行トグル
-    { id: 'toggleHeaders', icon: 'border_top', title: tableState?.useHeaders ? 'ヘッダー行: ON' : 'ヘッダー行: OFF', operation: 'toggleHeaders', isActive: () => !!tableState?.useHeaders, group: 0 },
     // グループ1: セル結合
     { id: 'mergeCells', icon: 'call_merge', title: 'セルを結合', operation: 'mergeCells', isDisabled: () => !tableState?.canMerge, group: 1 },
     { id: 'unmergeCells', icon: 'call_split', title: 'セルの結合を解除', operation: 'unmergeCells', isDisabled: () => !tableState?.canUnmerge, group: 1 },
-    // グループ2: 非表示の行/列を表示
+    // グループ2: 非表示の行を表示
     { id: 'showAllRows', icon: 'visibility', title: `非表示の行を表示 (${tableState?.hiddenRowsCount || 0}件)`, operation: 'showAllRows', isDisabled: () => !tableState?.hiddenRowsCount, group: 2 },
-    { id: 'showAllColumns', icon: 'visibility', title: `非表示の列を表示 (${tableState?.hiddenColumnsCount || 0}件)`, operation: 'showAllColumns', isDisabled: () => !tableState?.hiddenColumnsCount, group: 2 },
   ]
 
   // テーブルボタンをグループごとにまとめる

@@ -761,8 +761,8 @@ export const Preview = ({ slides, currentIndex, currentFormat, currentTone, impr
     
     return (
       <div style={{ width: '100%', margin: '1rem 0', display: 'flex', justifyContent: 'center' }}>
-        <TableChart
-          table={tableItem}
+        <TableChart 
+          table={tableItem} 
           tone={currentTone}
           width={chartWidth}
           height={chartHeight}

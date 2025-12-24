@@ -227,8 +227,8 @@ export const tableToMarkdown = (table: TableItem): string => {
       for (let i = 1; i < visibleRowIndices.length; i++) {
         const rowIdx = visibleRowIndices[i]
         const row = data[rowIdx] || []
-        const rowCells = visibleColumnIndices.map(colIdx => row[colIdx] || '')
-        markdown += '| ' + rowCells.join(' | ') + ' |\n'
+    const rowCells = visibleColumnIndices.map(colIdx => row[colIdx] || '')
+    markdown += '| ' + rowCells.join(' | ') + ' |\n'
       }
     }
   }

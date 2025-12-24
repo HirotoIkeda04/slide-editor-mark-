@@ -209,12 +209,22 @@ export function validateCellValue(value: string, type: CellDataType): boolean {
     return true // 空の値は許可
   }
 
+  // 入力途中の状態を許可（例: "-", "-.", "-.0"）
+  const isIntermediateState = (v: string) => {
+    // 空文字、マイナスのみ、ドットのみ、マイナスとドットを許可
+    if (v === '' || v === '-' || v === '.' || v === '-.') return true
+    // 数値の入力途中（例: "1.", "-1.", "-.5", "-0."）
+    return /^-?\d*\.?\d*$/.test(v)
+  }
+
   switch (type) {
     case 'text':
       return true // テキストは常に有効
     case 'number': {
       const numValue = value.replace(/,/g, '')
-      return !isNaN(parseFloat(numValue))
+      // 入力途中（"-" や "-." など）を許可
+      if (isIntermediateState(numValue)) return true
+      return !isNaN(parseFloat(numValue)) && isFinite(parseFloat(numValue))
     }
     case 'date': {
       const dateValue = new Date(value)
@@ -222,12 +232,17 @@ export function validateCellValue(value: string, type: CellDataType): boolean {
     }
     case 'percentage': {
       const percentValue = value.replace(/%/g, '').trim()
+      // 入力途中を許可
+      if (isIntermediateState(percentValue)) return true
       const parsed = parseFloat(percentValue)
-      return !isNaN(parsed) && parsed >= 0 && parsed <= 100
+      // 負の値も許可（-100〜100の制限を削除）
+      return !isNaN(parsed) && isFinite(parsed)
     }
     case 'currency': {
       const currencyValue = value.replace(/[^\d.,-]/g, '').replace(/,/g, '')
-      return !isNaN(parseFloat(currencyValue))
+      // 入力途中を許可
+      if (isIntermediateState(currencyValue)) return true
+      return !isNaN(parseFloat(currencyValue)) && isFinite(parseFloat(currencyValue))
     }
     default:
       return true

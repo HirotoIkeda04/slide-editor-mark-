@@ -1,10 +1,8 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import type { Item, EditorLine, ConsoleMessage, EditorSelection, ImpressionCode, ImpressionStyleVars, StylePins } from '../../types'
-import { findMatchingPreset } from '../../constants/impressionConfigs'
 import { Editor } from './Editor'
 import { ImpressionPanel } from '../impression/ImpressionPanel'
 import { ItemDetailPanel } from '../items/ItemDetailPanel'
-import { ItemTabBar } from '../items/ItemTabBar'
 import { Toast } from '../toast/Toast'
 import { FloatingNavBar } from '../floatingNavBar/FloatingNavBar'
 import { ChatFAB } from '../chat/ChatFAB'
@@ -221,115 +219,6 @@ export const EditorArea = ({
     }
   }
 
-  // ファイルヘッダーのレンダリング
-  const renderFileHeader = () => {
-    if (!selectedItemId && !isTonmanaSelected) return null
-
-    // Tone & Manner選択時
-    if (isTonmanaSelected) {
-      const preset = findMatchingPreset(impressionCode)
-      return (
-        <div className="editor-file-header" style={{ borderBottom: '1px solid var(--app-border-primary)', backgroundColor: 'var(--color-dark-800)' }}>
-          <div className="flex items-center gap-2">
-            <span className="material-icons" style={{ fontSize: '1rem', color: 'var(--app-highlight)' }}>palette</span>
-            <span style={{ fontSize: '0.875rem', color: 'var(--app-text-secondary)', fontWeight: 500 }}>
-              Tone & Manner
-            </span>
-          </div>
-        </div>
-      )
-    }
-
-    const selectedItem = items.find(item => item.id === selectedItemId)
-    if (!selectedItem) return null
-
-    return (
-      <div className="editor-file-header" style={{ borderBottom: '1px solid var(--app-border-primary)', backgroundColor: 'var(--color-dark-800)' }}>
-        <div className="flex items-center gap-2">
-          {renderItemIcon(selectedItem.type)}
-          {editingHeaderItemId === selectedItem.id ? (
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                ref={headerNameInputRef}
-                type="text"
-                value={editingHeaderName}
-                onChange={(e) => handleHeaderNameChange(e.target.value, selectedItem)}
-                onKeyDown={(e) => handleHeaderNameKeyDown(e, selectedItem)}
-                style={{
-                  fontSize: '0.875rem',
-                  color: 'var(--app-text-primary)',
-                  fontWeight: 500,
-                  background: 'transparent',
-                  border: headerNameError ? '1px solid var(--app-error)' : '1px solid transparent',
-                  borderRadius: '0.25rem',
-                  padding: 0,
-                  margin: 0,
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  lineHeight: '1.5',
-                  fontFamily: 'inherit'
-                }}
-                onFocus={(e) => {
-                  e.target.style.border = headerNameError ? '1px solid var(--app-error)' : '1px solid var(--app-highlight)'
-                  e.target.style.background = 'var(--app-bg-secondary)'
-                  e.target.style.padding = '0.125rem 0.25rem'
-                }}
-                onBlur={(e) => {
-                  e.target.style.border = '1px solid transparent'
-                  e.target.style.background = 'transparent'
-                  e.target.style.padding = '0'
-                  handleHeaderNameSave(selectedItem)
-                }}
-              />
-              {headerNameError && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  marginTop: '0.25rem',
-                  fontSize: '0.625rem',
-                  color: 'var(--app-error)',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {headerNameError}
-                </div>
-              )}
-            </div>
-          ) : (
-            <span 
-              style={{ fontSize: '0.875rem', color: 'var(--app-text-secondary)', fontWeight: 500, cursor: selectedItem.id === MAIN_SLIDE_ITEM_ID ? 'default' : 'text' }}
-              onDoubleClick={(e) => handleHeaderNameDoubleClick(selectedItem, e)}
-              title={selectedItem.id === MAIN_SLIDE_ITEM_ID ? '' : 'Double-click to edit name'}
-            >
-              {selectedItem.name}
-            </span>
-          )}
-        </div>
-        {/* 読み込みボタン（Main Slides選択時のみ） */}
-        {selectedItem.id === MAIN_SLIDE_ITEM_ID && (
-          <button
-            className="editor-header-load-btn"
-            onClick={onLoad}
-            title="読み込み"
-          >
-            <span className="material-icons">folder_open</span>
-          </button>
-        )}
-        {/* Markdownからインポートボタン（テーブル選択時のみ） */}
-        {selectedItem.type === 'table' && (
-          <button
-            className="editor-header-load-btn"
-            onClick={() => setMarkdownImportTrigger(prev => prev + 1)}
-            title="Markdownからインポート"
-          >
-            <span className="material-icons">upload_file</span>
-          </button>
-        )}
-      </div>
-    )
-  }
-
   // メインコンテンツのレンダリング
   const renderMainContent = () => {
     if (isTonmanaSelected) {
@@ -389,30 +278,11 @@ export const EditorArea = ({
 
   return (
     <div className="editor-area" style={{ width: `${width}%` }}>
-      {/* ファイルヘッダー */}
-      {renderFileHeader()}
-
-      {/* メインコンテンツ + タブバー */}
+      {/* メインコンテンツ（タブバーは削除され、サイドバーに統合） */}
       <div className="editor-area-main">
         {/* コンテンツエリア */}
-        <div className="editor-area-content">
+        <div className="editor-area-content editor-area-content-full">
           {renderMainContent()}
-        </div>
-
-        {/* アイテムタブバー */}
-        <div className="editor-area-tabbar">
-          <ItemTabBar
-            items={items}
-            selectedItemId={selectedItemId}
-            onSelectItem={(itemId) => {
-              onSelectItem(itemId)
-            }}
-            onUpdateItem={onUpdateItem}
-            onDelete={onDeleteItem}
-            existingNames={existingNames}
-            isTonmanaSelected={isTonmanaSelected}
-            onSelectTonmana={onSelectTonmana}
-          />
         </div>
       </div>
 

@@ -29,13 +29,12 @@
   background-color: oklch(0.235 0.006 55); /* 行番号カラム(0.250)より暗め */
 }
 
-/* アイテムタブバー */
-.editor-area-tabbar {
-  display: flex;
-  flex-direction: column;
-  width: 36px;
-  min-height: 0;
-  border-left: 1px solid var(--app-border-primary);
+/* アイテムタブバー - 削除済み、サイドバーに統合 */
+/* .editor-area-tabbar is no longer used */
+
+/* コンテンツエリア（フル幅） */
+.editor-area-content-full {
+  width: 100%;
 }
 
 /* Toast配置 - FloatingNavBarの上 */

@@ -69,6 +69,12 @@
 }
 
 /* Bottom Spacer for FloatingNavBar clearance */
+.editor-top-spacer {
+  height: 18px;  /* 1行 × 18px */
+  flex-shrink: 0;
+  background-color: transparent;
+}
+
 .editor-bottom-spacer {
   height: 126px;  /* 7行 × 18px = 126px */
   flex-shrink: 0;

@@ -202,6 +202,158 @@
 }
 
 /* ============================================
+ * グラフ設定パネル (GraphSettingsPanel) - インライン版（常時表示）
+ * ============================================ */
+
+/* ホバー展開型インラインパネル */
+.graph-settings-panel-inline {
+  display: inline-flex;
+  flex-direction: row-reverse; /* 左に展開 */
+  align-items: flex-start;
+  background: oklch(0.15 0.01 260 / 0.5);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid oklch(1 0 0 / 0.15);
+  box-shadow: 
+    0 8px 32px oklch(0 0 0 / 0.3),
+    0 2px 8px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.1);
+  border-radius: 12px;
+  overflow: visible !important;
+  z-index: 100;
+  /* 閉じた状態ではトリガーサイズのみ */
+  width: fit-content;
+  height: fit-content;
+  max-height: none !important;
+}
+
+/* 閉じた状態のスタイル統一（graph-glass-bar.collapsedと同じ） */
+.graph-settings-panel-inline.hover-collapsed {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* トリガーアイコン（チャートセレクターと同じスタイル） */
+.graph-settings-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 64px;
+  height: 64px;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--app-highlight);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+  overflow: hidden;
+}
+
+.graph-settings-trigger .material-icons {
+  font-size: 1.5rem;
+}
+
+.graph-settings-trigger:hover {
+  background: oklch(1 0 0 / 0.08);
+}
+
+.graph-settings-trigger-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 展開時はトリガーを非表示 */
+.graph-settings-panel-inline.hover-expanding .graph-settings-trigger,
+.graph-settings-panel-inline.hover-expanded .graph-settings-trigger {
+  display: none;
+}
+
+/* 展開パネル */
+.graph-settings-expand-panel {
+  display: flex;
+  flex-direction: column;
+  width: 0;
+  max-height: none;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: 
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.3s;
+}
+
+.graph-settings-expand-panel.collapsed {
+  display: none;
+}
+
+.graph-settings-expand-panel.expanding {
+  width: 520px;
+  opacity: 0.7;
+  visibility: visible;
+  overflow: visible;
+}
+
+.graph-settings-expand-panel.expanded {
+  width: 520px;
+  opacity: 1;
+  visibility: visible;
+  overflow: visible;
+}
+
+.graph-settings-expand-panel.closing {
+  width: 0;
+  opacity: 0;
+  visibility: visible;
+}
+
+.graph-settings-expand-panel .graph-panel-header {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid oklch(1 0 0 / 0.1);
+}
+
+.graph-settings-expand-panel .graph-panel-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-secondary);
+}
+
+.graph-settings-expand-panel .graph-panel-content {
+  flex: 1;
+  overflow: visible !important;
+  padding: 0.5rem;
+  max-height: none !important;
+}
+
+.graph-settings-expand-panel .graph-panel-content::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* セクションのコンパクト化 */
+.graph-settings-expand-panel .graph-panel-section {
+  margin-bottom: 0.375rem;
+}
+
+.graph-settings-expand-panel .chart-section-header {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.6875rem;
+}
+
+.graph-settings-expand-panel .chart-section-content {
+  padding: 0.375rem;
+}
+
+/* ============================================
  * グラフ設定パネル (GraphSettingsPanel) - ポップアップ版
  * ============================================ */
 
@@ -675,4 +827,1209 @@
   background-color: var(--app-accent);
   border-color: var(--app-accent);
   color: var(--color-gray-1000);
+}
+
+/* ============================================
+ * 軸マッピングセクション (AxisMappingSection)
+ * ============================================ */
+
+.axis-mapping-section {
+  padding: 0.75rem 1rem;
+}
+
+.axis-mapping-group {
+  margin-bottom: 1rem;
+}
+
+.axis-mapping-group:last-of-type {
+  margin-bottom: 0.75rem;
+}
+
+/* 軸ラベル */
+.axis-mapping-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.axis-mapping-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.axis-mapping-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.axis-mapping-subtitle {
+  font-size: 0.6875rem;
+  color: var(--app-text-muted);
+}
+
+/* ドロップゾーン */
+.axis-mapping-dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 40px;
+  padding: 0.5rem;
+  background-color: var(--app-bg-tertiary);
+  border: 2px dashed var(--app-border-primary);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.axis-mapping-dropzone.drag-over {
+  border-color: var(--app-accent);
+  background-color: rgba(196, 165, 132, 0.1);
+}
+
+/* カラムチップ */
+.axis-mapping-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 6px;
+}
+
+.axis-mapping-chip-icon {
+  font-size: 0.875rem;
+  color: var(--app-accent-light);
+}
+
+.axis-mapping-chip-name {
+  flex: 1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--app-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.axis-mapping-chip-select {
+  padding: 0.125rem 0.25rem;
+  font-size: 0.6875rem;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  background-color: var(--app-bg-secondary);
+  color: var(--app-text-primary);
+  cursor: pointer;
+}
+
+.axis-mapping-chip-select:focus {
+  outline: none;
+  border-color: var(--app-accent-light);
+}
+
+.axis-mapping-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.axis-mapping-chip-remove:hover {
+  background-color: rgba(255, 83, 112, 0.15);
+  color: var(--app-error);
+}
+
+.axis-mapping-chip-remove .material-icons {
+  font-size: 0.875rem;
+}
+
+/* 追加ボタン */
+.axis-mapping-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  background: transparent;
+  border: none;
+  color: var(--app-text-muted);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.axis-mapping-add-btn:hover:not(:disabled) {
+  color: var(--app-accent-light);
+}
+
+.axis-mapping-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.axis-mapping-add-btn .material-icons {
+  font-size: 0.875rem;
+}
+
+/* プレースホルダー */
+.axis-mapping-placeholder {
+  font-size: 0.6875rem;
+  color: var(--app-text-muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+/* 利用可能なカラム */
+.axis-mapping-available {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--app-border-primary);
+}
+
+.axis-mapping-available-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.axis-mapping-available-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.axis-mapping-available-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  color: var(--app-text-primary);
+  cursor: grab;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.axis-mapping-available-chip:hover {
+  border-color: var(--app-accent-light);
+  background-color: var(--app-bg-secondary);
+}
+
+.axis-mapping-available-chip:active {
+  cursor: grabbing;
+}
+
+.axis-mapping-available-chip .material-icons {
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+
+.axis-mapping-empty {
+  font-size: 0.6875rem;
+  color: var(--app-text-muted);
+  font-style: italic;
+}
+
+/* ============================================
+ * ガラス風グラフセレクター (GraphTypeHoverSelector)
+ * FormatTabsと同様のガラス風ホバー展開UI
+ * ============================================ */
+
+.graph-glass-selector {
+  position: relative;
+  display: inline-flex;
+  z-index: 100;
+  overflow: visible !important;
+}
+
+/* ガラス風フローティングバー - Liquid Glass */
+.graph-glass-bar {
+  display: flex;
+  align-items: flex-start;
+  background: oklch(0.15 0.01 260 / 0.5);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid oklch(1 0 0 / 0.15);
+  box-shadow: 
+    0 8px 32px oklch(0 0 0 / 0.3),
+    0 2px 8px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: 
+    width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 閉じた状態（角丸の正方形） */
+.graph-glass-bar.collapsed {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border-radius: 12px;
+}
+
+/* 展開中 */
+.graph-glass-bar.expanding {
+  width: auto;
+  min-width: 300px;
+  height: auto;
+  padding: 8px;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+/* 展開完了 */
+.graph-glass-bar.expanded {
+  width: auto;
+  min-width: 300px;
+  height: auto;
+  padding: 8px;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+/* 閉じる途中（アイコンフェードアウト） */
+.graph-glass-bar.closing_icons {
+  width: auto;
+  min-width: 300px;
+  height: auto;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+/* 閉じる途中（バー縮小） */
+.graph-glass-bar.closing_bar {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border-radius: 12px;
+}
+
+/* アクティブアイコン（常に表示） */
+/* 閉じた状態のアクティブアイコン（固定サイズの正方形） */
+.graph-glass-active-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 64px;
+  height: 64px;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--app-highlight);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+  overflow: hidden;
+}
+
+.graph-glass-active-icon .material-icons {
+  font-size: 1.5rem;
+}
+
+.graph-glass-active-icon:hover {
+  background: oklch(1 0 0 / 0.08);
+}
+
+/* アクティブアイコンのラベル */
+.graph-glass-active-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 展開パネル */
+.graph-glass-panel {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(1 0 0 / 0.2) transparent;
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  filter: blur(0);
+  transition: 
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.graph-glass-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.graph-glass-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.graph-glass-panel::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 0.2);
+  border-radius: 2px;
+}
+
+/* 展開時のパネル */
+.graph-glass-panel.expanding {
+  display: flex;
+  opacity: 0.7;
+  visibility: visible;
+  width: auto;
+  min-width: 250px;
+  filter: blur(4px);
+  max-height: none;
+  overflow: visible;
+}
+
+.graph-glass-panel.expanded {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+  width: auto;
+  filter: blur(0);
+  min-width: 250px;
+  max-height: none;
+  overflow: visible;
+}
+
+/* 閉じる途中 */
+.graph-glass-panel.closing_icons {
+  opacity: 0;
+  visibility: visible;
+  width: auto;
+  min-width: 250px;
+}
+
+.graph-glass-panel.closing_bar {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+}
+
+/* カテゴリセクション */
+.graph-glass-category {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: 
+    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--cat-index, 0) * 30ms);
+}
+
+.graph-glass-panel.expanding .graph-glass-category,
+.graph-glass-panel.expanded .graph-glass-category {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.graph-glass-panel.closing_icons .graph-glass-category {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition-delay: calc((5 - var(--cat-index, 0)) * 20ms);
+}
+
+.graph-glass-category-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--app-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* アイテムコンテナ */
+.graph-glass-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+/* グラフタイプアイテム */
+.graph-glass-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: auto;
+  padding: 0.625rem 0.375rem;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: 
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.graph-glass-item .material-icons {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.graph-glass-item:hover {
+  color: var(--app-text-primary);
+  background: oklch(1 0 0 / 0.08);
+}
+
+.graph-glass-item.active {
+  color: var(--app-highlight);
+  background: oklch(0.72 0.05 70 / 0.15);
+  border-color: var(--app-highlight);
+  box-shadow: 0 0 0 2px oklch(0.72 0.05 70 / 0.2);
+}
+
+.graph-glass-item.active:hover {
+  background: oklch(0.72 0.05 70 / 0.2);
+}
+
+/* アイテムラベル（常時表示） */
+.graph-glass-item-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  white-space: nowrap;
+  text-align: center;
+}
+
+.graph-glass-item:hover .graph-glass-item-label {
+  color: var(--app-text-primary);
+}
+
+.graph-glass-item.active .graph-glass-item-label {
+  color: var(--app-highlight);
+}
+
+/* ツールチップ */
+.graph-glass-tooltip {
+  background: var(--modal-bg);
+  color: var(--app-text-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: normal;
+  word-wrap: break-word;
+  box-shadow: var(--app-shadow-lg);
+  border: 1px solid var(--app-border-primary);
+  max-width: 240px;
+  text-align: left;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.graph-glass-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--modal-bg);
+}
+
+/* フォーカススタイル */
+.graph-glass-active-icon:focus-visible,
+.graph-glass-item:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+/* Y2軸単位入力欄 */
+.axis-mapping-unit-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  background: var(--app-bg-primary);
+  border-radius: 0.375rem;
+}
+
+.axis-mapping-unit-input label {
+  font-size: 0.6875rem;
+  color: var(--app-text-secondary);
+  white-space: nowrap;
+}
+
+.axis-mapping-unit-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--app-border-primary);
+  background: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+  font-size: 0.75rem;
+}
+
+.axis-mapping-unit-input input:focus {
+  outline: none;
+  border-color: var(--app-accent);
+}
+
+.axis-mapping-unit-input input::placeholder {
+  color: var(--app-text-muted);
+}
+
+/* オプション */
+.axis-mapping-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--app-border-primary);
+}
+
+.axis-mapping-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+  cursor: pointer;
+}
+
+.axis-mapping-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--app-accent);
+  cursor: pointer;
+}
+
+/* ============================================
+ * 新チャート設定パネル (New Chart Settings Panel)
+ * ============================================ */
+
+/* セクションヘッダー */
+.chart-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--app-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.chart-section-chevron {
+  color: var(--app-text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.chart-section-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+.chart-section-title {
+  flex: 1;
+}
+
+.chart-section-content {
+  padding-top: 8px;
+}
+
+/* トグル */
+.chart-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--app-bg-tertiary);
+  border: 1px solid var(--app-border-primary);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.chart-toggle.on {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+}
+
+.chart-toggle-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--app-text-secondary);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 0.2s, background 0.2s;
+}
+
+.chart-toggle.on .chart-toggle-dot {
+  left: 18px;
+  background: white;
+}
+
+/* ドロップエリア */
+.chart-drop-area {
+  min-height: 60px;
+  padding: 8px;
+  background: var(--app-bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--app-border-primary);
+  margin-bottom: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chart-drop-area.drag-over {
+  border-color: var(--app-accent);
+  background: rgba(196, 165, 132, 0.08);
+}
+
+.chart-drop-placeholder {
+  padding: 16px;
+  border: 1px dashed var(--app-border-secondary);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
+
+/* 利用可能カラム */
+.chart-available-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.chart-column-chip {
+  padding: 4px 10px;
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--app-text-secondary);
+  cursor: grab;
+  transition: border-color 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.chart-column-chip:hover {
+  border-color: var(--app-border-secondary);
+  color: var(--app-text-primary);
+}
+
+.chart-column-chip:active {
+  cursor: grabbing;
+}
+
+/* ============================================
+ * ネストカテゴリカード (Nested Category Card)
+ * ============================================ */
+
+.nested-category-card {
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.nested-category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.nested-category-header.no-child {
+  padding-bottom: 0;
+}
+
+.nested-category-grip {
+  color: var(--app-text-muted);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.nested-category-grip:active {
+  cursor: grabbing;
+}
+
+.nested-category-name {
+  font-size: 13px;
+  color: var(--app-accent);
+  font-weight: 500;
+  flex: 1;
+}
+
+.nested-category-remove {
+  background: transparent;
+  border: none;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.nested-category-remove:hover {
+  color: var(--app-text-secondary);
+  background: var(--app-bg-tertiary);
+}
+
+.nested-category-child-dropzone {
+  background: rgba(196, 165, 132, 0.08);
+  border: 1px dashed var(--app-border-secondary);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--app-text-muted);
+  margin-top: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.nested-category-child-dropzone:hover {
+  border-color: var(--app-accent);
+}
+
+/* ネストカード内のネストカード */
+.nested-category-card .nested-category-card {
+  margin-top: 8px;
+  background: var(--app-bg-tertiary);
+}
+
+/* ============================================
+ * 系列スタックエリア (Series Stacks Area)
+ * ============================================ */
+
+.series-stacks-area {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--app-bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--app-border-primary);
+  min-height: 80px;
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+
+.series-stacks-area::-webkit-scrollbar {
+  height: 6px;
+}
+
+.series-stacks-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.series-stacks-area::-webkit-scrollbar-thumb {
+  background: var(--app-border-primary);
+  border-radius: 3px;
+}
+
+/* 系列スタック */
+.series-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--app-bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--app-border-primary);
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.series-stack-add {
+  padding: 8px;
+  border: 1px dashed var(--app-border-secondary);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--app-text-muted);
+  margin-top: 2px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.series-stack-add:hover,
+.series-stack-add.drag-over {
+  border-color: var(--app-accent);
+  color: var(--app-accent);
+  background: rgba(196, 165, 132, 0.08);
+}
+
+/* 系列挿入ドロップゾーン */
+.series-stack-item {
+  position: relative;
+}
+
+.series-insert-zone {
+  height: 4px;
+  margin: -2px 0;
+  position: relative;
+  z-index: 1;
+  border-radius: 2px;
+  transition: height 0.15s, background 0.15s, margin 0.15s;
+}
+
+/* ドラッグ中のみ挿入ゾーンを表示 */
+.series-stack.is-dragging .series-insert-zone {
+  height: 6px;
+  margin: 0;
+  background: transparent;
+  border: 1px dashed transparent;
+}
+
+.series-stack.is-dragging .series-insert-zone:hover,
+.series-insert-zone.drag-over {
+  height: 8px;
+  margin: 2px 0;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--app-accent);
+}
+
+.series-insert-zone.drag-over::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 3px;
+  background: var(--app-accent);
+  border-radius: 2px;
+}
+
+/* 新規スタック追加ゾーン */
+.series-new-stack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  padding: 12px;
+  border: 1px dashed var(--app-border-secondary);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.series-new-stack:hover,
+.series-new-stack.drag-over {
+  border-color: var(--app-accent);
+  color: var(--app-accent);
+  background: rgba(196, 165, 132, 0.08);
+}
+
+/* ============================================
+ * 系列カード (Series Card)
+ * ============================================ */
+
+.series-card {
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: opacity 0.15s;
+}
+
+.series-card.dragging {
+  opacity: 0.5;
+}
+
+.series-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.series-card-header:hover {
+  background: var(--app-bg-tertiary);
+}
+
+.series-card-grip {
+  color: var(--app-text-muted);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.series-card-grip:active {
+  cursor: grabbing;
+}
+
+.series-card-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.series-card-name {
+  font-size: 13px;
+  color: var(--app-text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.series-card-type {
+  font-size: 11px;
+  color: var(--app-text-muted);
+}
+
+.series-card-chevron {
+  color: var(--app-text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.series-card-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+/* ============================================
+ * 系列詳細パネル (Series Detail Panel)
+ * ============================================ */
+
+.series-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--app-border-primary);
+  background: var(--app-bg-tertiary);
+}
+
+.series-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.series-detail-label {
+  font-size: 12px;
+  color: var(--app-text-secondary);
+}
+
+.series-detail-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.series-detail-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.series-detail-btn:hover {
+  border-color: var(--app-border-secondary);
+}
+
+.series-detail-btn.active {
+  background: var(--app-bg-secondary);
+  border-color: var(--app-border-secondary);
+  color: var(--app-text-primary);
+}
+
+.series-detail-select {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  color: var(--app-text-primary);
+  cursor: pointer;
+}
+
+.series-detail-select:focus {
+  outline: none;
+  border-color: var(--app-accent);
+}
+
+/* 色ボタン */
+.series-color-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.series-color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.series-color-btn:hover {
+  transform: scale(1.1);
+}
+
+.series-color-btn.active {
+  border-color: white;
+}
+
+/* 系列トグル */
+.series-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.series-toggle.on {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+}
+
+.series-toggle-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--app-text-secondary);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 0.2s, background 0.2s;
+}
+
+.series-toggle.on .series-toggle-dot {
+  left: 18px;
+  background: white;
+}
+
+/* 削除ボタン */
+.series-delete-btn {
+  padding: 6px;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid rgba(232, 87, 87, 0.4);
+  border-radius: 4px;
+  color: var(--app-error, #e85757);
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+
+.series-delete-btn:hover {
+  background: rgba(232, 87, 87, 0.1);
+}
+
+/* ============================================
+ * 軸入力フィールド (Axis Input Fields)
+ * ============================================ */
+
+.chart-axis-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chart-axis-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.chart-axis-input-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-axis-input-item.full {
+  grid-column: span 2;
+}
+
+.chart-axis-input-label {
+  font-size: 11px;
+  color: var(--app-text-muted);
+}
+
+.chart-axis-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
+  border-radius: 4px;
+  color: var(--app-text-primary);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.chart-axis-input:focus {
+  border-color: var(--app-accent);
+}
+
+.chart-axis-input::placeholder {
+  color: var(--app-text-muted);
 }

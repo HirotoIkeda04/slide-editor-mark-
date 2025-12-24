@@ -9,7 +9,92 @@ import type { CellDataType } from '../types'
 export type CellValueGetter = (row: number, col: number) => { value: string; type: CellDataType } | null
 
 /**
- * 数式エバリュエーター
+ * 列ベースの数式評価（Notion風 prop() 関数対応）
+ * @param formula 数式 (例: "prop('売上') * prop('数量')")
+ * @param rowIndex 評価対象の行インデックス
+ * @param headers 列ヘッダー配列
+ * @param rowData 行データ配列
+ * @returns 評価結果
+ */
+export function evaluateColumnFormula(
+  formula: string,
+  rowIndex: number,
+  headers: string[],
+  rowData: string[]
+): string | number {
+  if (!formula || !formula.trim()) {
+    return ''
+  }
+
+  try {
+    // prop("列名") を実際の値に置換
+    let expression = formula
+
+    // prop("列名") または prop('列名') のパターンを検索
+    const propPattern = /prop\s*\(\s*["']([^"']+)["']\s*\)/g
+    let match
+
+    while ((match = propPattern.exec(formula)) !== null) {
+      const columnName = match[1]
+      const colIndex = headers.findIndex(h => h === columnName)
+      
+      if (colIndex !== -1 && rowData[colIndex] !== undefined) {
+        const value = rowData[colIndex]
+        // 数値として解析を試みる
+        const numValue = parseFloat(value?.replace(/[,¥$€£%]/g, '') || '0')
+        if (!isNaN(numValue)) {
+          expression = expression.replace(match[0], String(numValue))
+        } else {
+          // 文字列の場合はそのまま
+          expression = expression.replace(match[0], `"${value}"`)
+        }
+      } else {
+        // 列が見つからない場合は 0
+        expression = expression.replace(match[0], '0')
+      }
+    }
+
+    // 簡易的な数式評価（四則演算のみ）
+    // セキュリティのため、eval は使わず手動でパース
+    const result = evaluateSimpleExpression(expression)
+    return result
+  } catch (error) {
+    console.error('Column formula evaluation error:', error)
+    return '#ERROR!'
+  }
+}
+
+/**
+ * 簡易的な四則演算式を評価
+ */
+function evaluateSimpleExpression(expr: string): number | string {
+  // 空白を削除
+  expr = expr.replace(/\s+/g, '')
+  
+  // 文字列が含まれる場合はそのまま返す
+  if (expr.includes('"')) {
+    return expr.replace(/"/g, '')
+  }
+
+  // 数値と演算子のみを許可
+  if (!/^[\d.+\-*/()]+$/.test(expr)) {
+    return '#VALUE!'
+  }
+
+  try {
+    // Function コンストラクタで安全に評価（演算子と数字のみ）
+    const result = new Function(`return ${expr}`)()
+    if (typeof result === 'number' && !isNaN(result)) {
+      return Math.round(result * 1000000) / 1000000 // 浮動小数点誤差を丸める
+    }
+    return '#VALUE!'
+  } catch {
+    return '#ERROR!'
+  }
+}
+
+/**
+ * 数式エバリュエーター（セルレベル）
  */
 export class FormulaEvaluator {
   private cellValueGetter: CellValueGetter

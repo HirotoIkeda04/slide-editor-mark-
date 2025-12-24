@@ -301,7 +301,7 @@ export interface BaseItem {
 }
 
 // Table cell data types
-export type CellDataType = 'text' | 'number' | 'date' | 'percentage' | 'currency'
+export type CellDataType = 'text' | 'number' | 'date' | 'percentage' | 'currency' | 'category' | 'formula' | 'checkbox'
 
 // Cell format options
 export interface CellFormat {
@@ -309,6 +309,9 @@ export interface CellFormat {
   // Number format options
   decimalPlaces?: number
   useThousandsSeparator?: boolean
+  // General unit/scale options (for header display)
+  unit?: string // 単位（例: "円", "km", "人"）
+  scale?: 'none' | 'thousand' | 'million' | 'billion' // 桁スケール: なし、千、百万、十億
   // Date format options
   dateFormat?: string // e.g., 'YYYY-MM-DD', 'MM/DD/YYYY'
   // Currency format options
@@ -316,6 +319,8 @@ export interface CellFormat {
   currencyScale?: 'none' | 'thousand' | 'million' | 'billion' // 単位: なし、千、百万、十億
   // Percentage format options
   percentageDecimalPlaces?: number
+  // Formula type options
+  formula?: string // 数式型: 列の数式（例: "prop('売上') * 2"）
 }
 
 // Merged cell information
@@ -486,6 +491,69 @@ export type YAxisRangeMode = 'auto' | 'custom'
 // カラーモード
 export type ColorMode = 'tone' | 'custom'
 
+// ============================================
+// グラフ軸設定システム (Chart Axis Configuration)
+// ============================================
+
+/**
+ * X軸のネストカテゴリ
+ * カテゴリの階層関係を再帰的に表現
+ */
+export interface NestedCategory {
+  column: number        // カラムインデックス
+  child: NestedCategory | null
+}
+
+/**
+ * 系列の表示タイプ
+ */
+export type ChartSeriesType = 'bar' | 'line' | 'area'
+
+/**
+ * エラーバー設定
+ */
+export interface ErrorBarConfig {
+  type: ErrorBarType
+  column?: number  // type === 'column' の場合
+}
+
+/**
+ * グラフ系列
+ * Y軸の各データ系列の設定
+ */
+export interface ChartSeries {
+  id: string
+  column: number          // カラムインデックス
+  type: ChartSeriesType   // 表示タイプ（棒/線/面）
+  color: string           // 系列の色
+  smoothing?: boolean     // 線/面の場合のスムージング
+  errorBar?: ErrorBarConfig
+}
+
+/**
+ * 系列スタック
+ * 同一スタック内の系列は積み上げ表示される
+ */
+export type SeriesStack = ChartSeries[]
+
+/**
+ * 軸スケール設定
+ */
+export interface ChartAxisScale {
+  min: number | 'auto'
+  max: number | 'auto'
+}
+
+/**
+ * Y軸設定
+ * スタック配列と軸パラメータを含む
+ */
+export interface ChartYAxisConfig {
+  stacks: SeriesStack[]
+  scale: ChartAxisScale
+  unit: string            // 自動推測または手動設定
+}
+
 // Chart configuration for table visualization
 export interface TableChartConfig {
   // === 基本設定 ===
@@ -563,6 +631,26 @@ export interface TableChartConfig {
   seriesConfigs?: SeriesConfig[]  // 系列ごとの表示設定
   zColumn?: number                // Z軸に使用する列
   zUsage?: ZAxisUsage             // Z軸の用途
+  
+  // === Phase 3: 新軸設定システム ===
+  xAxisCategory?: NestedCategory       // X軸のネストカテゴリ
+  yAxisConfig?: ChartYAxisConfig       // Y軸（左）設定
+  y2AxisConfig?: ChartYAxisConfig      // Y2軸（右）設定
+  y2AxisEnabled?: boolean              // Y2軸の有効/無効
+  smoothLine?: boolean                 // 線のスムージング（レガシー互換）
+}
+
+// ソート設定
+export interface TableSortConfig {
+  column: number
+  direction: 'asc' | 'desc'
+}
+
+// フィルター条件
+export interface TableFilterCondition {
+  column: number
+  operator: 'equals' | 'contains' | 'gt' | 'lt' | 'isEmpty' | 'isNotEmpty'
+  value?: string
 }
 
 export interface TableItem extends BaseItem {
@@ -582,6 +670,9 @@ export interface TableItem extends BaseItem {
   // Tree input data (for sankey, treemap, etc.)
   treeData?: TreeData        // ツリー入力データ
   treeSettings?: TreeSettings  // ツリー設定
+  // Sort and filter (Notion-style)
+  sortConfig?: TableSortConfig      // ソート設定
+  filterConfig?: TableFilterCondition[]  // フィルター条件
 }
 
 export type ImageDisplayMode = 'contain' | 'cover'

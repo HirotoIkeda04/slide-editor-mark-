@@ -18,11 +18,11 @@ import {
   isCellHidden,
   type FilledRange
 } from '../../utils/tableUtils'
-import { FormulaEvaluator } from '../../utils/formulaEvaluator'
+import { FormulaEvaluator, evaluateColumnFormula } from '../../utils/formulaEvaluator'
 import { FloatingNavBar } from '../floatingNavBar/FloatingNavBar'
 import { PictoEditor } from '../picto/PictoEditor'
 import { EulerEditor, EulerIcon } from '../euler'
-import { GraphCategoryChips, GraphTypeCarousel, GraphSettingsPanel, GraphTypeModal, type PanelOpenedFrom } from '../graph'
+import { GraphCategoryChips, GraphTypeCarousel, GraphSettingsPanel, GraphTypeModal, GraphTypeHoverSelector } from '../graph'
 import { TreeInput, TreeSettingsPanel } from '../tree'
 import { isTreeInputChart } from '../../constants/graphConfigs'
 import { DEFAULT_CANVAS_SIZE } from '../../constants/pictoConfigs'
@@ -62,7 +62,7 @@ export const ItemDetailPanel = ({
   const [createNameError, setCreateNameError] = useState('')
 
   // Table specific state
-  const [tableData, setTableData] = useState<string[][]>([['', ''], ['', '']])
+  const [tableData, setTableData] = useState<string[][]>([['', ''], ['', ''], ['', '']])
   const [tableHeaders, setTableHeaders] = useState<string[]>(['', ''])
   const [useHeaders, setUseHeaders] = useState(false)
   const [cellTypes, setCellTypes] = useState<Record<string, CellDataType>>({})
@@ -74,21 +74,34 @@ export const ItemDetailPanel = ({
   const [formatDialogDataType, setFormatDialogDataType] = useState<CellDataType>('text')
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+  const [typeDropdownColumn, setTypeDropdownColumn] = useState<number | null>(null)
   const [tableDisplayFormat, setTableDisplayFormat] = useState<TableDisplayFormat>('table')
   const [hiddenRows, setHiddenRows] = useState<number[]>([])
-  const [hiddenColumns, setHiddenColumns] = useState<number[]>([])
   const tableScrollViewportRef = useRef<HTMLDivElement | null>(null)
+  
+  // Sort state
+  const [sortConfig, setSortConfig] = useState<{ column: number; direction: 'asc' | 'desc' } | null>(null)
+  
+  // Filter state
+  const [filterConfig, setFilterConfig] = useState<Array<{
+    column: number
+    operator: 'equals' | 'contains' | 'gt' | 'lt' | 'isEmpty' | 'isNotEmpty'
+    value?: string
+  }>>([])
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   
   // Graph panel state
   const [graphCategory, setGraphCategory] = useState<GraphCategory>('all')
-  const [showGraphPanel, setShowGraphPanel] = useState(false)
-  const [graphPanelOpenedFrom, setGraphPanelOpenedFrom] = useState<PanelOpenedFrom>('settings')
   const [showGraphTypeModal, setShowGraphTypeModal] = useState(false)
   const [chartConfig, setChartConfig] = useState<TableChartConfig>({})
   
   // Tree input state (for hierarchy charts)
   const [treeData, setTreeData] = useState<TreeData | undefined>(undefined)
   const [treeSettings, setTreeSettings] = useState<TreeSettings | undefined>(undefined)
+  
+  // View mode state (Notion-style table/tree view switcher)
+  type ViewMode = 'table' | 'tree'
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
   
   // Markdown import state
   const [showMarkdownImport, setShowMarkdownImport] = useState(false)
@@ -142,42 +155,105 @@ export const ItemDetailPanel = ({
   }>({ start: null, end: null })
   const [isDragging, setIsDragging] = useState(false)
 
-  const COLUMN_BASE_WIDTH = 75
+  // Column resize state
+  const [columnWidths, setColumnWidths] = useState<number[]>([])
+  const [resizing, setResizing] = useState<{
+    colIndex: number
+    startX: number
+    startWidth: number
+  } | null>(null)
+
+  // Drag & drop reorder state
+  const [draggedColumn, setDraggedColumn] = useState<number | null>(null)
+  const [draggedRow, setDraggedRow] = useState<number | null>(null)
+  const [dropTargetColumn, setDropTargetColumn] = useState<number | null>(null)
+  const [dropTargetRow, setDropTargetRow] = useState<number | null>(null)
+
+  const COLUMN_BASE_WIDTH = 60
+  const MIN_COLUMN_WIDTH = 60
   const ROW_HEADER_WIDTH = 40
 
-  // 26x26グリッドを表示用に拡張（実データは保存されない）
+  // 実データのみを表示（フィルター・ソート適用）
   const displayData = useMemo(() => {
-    const rows = Math.max(tableData.length, GRID_ROWS)
-    const cols = Math.max(tableData[0]?.length || 0, GRID_COLS)
+    let result = tableData
     
-    const expanded: string[][] = []
-    for (let r = 0; r < rows; r++) {
-      const row: string[] = []
-      for (let c = 0; c < cols; c++) {
-        row.push(tableData[r]?.[c] ?? '')
-      }
-      expanded.push(row)
+    // フィルターを適用
+    if (filterConfig.length > 0) {
+      result = result.filter((row) => {
+        return filterConfig.every(filter => {
+          const cellValue = row[filter.column] || ''
+          
+          switch (filter.operator) {
+            case 'equals':
+              return cellValue === filter.value
+            case 'contains':
+              return cellValue.toLowerCase().includes((filter.value || '').toLowerCase())
+            case 'gt': {
+              const num = parseFloat(cellValue.replace(/[,¥$€£%]/g, ''))
+              const filterNum = parseFloat((filter.value || '0').replace(/[,¥$€£%]/g, ''))
+              return !isNaN(num) && !isNaN(filterNum) && num > filterNum
+            }
+            case 'lt': {
+              const num = parseFloat(cellValue.replace(/[,¥$€£%]/g, ''))
+              const filterNum = parseFloat((filter.value || '0').replace(/[,¥$€£%]/g, ''))
+              return !isNaN(num) && !isNaN(filterNum) && num < filterNum
+            }
+            case 'isEmpty':
+              return !cellValue || cellValue.trim() === ''
+            case 'isNotEmpty':
+              return cellValue && cellValue.trim() !== ''
+            default:
+              return true
+          }
+        })
+      })
     }
-    return expanded
-  }, [tableData])
+    
+    // ソートを適用
+    if (sortConfig) {
+      result = [...result].sort((a, b) => {
+        const aVal = a[sortConfig.column] || ''
+        const bVal = b[sortConfig.column] || ''
+        
+        // 数値として比較を試みる
+        const aNum = parseFloat(aVal.replace(/[,¥$€£%]/g, ''))
+        const bNum = parseFloat(bVal.replace(/[,¥$€£%]/g, ''))
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return sortConfig.direction === 'asc' ? aNum - bNum : bNum - aNum
+        }
+        
+        // 文字列として比較
+        const comparison = aVal.localeCompare(bVal, 'ja')
+        return sortConfig.direction === 'asc' ? comparison : -comparison
+      })
+    }
+    
+    return result
+  }, [tableData, sortConfig, filterConfig])
 
-  // 表示用ヘッダーを拡張
+  // 実ヘッダーのみを表示
   const displayHeaders = useMemo(() => {
-    const cols = Math.max(tableHeaders.length, GRID_COLS)
-    const expanded: string[] = []
-    for (let c = 0; c < cols; c++) {
-      expanded.push(tableHeaders[c] ?? '')
-    }
-    return expanded
+    return tableHeaders
   }, [tableHeaders])
 
   // 入力済みセルの範囲を計算（スライドに表示される範囲）
   const filledRange = useMemo((): FilledRange | null => {
-    return getFilledRange(tableData, hiddenRows, hiddenColumns)
-  }, [tableData, hiddenRows, hiddenColumns])
+    return getFilledRange(tableData, hiddenRows, [])
+  }, [tableData, hiddenRows])
 
-  const colCount = displayData[0]?.length || GRID_COLS
-  const tableContentWidth = ROW_HEADER_WIDTH + colCount * COLUMN_BASE_WIDTH
+  const colCount = displayData[0]?.length || 2
+  
+  // Get column width (from state or default)
+  const getColumnWidth = useCallback((colIndex: number): number => {
+    return columnWidths[colIndex] ?? COLUMN_BASE_WIDTH
+  }, [columnWidths])
+  
+  // Calculate total table width based on column widths
+  const tableContentWidth = useMemo(() => {
+    const dataColumnsWidth = Array.from({ length: colCount }, (_, i) => getColumnWidth(i)).reduce((sum, w) => sum + w, 0)
+    return ROW_HEADER_WIDTH + dataColumnsWidth + COLUMN_BASE_WIDTH  // +COLUMN_BASE_WIDTH for add property column
+  }, [colCount, getColumnWidth])
   const tableWidthPx = `${tableContentWidth}px`
 
   const normalizeFullWidthNumberCharacters = (input: string): string => {
@@ -187,6 +263,7 @@ export const ItemDetailPanel = ({
       .replace(/\uFF0E/g, '.')
       .replace(/\uFF0C/g, ',')
       .replace(/\uFF0D/g, '-')
+      .replace(/\u30FC/g, '-')  // 長音符（ー）も半角マイナスに変換
       .replace(/\uFF0B/g, '+')
       .replace(/\uFF05/g, '%')
   }
@@ -224,6 +301,20 @@ export const ItemDetailPanel = ({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [contextMenu])
+
+  // データ型ドロップダウンを外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (typeDropdownColumn !== null) {
+        const target = e.target as HTMLElement
+        if (!target.closest('.table-type-dropdown-menu') && !target.closest('.header-type-dropdown')) {
+          setTypeDropdownColumn(null)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [typeDropdownColumn])
   
   // ドラッグ終了のグローバルリスナー
   useEffect(() => {
@@ -254,7 +345,7 @@ export const ItemDetailPanel = ({
     switch (currentItem.type) {
       case 'table':
         const tableItem = currentItem as TableItem
-        setTableData(tableItem.data || [['', ''], ['', '']])
+        setTableData(tableItem.data || [['', ''], ['', ''], ['', '']])
         setTableHeaders(tableItem.headers || [])
         setUseHeaders(!!tableItem.headers)
         setCellTypes(tableItem.cellTypes || {})
@@ -262,7 +353,6 @@ export const ItemDetailPanel = ({
         setMergedCells(tableItem.mergedCells || [])
         setTableDisplayFormat(tableItem.displayFormat || 'table')
         setHiddenRows(tableItem.hiddenRows || [])
-        setHiddenColumns(tableItem.hiddenColumns || [])
         setChartConfig(tableItem.chartConfig || {})
         setTreeData(tableItem.treeData)
         setTreeSettings(tableItem.treeSettings)
@@ -341,8 +431,32 @@ export const ItemDetailPanel = ({
   const getCellDisplayValue = (rowIndex: number, colIndex: number): string => {
     const cellKey = getCellKey(rowIndex, colIndex)
     const rawValue = tableData[rowIndex]?.[colIndex] || ''
+    const cellType = cellTypes[cellKey] || 'text'
     
-    // 数式の場合、評価を実行
+    // 数式型の列の場合、列の数式を評価
+    if (cellType === 'formula') {
+      const format = cellFormats[cellKey]
+      const formula = format?.formula
+      if (formula) {
+        try {
+          const result = evaluateColumnFormula(
+            formula,
+            rowIndex,
+            tableHeaders,
+            tableData[rowIndex] || []
+          )
+          if (typeof result === 'number') {
+            return String(result)
+          }
+          return String(result)
+        } catch (error) {
+          return '#ERROR!'
+        }
+      }
+      return ''
+    }
+    
+    // 旧式の数式（=で始まる）の場合、評価を実行
     if (rawValue.trim().startsWith('=')) {
       try {
         const evaluator = new FormulaEvaluator(
@@ -361,7 +475,6 @@ export const ItemDetailPanel = ({
           return result // エラー値
         }
         // 数値の場合はフォーマットを適用
-        const cellType = cellTypes[cellKey] || 'text'
         const format = cellFormats[cellKey]
         if (cellType === 'number' && typeof result === 'number') {
           return formatCellValue(result, cellType, format)
@@ -373,7 +486,6 @@ export const ItemDetailPanel = ({
     }
     
     // 通常の値の場合、データ型に応じてフォーマット
-    const cellType = cellTypes[cellKey] || 'text'
     const format = cellFormats[cellKey]
     
     if (cellType === 'text' || !rawValue) {
@@ -935,35 +1047,12 @@ export const ItemDetailPanel = ({
     }
   }
 
-  // 列の非表示/表示を切り替え
-  const toggleColumnVisibility = (index: number) => {
-    if (!item || !onUpdateItem) return
-    const newHiddenColumns = hiddenColumns.includes(index)
-      ? hiddenColumns.filter(i => i !== index)
-      : [...hiddenColumns, index]
-    setHiddenColumns(newHiddenColumns)
-    setContextMenu(null)
-    
-    if (item.type === 'table') {
-      onUpdateItem(item.id, { hiddenColumns: newHiddenColumns } as Partial<TableItem>)
-    }
-  }
-
   // すべての非表示行を表示
   const showAllRows = () => {
     if (!item || !onUpdateItem) return
     setHiddenRows([])
     if (item.type === 'table') {
       onUpdateItem(item.id, { hiddenRows: [] } as Partial<TableItem>)
-    }
-  }
-
-  // すべての非表示列を表示
-  const showAllColumns = () => {
-    if (!item || !onUpdateItem) return
-    setHiddenColumns([])
-    if (item.type === 'table') {
-      onUpdateItem(item.id, { hiddenColumns: [] } as Partial<TableItem>)
     }
   }
 
@@ -978,6 +1067,163 @@ export const ItemDetailPanel = ({
       x: rect.left,
       y: rect.bottom + 4
     })
+  }
+
+  // ===== Column Resize Handlers =====
+  const handleResizeStart = (e: React.MouseEvent, colIndex: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startWidth = columnWidths[colIndex] ?? COLUMN_BASE_WIDTH
+    setResizing({
+      colIndex,
+      startX: e.clientX,
+      startWidth
+    })
+    document.body.classList.add('column-resizing')
+  }
+
+  useEffect(() => {
+    if (!resizing) return
+
+    const handleResizeMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizing.startX
+      const newWidth = Math.max(MIN_COLUMN_WIDTH, resizing.startWidth + deltaX)
+      setColumnWidths(prev => {
+        const updated = [...prev]
+        // Ensure array has enough elements
+        while (updated.length <= resizing.colIndex) {
+          updated.push(COLUMN_BASE_WIDTH)
+        }
+        updated[resizing.colIndex] = newWidth
+        return updated
+      })
+    }
+
+    const handleResizeEnd = () => {
+      setResizing(null)
+      document.body.classList.remove('column-resizing')
+    }
+
+    document.addEventListener('mousemove', handleResizeMove)
+    document.addEventListener('mouseup', handleResizeEnd)
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove)
+      document.removeEventListener('mouseup', handleResizeEnd)
+    }
+  }, [resizing])
+
+  // ===== Column Drag & Drop Handlers =====
+  const handleColumnDragStart = (e: React.DragEvent, colIndex: number) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', `column:${colIndex}`)
+    setDraggedColumn(colIndex)
+  }
+
+  const handleColumnDragOver = (e: React.DragEvent, colIndex: number) => {
+    e.preventDefault()
+    if (draggedColumn === null || draggedColumn === colIndex) return
+    setDropTargetColumn(colIndex)
+  }
+
+  const handleColumnDragLeave = () => {
+    setDropTargetColumn(null)
+  }
+
+  const handleColumnDrop = (e: React.DragEvent, targetColIndex: number) => {
+    e.preventDefault()
+    if (draggedColumn === null || draggedColumn === targetColIndex) {
+      setDraggedColumn(null)
+      setDropTargetColumn(null)
+      return
+    }
+
+    // Reorder columns in data
+    const newTableData = tableData.map(row => {
+      const newRow = [...row]
+      const [removed] = newRow.splice(draggedColumn, 1)
+      newRow.splice(targetColIndex, 0, removed)
+      return newRow
+    })
+
+    // Reorder headers
+    const newHeaders = [...tableHeaders]
+    const [removedHeader] = newHeaders.splice(draggedColumn, 1)
+    newHeaders.splice(targetColIndex, 0, removedHeader)
+
+    // Reorder column widths
+    const newColumnWidths = [...columnWidths]
+    while (newColumnWidths.length < Math.max(draggedColumn, targetColIndex) + 1) {
+      newColumnWidths.push(COLUMN_BASE_WIDTH)
+    }
+    const [removedWidth] = newColumnWidths.splice(draggedColumn, 1)
+    newColumnWidths.splice(targetColIndex, 0, removedWidth)
+
+    setTableData(newTableData)
+    setTableHeaders(newHeaders)
+    setColumnWidths(newColumnWidths)
+    setDraggedColumn(null)
+    setDropTargetColumn(null)
+
+    // Update item
+    if (item && onUpdateItem) {
+      onUpdateItem(item.id, {
+        data: newTableData,
+        headers: useHeaders ? newHeaders : undefined
+      } as Partial<TableItem>)
+    }
+  }
+
+  const handleColumnDragEnd = () => {
+    setDraggedColumn(null)
+    setDropTargetColumn(null)
+  }
+
+  // ===== Row Drag & Drop Handlers =====
+  const handleRowDragStart = (e: React.DragEvent, rowIndex: number) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', `row:${rowIndex}`)
+    setDraggedRow(rowIndex)
+  }
+
+  const handleRowDragOver = (e: React.DragEvent, rowIndex: number) => {
+    e.preventDefault()
+    if (draggedRow === null || draggedRow === rowIndex) return
+    setDropTargetRow(rowIndex)
+  }
+
+  const handleRowDragLeave = () => {
+    setDropTargetRow(null)
+  }
+
+  const handleRowDrop = (e: React.DragEvent, targetRowIndex: number) => {
+    e.preventDefault()
+    if (draggedRow === null || draggedRow === targetRowIndex) {
+      setDraggedRow(null)
+      setDropTargetRow(null)
+      return
+    }
+
+    // Reorder rows in data
+    const newTableData = [...tableData]
+    const [removedRow] = newTableData.splice(draggedRow, 1)
+    newTableData.splice(targetRowIndex, 0, removedRow)
+
+    setTableData(newTableData)
+    setDraggedRow(null)
+    setDropTargetRow(null)
+
+    // Update item
+    if (item && onUpdateItem) {
+      onUpdateItem(item.id, {
+        data: newTableData
+      } as Partial<TableItem>)
+    }
+  }
+
+  const handleRowDragEnd = () => {
+    setDraggedRow(null)
+    setDropTargetRow(null)
   }
 
 // 追加ボタンを非表示にするハンドラ
@@ -1158,6 +1404,9 @@ export const ItemDetailPanel = ({
       case 'date': return { icon: 'calendar_today', label: '日付' }
       case 'percentage': return { icon: 'percent', label: 'パーセント' }
       case 'currency': return { icon: 'currency_yen', label: '通貨' }
+      case 'category': return { icon: 'sell', label: 'カテゴリ' }
+      case 'formula': return { icon: 'function', label: '数式' }
+      case 'checkbox': return { icon: 'check_box', label: 'チェックボックス' }
       default: return { icon: 'notes', label: 'テキスト' }
     }
   }
@@ -1449,8 +1698,7 @@ export const ItemDetailPanel = ({
       cellTypes: {},
       cellFormats: {},
       mergedCells: [],
-      hiddenRows: [],
-      hiddenColumns: []
+      hiddenRows: []
     } as Partial<TableItem>)
     
     // ダイアログを閉じる
@@ -1526,7 +1774,7 @@ export const ItemDetailPanel = ({
       case 'table':
         itemData = {
           ...baseItem,
-          data: [['', ''], ['', '']],  // デフォルトの空テーブル
+          data: [['', ''], ['', ''], ['', '']],  // デフォルトの空テーブル（3行2列）
           headers: undefined
         } as Partial<TableItem>
         break
@@ -1570,7 +1818,7 @@ export const ItemDetailPanel = ({
     // 状態をリセット
     setCreateName('')
     setCreateType('table')
-    setTableData([['', ''], ['', '']])
+    setTableData([['', ''], ['', ''], ['', '']])
     setTableHeaders(['', ''])
     setUseHeaders(false)
     setImageDataUrl('')
@@ -1696,25 +1944,51 @@ export const ItemDetailPanel = ({
     switch (item.type) {
       case 'table':
         const tableEditorContent = (
+          <div className="table-editor-container">
+            {/* フローティングツールバー（overflow コンテナの外） */}
+            <div className="table-toolbar-floating">
+              <GraphTypeHoverSelector
+                currentFormat={tableDisplayFormat}
+                onFormatChange={handleGraphFormatChange}
+              />
+              <GraphSettingsPanel
+                table={item as TableItem}
+                onUpdateTable={handleUpdateTableItem}
+                selectedCategory={graphCategory}
+                onCategoryChange={setGraphCategory}
+                mode="inline"
+              />
+            </div>
+            
           <div className="table-editor-wrapper">
           <div className="table-editor-modern">
-              {/* グラフ選択UI */}
-              <div className="table-graph-selector">
-                <GraphCategoryChips
-                  selectedCategory={graphCategory}
-                  onCategoryChange={setGraphCategory}
-                />
-                <GraphTypeCarousel
-                  selectedCategory={graphCategory}
-                  currentFormat={tableDisplayFormat}
-                  onFormatChange={handleGraphFormatChange}
-                  onSettingsClick={() => handleOpenGraphPanel('settings')}
-                  onMoreClick={() => setShowGraphTypeModal(true)}
-                />
+              {/* ツールバー行（ビュータブのみ） */}
+              <div className="table-toolbar-row">
+                {/* 左側：ビュー切り替えタブ */}
+                <div className="notion-view-tabs">
+                  <button
+                    className={`notion-view-tab ${viewMode === 'table' ? 'active' : ''}`}
+                    onClick={() => setViewMode('table')}
+                    type="button"
+                  >
+                    <span className="material-icons">table_chart</span>
+                    <span>Table</span>
+                  </button>
+                  {isTreeInputChart(tableDisplayFormat) && (
+                    <button
+                      className={`notion-view-tab ${viewMode === 'tree' ? 'active' : ''}`}
+                      onClick={() => setViewMode('tree')}
+                      type="button"
+                    >
+                      <span className="material-icons">account_tree</span>
+                      <span>Tree</span>
+                    </button>
+                  )}
+                </div>
               </div>
               
-            {/* 入力モードに応じたUI切り替え */}
-            {isTreeInputChart(tableDisplayFormat) ? (
+            {/* ビューモードに応じたUI切り替え */}
+            {viewMode === 'tree' && isTreeInputChart(tableDisplayFormat) ? (
               /* ツリー入力UI（サンキー、ツリーマップ等） */
               <TreeInput
                 treeData={treeData}
@@ -1725,119 +1999,93 @@ export const ItemDetailPanel = ({
             ) : (
               /* スプレッドシート入力UI（デフォルト） */
               <>
-            {/* 数式バーとデータ型選択 */}
-            <div className="table-formula-bar">
-              <div className="table-formula-fx-label">fx</div>
-              <input
-                type="text"
-                className="table-formula-input"
-                value={getSelectedCellValue()}
-                onChange={(e) => handleFormulaBarChange(e.target.value)}
-                onFocus={() => {
-                  // 数式バーにフォーカスがあるときも選択中のセルを維持
-                  // selectedCellが既に設定されている場合はそのまま維持
-                }}
-                placeholder={selectedCell ? "セルの内容を入力（例: =SUM(A1:A5)）..." : "セルを選択してください"}
-                disabled={!selectedCell}
-              />
-              {selectedCell && !selectedCell.isHeader && (
-                <div className="table-cell-type-selector">
-                  <div className="table-type-dropdown">
-                    <button 
-                      className="table-type-dropdown-trigger"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setShowTypeDropdown(!showTypeDropdown)
-                      }}
-                    >
-                      <span className="material-icons">{getDataTypeInfo(cellTypes[getCellKey(selectedCell.row, selectedCell.col)] || 'text').icon}</span>
-                      <span className="material-icons table-type-dropdown-arrow">expand_more</span>
-                    </button>
-                    {showTypeDropdown && (
-                      <div className="table-type-dropdown-menu">
-                        {(['text', 'number', 'date', 'percentage', 'currency'] as CellDataType[]).map((type) => {
-                          const typeInfo = getDataTypeInfo(type)
-                          const isSelected = (cellTypes[getCellKey(selectedCell.row, selectedCell.col)] || 'text') === type
-                          return (
-                            <button
-                              key={type}
-                              className={`table-type-dropdown-item ${isSelected ? 'selected' : ''}`}
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleSetCellType(selectedCell.row, selectedCell.col, type)
-                                setShowTypeDropdown(false)
-                              }}
-                            >
-                              <span className="material-icons">{typeInfo.icon}</span>
-                              <span>{typeInfo.label}</span>
-                              {isSelected && <span className="material-icons table-type-check">check</span>}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  {(cellTypes[getCellKey(selectedCell.row, selectedCell.col)] || 'text') !== 'text' && (
-                    <button
-                      className="table-format-button"
-                      onClick={() => {
-                        setFormatDialogCell({ row: selectedCell.row, col: selectedCell.col })
-                        setShowFormatDialog(true)
-                      }}
-                      title="フォーマット設定"
-                    >
-                      <span className="material-icons">format_color_text</span>
-                    </button>
-                  )}
-                </div>
+            {/* フィルターバー */}
+            <div className="table-filter-bar">
+              <button 
+                className={`table-filter-toggle ${filterConfig.length > 0 ? 'active' : ''}`}
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              >
+                <span className="material-icons">filter_list</span>
+                <span>フィルター</span>
+                {filterConfig.length > 0 && (
+                  <span className="filter-count">{filterConfig.length}</span>
+                )}
+              </button>
+              
+              {filterConfig.length > 0 && (
+                <button 
+                  className="table-filter-clear"
+                  onClick={() => setFilterConfig([])}
+                >
+                  <span className="material-icons">close</span>
+                  クリア
+                </button>
               )}
               
-              {/* セル範囲が選択されている場合、結合/結合解除ボタンを表示 */}
-              {cellRangeSelection.start && cellRangeSelection.end && (
-                <div className="table-merge-controls">
-                  {(() => {
-                    const minRow = Math.min(cellRangeSelection.start.row, cellRangeSelection.end.row)
-                    const maxRow = Math.max(cellRangeSelection.start.row, cellRangeSelection.end.row)
-                    const minCol = Math.min(cellRangeSelection.start.col, cellRangeSelection.end.col)
-                    const maxCol = Math.max(cellRangeSelection.start.col, cellRangeSelection.end.col)
-                    const isMultipleCells = (maxRow - minRow + 1) * (maxCol - minCol + 1) > 1
-                    const isMerged = isMergeStartCell(minRow, minCol)
-                    
-                    if (isMerged) {
-                      // 結合セルを選択している場合、結合解除ボタン
-                      return (
-                        <button
-                          className="table-merge-action-button unmerge"
-                          onClick={() => {
-                            handleUnmergeCell(minRow, minCol)
-                            setCellRangeSelection({ start: null, end: null })
+              {showFilterDropdown && (
+                <div className="table-filter-dropdown">
+                  <div className="filter-dropdown-header">フィルター条件を追加</div>
+                  {filterConfig.map((filter, idx) => (
+                    <div key={idx} className="filter-condition">
+                      <select
+                        value={filter.column}
+                        onChange={(e) => {
+                          const newFilters = [...filterConfig]
+                          newFilters[idx] = { ...filter, column: parseInt(e.target.value) }
+                          setFilterConfig(newFilters)
+                        }}
+                      >
+                        {tableHeaders.map((header, colIdx) => (
+                          <option key={colIdx} value={colIdx}>{header || `列 ${colIdx + 1}`}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={filter.operator}
+                        onChange={(e) => {
+                          const newFilters = [...filterConfig]
+                          newFilters[idx] = { ...filter, operator: e.target.value as typeof filter.operator }
+                          setFilterConfig(newFilters)
+                        }}
+                      >
+                        <option value="contains">含む</option>
+                        <option value="equals">等しい</option>
+                        <option value="gt">より大きい</option>
+                        <option value="lt">より小さい</option>
+                        <option value="isEmpty">空</option>
+                        <option value="isNotEmpty">空でない</option>
+                      </select>
+                      {filter.operator !== 'isEmpty' && filter.operator !== 'isNotEmpty' && (
+                        <input
+                          type="text"
+                          value={filter.value || ''}
+                          onChange={(e) => {
+                            const newFilters = [...filterConfig]
+                            newFilters[idx] = { ...filter, value: e.target.value }
+                            setFilterConfig(newFilters)
                           }}
-                          title="セル結合を解除"
-                        >
-                          <span className="material-icons">call_split</span>
-                          <span>結合解除</span>
-                        </button>
-                      )
-                    } else if (isMultipleCells) {
-                      // 複数セルを選択している場合、結合ボタン
-                      return (
-                        <button
-                          className="table-merge-action-button merge"
-                          onClick={() => {
-                            handleMergeCells(minRow, minCol, maxRow, maxCol)
-                            setCellRangeSelection({ start: null, end: null })
-                          }}
-                          title="選択範囲を結合"
-                        >
-                          <span className="material-icons">merge_type</span>
-                          <span>セル結合</span>
-                        </button>
-                      )
-                    }
-                    return null
-                  })()}
+                          placeholder="値..."
+                        />
+                      )}
+                      <button
+                        className="filter-remove-btn"
+                        onClick={() => {
+                          const newFilters = filterConfig.filter((_, i) => i !== idx)
+                          setFilterConfig(newFilters)
+                        }}
+                      >
+                        <span className="material-icons">close</span>
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    className="filter-add-btn"
+                    onClick={() => {
+                      setFilterConfig([...filterConfig, { column: 0, operator: 'contains', value: '' }])
+                    }}
+                  >
+                    <span className="material-icons">add</span>
+                    条件を追加
+                  </button>
                 </div>
               )}
             </div>
@@ -1852,114 +2100,216 @@ export const ItemDetailPanel = ({
                 onMouseMove={handleTableContainerMouseMove}
                 onMouseLeave={handleHeaderCellMouseLeave}
               >
-                <table ref={tableRef} className="table-spreadsheet" style={{ width: tableWidthPx, minWidth: tableWidthPx }}>
+                <table ref={tableRef} className="table-spreadsheet notion-table" style={{ width: tableWidthPx, minWidth: tableWidthPx }}>
                   <thead>
-                    {/* 列ヘッダー（A, B, C...） */}
-                    <tr className="table-col-headers">
-                      <th className="table-corner"></th>
+                    {/* Notion風プロパティヘッダー（列名+データ型アイコン） */}
+                    <tr className="table-col-headers notion-property-headers">
+                      <th className="table-corner notion-corner"></th>
                       {(displayData[0] || []).map((_, colIndex) => {
                         // 列のデータ型を取得（最初のセルのデータ型）
                         const firstCellKey = getCellKey(0, colIndex)
                         const colType = cellTypes[firstCellKey] || 'text'
-                        // 列ヘッダーの非表示判定（列が非表示ならこのヘッダーも非表示）
-                        const isColHeaderHidden = hiddenColumns.includes(colIndex)
                         // 軸割り当てバッジを取得
                         const axisBadge = getColumnAxisBadge(colIndex)
+                        // プロパティ名（ヘッダーから取得、なければデフォルト）
+                        const propertyName = useHeaders && displayHeaders[colIndex] 
+                          ? displayHeaders[colIndex] 
+                          : `列 ${colIndex + 1}`
+                        // データ型のアイコン
+                        const typeInfo = getDataTypeInfo(colType)
+                        const isColumnDragging = draggedColumn === colIndex
+                        const isColumnDropTarget = dropTargetColumn === colIndex
                         return (
-<th
-                          key={colIndex}
-                          className={`table-col-header ${isColHeaderHidden ? 'hidden-cell' : ''}`}
-                        >
-                          <button
-                            className="table-grip-icon column-grip"
-                            onClick={(e) => handleGripClick(e, 'column', colIndex)}
-                            title="列オプション"
+                          <th
+                            key={colIndex}
+                            className={`table-col-header notion-property-header ${selectedCell?.isHeader && selectedCell?.col === colIndex ? 'table-cell-selected' : ''} ${isColumnDragging ? 'dragging' : ''} ${isColumnDropTarget ? (draggedColumn !== null && draggedColumn < colIndex ? 'drop-target-left' : 'drop-target-right') : ''}`}
+                            style={{ width: getColumnWidth(colIndex), minWidth: getColumnWidth(colIndex) }}
+                            onDragOver={(e) => handleColumnDragOver(e, colIndex)}
+                            onDragLeave={handleColumnDragLeave}
+                            onDrop={(e) => handleColumnDrop(e, colIndex)}
                           >
-                            <span className="material-icons">drag_indicator</span>
-                          </button>
-                          <span className="table-col-label">{String.fromCharCode(65 + colIndex)}</span>
-                            {colType !== 'text' && (
-                              <span className="table-col-type-badge" title={`列のデータ型: ${colType}`}>
-                                {colType === 'number' ? '#' : colType === 'date' ? '📅' : colType === 'percentage' ? '%' : '¥'}
-                              </span>
-                            )}
-                            {/* 軸割り当てバッジ（Phase 2） */}
-                            {axisBadge && (
-                              <span
-                                className="table-axis-badge"
-                                style={{
-                                  display: 'inline-block',
-                                  marginLeft: 4,
-                                  padding: '1px 4px',
-                                  fontSize: 9,
-                                  fontWeight: 600,
-                                  borderRadius: 3,
-                                  backgroundColor: axisBadge.color,
-                                  color: '#fff',
-                                }}
-                                title={`軸設定: ${axisBadge.label}`}
-                              >
-                                {axisBadge.label}
-                              </span>
-                            )}
-                        </th>
-                        )
-                      })}
-                    </tr>
-
-                    {/* ヘッダー行（オプション） */}
-                    {useHeaders && (
-                      <tr className="table-header-row">
-                        <th className="table-row-number">
-                          <span>H</span>
-                        </th>
-                        {displayHeaders.map((header, colIndex) => {
-                          // ヘッダーセルの非表示判定（列が非表示ならこのヘッダーも非表示）
-                          const isHeaderCellHidden = hiddenColumns.includes(colIndex)
-                          // ヘッダー行の表示範囲境界を計算
-                          // ヘッダーがある場合、ヘッダー行が上端になる
-                          const isInColRange = filledRange && colIndex >= filledRange.minCol && colIndex <= filledRange.maxCol
-                          
-                          // すべて実線で表示
-                          const headerBorderClasses = filledRange && isInColRange ? [
-                            'display-range-border-top',
-                            colIndex === filledRange.maxCol ? 'display-range-border-right' : '',
-                            colIndex === filledRange.minCol ? 'display-range-border-left' : ''
-                          ].filter(Boolean).join(' ') : ''
-                          return (
-                          <th 
-                            key={colIndex} 
-                            className={`table-header-cell ${selectedCell?.isHeader && selectedCell?.col === colIndex ? 'table-cell-selected' : ''} ${isHeaderCellHidden ? 'hidden-cell' : ''} ${headerBorderClasses}`}
-                          >
-                            <input
-                              type="text"
-                              value={header}
-                              onChange={(e) => handleTableHeaderChange(colIndex, e.target.value)}
-                              onFocus={() => handleCellSelect(-1, colIndex, true)}
-                              placeholder={`ヘッダー ${colIndex + 1}`}
-                              className="table-input table-header-input"
+                            {/* wrapper div でフレックスレイアウト */}
+                            <div className="notion-header-wrapper">
+                              {/* 段1: ドラッグハンドル + 軸ラベル */}
+                              <div className="notion-header-row-1">
+                                <button
+                                  className="table-grip-icon column-grip"
+                                  draggable
+                                  onClick={(e) => handleGripClick(e, 'column', colIndex)}
+                                  onDragStart={(e) => handleColumnDragStart(e, colIndex)}
+                                  onDragEnd={handleColumnDragEnd}
+                                  title="ドラッグで列を移動、クリックでオプション"
+                                >
+                                  <span className="material-icons">drag_indicator</span>
+                                </button>
+                                {/* 軸割り当てバッジ */}
+                                {axisBadge && (
+                                  <span
+                                    className="table-axis-badge"
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '1px 4px',
+                                      fontSize: 9,
+                                      fontWeight: 600,
+                                      borderRadius: 3,
+                                      backgroundColor: axisBadge.color,
+                                      color: '#fff',
+                                    }}
+                                    title={`軸設定: ${axisBadge.label}`}
+                                  >
+                                    {axisBadge.label}
+                                  </span>
+                                )}
+                              </div>
+                              {/* 段2: データ型ドロップダウン + プロパティ名 + ソートアイコン */}
+                              <div className="notion-header-row-2">
+                                <button
+                                  className="header-type-dropdown"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setTypeDropdownColumn(typeDropdownColumn === colIndex ? null : colIndex)
+                                  }}
+                                  title={`データ型: ${typeInfo.label}`}
+                                >
+                                  <span className="material-icons">{typeInfo.icon}</span>
+                                </button>
+                                {useHeaders ? (
+                                  <input
+                                    type="text"
+                                    value={displayHeaders[colIndex] || ''}
+                                    onChange={(e) => handleTableHeaderChange(colIndex, e.target.value)}
+                                    onFocus={() => handleCellSelect(-1, colIndex, true)}
+                                    placeholder={`プロパティ ${colIndex + 1}`}
+                                    className="notion-property-input"
+                                  />
+                                ) : (
+                                  <span className="notion-property-name">{propertyName}</span>
+                                )}
+                                {/* ソートアイコン */}
+                                <button
+                                  className={`header-sort-button ${sortConfig?.column === colIndex ? 'active' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (sortConfig?.column === colIndex) {
+                                      if (sortConfig.direction === 'asc') {
+                                        setSortConfig({ column: colIndex, direction: 'desc' })
+                                      } else {
+                                        setSortConfig(null) // ソート解除
+                                      }
+                                    } else {
+                                      setSortConfig({ column: colIndex, direction: 'asc' })
+                                    }
+                                  }}
+                                  title={sortConfig?.column === colIndex 
+                                    ? (sortConfig.direction === 'asc' ? '降順にソート' : 'ソート解除') 
+                                    : '昇順にソート'
+                                  }
+                                >
+                                  <span className="material-icons">
+                                    {sortConfig?.column === colIndex 
+                                      ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward')
+                                      : 'swap_vert'
+                                    }
+                                  </span>
+                                </button>
+                              </div>
+                              {/* 段3: 単位・桁・小数点（数値型のみ） */}
+                              {(colType === 'number' || colType === 'currency' || colType === 'percentage') && (
+                                <div className="notion-header-row-3">
+                                  <select
+                                    className="header-unit-select"
+                                    value={cellFormats[firstCellKey]?.unit || ''}
+                                    onChange={(e) => handleSetColumnFormat(colIndex, {
+                                      ...cellFormats[firstCellKey],
+                                      type: colType,
+                                      unit: e.target.value
+                                    })}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <option value="">-</option>
+                                    <option value="円">円</option>
+                                    <option value="人">人</option>
+                                    <option value="件">件</option>
+                                    <option value="%">%</option>
+                                    <option value="kg">kg</option>
+                                    <option value="km">km</option>
+                                    <option value="個">個</option>
+                                    <option value="台">台</option>
+                                  </select>
+                                  <select
+                                    className="header-scale-select"
+                                    value={cellFormats[firstCellKey]?.scale || 'none'}
+                                    onChange={(e) => handleSetColumnFormat(colIndex, {
+                                      ...cellFormats[firstCellKey],
+                                      type: colType,
+                                      scale: e.target.value as 'none' | 'thousand' | 'million' | 'billion'
+                                    })}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <option value="none">-</option>
+                                    <option value="thousand">千</option>
+                                    <option value="million">百万</option>
+                                    <option value="billion">十億</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    className="header-decimal-input"
+                                    min="0"
+                                    max="10"
+                                    placeholder="0"
+                                    value={cellFormats[firstCellKey]?.decimalPlaces ?? 0}
+                                    onChange={(e) => handleSetColumnFormat(colIndex, {
+                                      ...cellFormats[firstCellKey],
+                                      type: colType,
+                                      decimalPlaces: parseInt(e.target.value) || 0
+                                    })}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            {/* リサイズハンドル */}
+                            <div
+                              className="column-resize-handle"
+                              onMouseDown={(e) => handleResizeStart(e, colIndex)}
                             />
                           </th>
-                          )
-                        })}
-                      </tr>
-                    )}
+                        )
+                      })}
+                      {/* Notion風プロパティ追加ボタン */}
+                      <th className="notion-add-property-header">
+                        <button onClick={addTableColumn} className="notion-add-property-btn">
+                          <span className="material-icons">add</span>
+                          <span>プロパティを追加</span>
+                        </button>
+                      </th>
+                    </tr>
                   </thead>
                   <tbody>
                     {/* データ行 */}
                     {displayData.map((row, rowIndex) => {
                       const isRowHidden = hiddenRows.includes(rowIndex)
+                      const isRowDragging = draggedRow === rowIndex
+                      const isRowDropTarget = dropTargetRow === rowIndex
                       return (
-                      <tr key={rowIndex} className={`table-data-row ${isRowHidden ? 'hidden-cell' : ''}`}>
-                        <td className={`table-row-number ${isRowHidden ? 'hidden-cell' : ''}`}>
+                      <tr 
+                        key={rowIndex} 
+                        className={`table-data-row notion-data-row ${isRowHidden ? 'hidden-cell' : ''} ${isRowDragging ? 'dragging' : ''} ${isRowDropTarget ? (draggedRow !== null && draggedRow < rowIndex ? 'drop-target-above' : 'drop-target-below') : ''}`}
+                        onDragOver={(e) => handleRowDragOver(e, rowIndex)}
+                        onDragLeave={handleRowDragLeave}
+                        onDrop={(e) => handleRowDrop(e, rowIndex)}
+                      >
+                        <td className={`table-row-number notion-row-handle ${isRowHidden ? 'hidden-cell' : ''}`}>
                           <button
-                            className="table-grip-icon row-grip"
+                            className="table-grip-icon row-grip notion-row-grip"
+                            draggable
                             onClick={(e) => handleGripClick(e, 'row', rowIndex)}
-                            title="行オプション"
+                            onDragStart={(e) => handleRowDragStart(e, rowIndex)}
+                            onDragEnd={handleRowDragEnd}
+                            title="ドラッグで行を移動、クリックでオプション"
                           >
                             <span className="material-icons">drag_indicator</span>
                           </button>
-                          <span className="table-row-label">{rowIndex + 1}</span>
                         </td>
                         {row.map((cell, colIndex) => {
                           const merged = isCellMerged(rowIndex, colIndex)
@@ -1968,11 +2318,11 @@ export const ItemDetailPanel = ({
                           const cellType = cellTypes[cellKey] || 'text'
                           const hasError = validationErrors[cellKey]
                           const displayValue = getCellDisplayValue(rowIndex, colIndex)
-                          // セル単位で非表示判定（行または列が非表示ならこのセルは非表示）
-                          const isCellHiddenFlag = isCellHidden(rowIndex, colIndex, hiddenRows, hiddenColumns)
+                          // セル単位で非表示判定（行が非表示ならこのセルは非表示）
+                          const isCellHiddenFlag = isCellHidden(rowIndex, colIndex, hiddenRows, [])
                           
                           // 表示範囲の境界位置を計算（点線判定付き）
-                          const borderPos = getCellBorderPositionWithDashed(rowIndex, colIndex, filledRange, hiddenRows, hiddenColumns)
+                          const borderPos = getCellBorderPositionWithDashed(rowIndex, colIndex, filledRange, hiddenRows, [])
                           // ヘッダーがある場合、最初のデータ行の上枠線は不要（ヘッダー行が上端）
                           const showTopBorder = borderPos.top.show && !useHeaders
                           const borderClasses = [
@@ -1996,6 +2346,7 @@ export const ItemDetailPanel = ({
                                  colIndex >= Math.min(cellRangeSelection.start.col, cellRangeSelection.end.col) &&
                                  colIndex <= Math.max(cellRangeSelection.start.col, cellRangeSelection.end.col))
                               ) ? 'table-cell-range-selected' : ''}`}
+                              style={{ width: getColumnWidth(colIndex), minWidth: getColumnWidth(colIndex) }}
                               rowSpan={merged ? merged.rowSpan : undefined}
                               colSpan={merged ? merged.colSpan : undefined}
                               onMouseDown={(e) => {
@@ -2078,12 +2429,30 @@ export const ItemDetailPanel = ({
                                   }
                                 }}
                           >
-                            <input
-                              type="text"
-                              value={cell}
-                              onChange={(e) => handleTableCellChange(rowIndex, colIndex, e.target.value)}
-                              onFocus={() => handleCellSelect(rowIndex, colIndex, false)}
-                              placeholder=""
+                            {/* チェックボックス型の場合は特別なUI */}
+                            {cellType === 'checkbox' ? (
+                              <button
+                                className={`table-checkbox ${cell === 'true' ? 'checked' : ''}`}
+                                onClick={() => handleTableCellChange(rowIndex, colIndex, cell === 'true' ? 'false' : 'true')}
+                                onFocus={() => handleCellSelect(rowIndex, colIndex, false)}
+                              >
+                                <span className="material-icons">
+                                  {cell === 'true' ? 'check_box' : 'check_box_outline_blank'}
+                                </span>
+                              </button>
+                            ) : cellType === 'formula' ? (
+                              /* 数式型の場合は読み取り専用で結果を表示 */
+                              <div className="table-formula-cell">
+                                <span className="table-formula-result">{displayValue}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <input
+                                  type="text"
+                                  value={cell}
+                                  onChange={(e) => handleTableCellChange(rowIndex, colIndex, e.target.value)}
+                                  onFocus={() => handleCellSelect(rowIndex, colIndex, false)}
+                                  placeholder=""
                                   className={`table-input ${cellType !== 'text' ? `table-input-${cellType}` : ''} ${cell && cell.trim().startsWith('=') ? 'table-input-formula' : ''}`}
                                 />
                                 {cell && cellType !== 'text' && !cell.trim().startsWith('=') && (
@@ -2096,69 +2465,33 @@ export const ItemDetailPanel = ({
                                     {displayValue}
                                   </span>
                                 )}
-                                {hasError && (
-                                  <span className="table-cell-error-icon" title={hasError}>
-                                    <span className="material-icons">error</span>
-                                  </span>
-                                )}
-                                {cellType && cellType !== 'text' && (
-                                  <div className="table-cell-type-badge" title={`データ型: ${cellType === 'number' ? '数値' : cellType === 'date' ? '日付' : cellType === 'percentage' ? 'パーセント' : '通貨'}`}>
-                                    {cellType === 'number' ? '#' : cellType === 'date' ? '📅' : cellType === 'percentage' ? '%' : cellType === 'currency' ? '¥' : ''}
-                                  </div>
-                                )}
-                              </div>
+                              </>
+                            )}
+                            {hasError && (
+                              <span className="table-cell-error-icon" title={hasError}>
+                                <span className="material-icons">error</span>
+                              </span>
+                            )}
+                          </div>
                           </td>
                           )
                         })}
+                        {/* プロパティ追加列のセル（空） */}
+                        <td className="notion-add-property-cell"></td>
                       </tr>
                     )})}
-                  
+                    {/* Notion風新規行追加ボタン */}
+                    <tr className="notion-add-record-row">
+                      <td colSpan={(displayData[0]?.length || 2) + 2} className="notion-add-record-cell">
+                        <button onClick={addTableRow} className="notion-add-record-btn">
+                          <span className="material-icons">add</span>
+                          <span>新規行</span>
+                        </button>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
                 
-                {/* ホバー時の行/列追加ボタン */}
-                {hoverAddButton && (
-                  <button
-                    className="table-hover-add-btn"
-                    style={{
-                      position: 'fixed',
-                      top: hoverAddButton.top,
-                      left: hoverAddButton.left,
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 100
-                    }}
-                    onClick={handleHoverAddButtonClick}
-                    onMouseEnter={(e) => {
-                      // ボタン上にマウスがある間は親へのイベント伝播を止める
-                      e.stopPropagation()
-                    }}
-                    onMouseLeave={() => {
-                      // ボタンから離れた時は何もしない
-                      // コンテナ内ならmousemoveで再検出される
-                      // コンテナ外ならcontainerのmouseleaveで非表示になる
-                    }}
-                    title={hoverAddButton.type === 'row'
-                      ? (hoverAddButton.position === 'before' ? '上に行を挿入' : '下に行を挿入')
-                      : (hoverAddButton.position === 'before' ? '左に列を挿入' : '右に列を挿入')
-                    }
-                  >
-                    <span className="material-icons">add</span>
-                  </button>
-                )}
-              </div>
-              {/* 列追加ボタン */}
-              <div className="table-add-col-container">
-                <button onClick={addTableColumn} className="table-add-col-btn">
-                  <span className="material-icons">add</span>
-                  <span>列を追加</span>
-                </button>
-              </div>
-              {/* 行追加ボタン */}
-              <div className="table-add-row-container">
-                <button onClick={addTableRow} className="table-add-row-btn">
-                  <span className="material-icons">add</span>
-                  <span>行を追加</span>
-                </button>
               </div>
                 </div>
               </div>
@@ -2204,25 +2537,28 @@ export const ItemDetailPanel = ({
                               </button>
                               
                               <div className="table-datatype-selector">
-                                {(['text', 'number', 'date', 'percentage', 'currency'] as CellDataType[]).map((type) => (
-                                  <button
-                                    key={type}
-                                    className={`table-datatype-button ${formatDialogDataType === type ? 'active' : ''}`}
-                                    onClick={() => handleSetColumnType(formatDialogColumn, type)}
-                                  >
-                                    <span className="table-datatype-icon material-icons">
-                                      {type === 'text' ? 'notes' : type === 'number' ? 'tag' : type === 'date' ? 'calendar_today' : type === 'percentage' ? 'percent' : 'currency_yen'}
-                                    </span>
-                                    <span className="table-datatype-label">
-                                      {type === 'text' ? 'テキスト' : type === 'number' ? '数値' : type === 'date' ? '日付' : type === 'percentage' ? 'パーセント' : '通貨'}
-                                    </span>
-                                  </button>
-                                ))}
+                                {(['text', 'number', 'date', 'percentage', 'currency', 'category'] as CellDataType[]).map((type) => {
+                                  const typeInfo = getDataTypeInfo(type)
+                                  return (
+                                    <button
+                                      key={type}
+                                      className={`table-datatype-button ${formatDialogDataType === type ? 'active' : ''}`}
+                                      onClick={() => handleSetColumnType(formatDialogColumn, type)}
+                                    >
+                                      <span className="table-datatype-icon material-icons">
+                                        {typeInfo.icon}
+                                      </span>
+                                      <span className="table-datatype-label">
+                                        {typeInfo.label}
+                                      </span>
+                                    </button>
+                                  )
+                                })}
                               </div>
                             </div>
                             
-                            {/* フォーマット詳細セクション */}
-                            {formatDialogDataType !== 'text' && (
+                            {/* フォーマット詳細セクション（テキストとカテゴリは表示しない） */}
+                            {formatDialogDataType !== 'text' && formatDialogDataType !== 'category' && (
                               <>
                                 <div className="table-format-divider"></div>
                                 <div className="table-format-section">
@@ -2568,18 +2904,21 @@ export const ItemDetailPanel = ({
                     <div className="table-context-menu-divider" />
                     <div className="table-context-menu-submenu">
                       <span className="table-context-menu-label">データ型を設定:</span>
-                      {(['text', 'number', 'date', 'percentage', 'currency'] as CellDataType[]).map((type) => (
-                        <button
-                          key={type}
-                          className={`table-context-menu-item ${cellTypes[getCellKey(contextMenu.cellRow!, contextMenu.cellCol!)] === type ? 'active' : ''}`}
-                          onClick={() => {
-                            handleSetCellType(contextMenu.cellRow!, contextMenu.cellCol!, type)
-                            setContextMenu(null)
-                          }}
-                        >
-                          {type === 'text' ? 'テキスト' : type === 'number' ? '数値' : type === 'date' ? '日付' : type === 'percentage' ? 'パーセント' : '通貨'}
-                        </button>
-                      ))}
+                      {(['text', 'number', 'date', 'percentage', 'currency', 'category'] as CellDataType[]).map((type) => {
+                        const typeInfo = getDataTypeInfo(type)
+                        return (
+                          <button
+                            key={type}
+                            className={`table-context-menu-item ${cellTypes[getCellKey(contextMenu.cellRow!, contextMenu.cellCol!)] === type ? 'active' : ''}`}
+                            onClick={() => {
+                              handleSetCellType(contextMenu.cellRow!, contextMenu.cellCol!, type)
+                              setContextMenu(null)
+                            }}
+                          >
+                            {typeInfo.label}
+                          </button>
+                        )
+                      })}
                     </div>
                     <div className="table-context-menu-divider" />
                     <button 
@@ -2636,17 +2975,6 @@ export const ItemDetailPanel = ({
                       <span className="material-icons">backspace</span>
                       コンテンツをクリア
                     </button>
-                    <div className="table-context-menu-divider" />
-                    <button className="table-context-menu-item" onClick={() => toggleColumnVisibility(contextMenu.index)}>
-                      <span className="material-icons">{hiddenColumns.includes(contextMenu.index) ? 'visibility' : 'visibility_off'}</span>
-                      {hiddenColumns.includes(contextMenu.index) ? '列を表示' : '列を非表示'}
-                    </button>
-                    {hiddenColumns.length > 0 && (
-                      <button className="table-context-menu-item" onClick={showAllColumns}>
-                        <span className="material-icons">visibility</span>
-                        すべての列を表示
-                      </button>
-                    )}
                     {tableData[0]?.length > 1 && (
                       <>
                         <div className="table-context-menu-divider" />
@@ -2677,19 +3005,80 @@ export const ItemDetailPanel = ({
                 )}
               </div>
             )}
+
+            {/* データ型ドロップダウン */}
+            {typeDropdownColumn !== null && (
+              <div 
+                className="table-type-dropdown-menu"
+                style={{ 
+                  position: 'fixed',
+                  left: (() => {
+                    const header = document.querySelector(`.notion-property-header:nth-child(${typeDropdownColumn + 2})`)
+                    return header ? header.getBoundingClientRect().left : 0
+                  })(),
+                  top: (() => {
+                    const header = document.querySelector(`.notion-property-header:nth-child(${typeDropdownColumn + 2})`)
+                    return header ? header.getBoundingClientRect().top + 40 : 0
+                  })(),
+                  zIndex: 1001
+                }}
+              >
+                <div className="table-type-dropdown-header">データ型を選択</div>
+                {(['text', 'number', 'date', 'percentage', 'currency', 'category', 'formula', 'checkbox'] as CellDataType[]).map((type) => {
+                  const typeInfo = getDataTypeInfo(type)
+                  const firstCellKey = getCellKey(0, typeDropdownColumn)
+                  const currentType = cellTypes[firstCellKey] || 'text'
+                  return (
+                    <button
+                      key={type}
+                      className={`table-type-dropdown-item ${currentType === type ? 'active' : ''}`}
+                      onClick={() => {
+                        handleSetColumnType(typeDropdownColumn, type)
+                        if (type !== 'formula') {
+                          setTypeDropdownColumn(null)
+                        }
+                      }}
+                    >
+                      <span className="material-icons">{typeInfo.icon}</span>
+                      <span>{typeInfo.label}</span>
+                    </button>
+                  )
+                })}
+                {/* 数式型の場合、数式入力フィールドを表示 */}
+                {(() => {
+                  const firstCellKey = getCellKey(0, typeDropdownColumn)
+                  const currentType = cellTypes[firstCellKey] || 'text'
+                  if (currentType === 'formula') {
+                    const currentFormula = cellFormats[firstCellKey]?.formula || ''
+                    return (
+                      <div className="formula-input-section">
+                        <div className="formula-input-label">数式</div>
+                        <input
+                          type="text"
+                          className="formula-input-field"
+                          value={currentFormula}
+                          onChange={(e) => {
+                            handleSetColumnFormat(typeDropdownColumn, {
+                              ...cellFormats[firstCellKey],
+                              type: 'formula',
+                              formula: e.target.value
+                            })
+                          }}
+                          placeholder="prop('列名') * 2"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="formula-input-hint">
+                          例: prop("数値") * 2, prop("価格") + prop("税")
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+              </div>
+            )}
             </>
             )}
-            
-            {/* グラフ設定パネル（ポップアップ） */}
-            <GraphSettingsPanel
-              isOpen={showGraphPanel}
-              openedFrom={graphPanelOpenedFrom}
-              table={item as TableItem}
-              onClose={handleCloseGraphPanel}
-              onUpdateTable={handleUpdateTableItem}
-              selectedCategory={graphCategory}
-              onCategoryChange={setGraphCategory}
-            />
             
             {/* グラフタイプ選択モーダル */}
             <GraphTypeModal
@@ -2698,6 +3087,7 @@ export const ItemDetailPanel = ({
               onFormatChange={handleGraphFormatChange}
               onClose={() => setShowGraphTypeModal(false)}
             />
+          </div>
           </div>
           </div>
         )
@@ -2892,20 +3282,15 @@ export const ItemDetailPanel = ({
     }
   }
 
-  // グラフ設定パネルを開く
-  const handleOpenGraphPanel = useCallback((from: PanelOpenedFrom) => {
-    setGraphPanelOpenedFrom(from)
-    setShowGraphPanel(true)
-  }, [])
-
-  // グラフ設定パネルを閉じる
-  const handleCloseGraphPanel = useCallback(() => {
-    setShowGraphPanel(false)
-  }, [])
-
   // グラフタイプを変更
   const handleGraphFormatChange = useCallback((format: TableDisplayFormat) => {
     setTableDisplayFormat(format)
+    // ツリー系チャートに変更した場合はツリービューをデフォルトに
+    if (isTreeInputChart(format)) {
+      setViewMode('tree')
+    } else {
+      setViewMode('table')
+    }
     if (item && item.type === 'table' && onUpdateItem) {
       onUpdateItem(item.id, { displayFormat: format } as Partial<TableItem>)
     }
@@ -2963,7 +3348,7 @@ export const ItemDetailPanel = ({
       canUnmerge: !!canUnmerge, 
       displayFormat: tableDisplayFormat,
       hiddenRowsCount: hiddenRows.length,
-      hiddenColumnsCount: hiddenColumns.length,
+      hiddenColumnsCount: 0,
       useHeaders
     }
   }

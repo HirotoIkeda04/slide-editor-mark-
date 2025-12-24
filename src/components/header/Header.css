@@ -1,0 +1,173 @@
+/* Header Container */
+.app-header {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  background-color: var(--app-bg-secondary);
+  border-bottom: 1px solid var(--app-border-primary);
+  gap: 12px;
+}
+
+/* Breadcrumb Section */
+.header-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-breadcrumb-project {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.header-breadcrumb-separator {
+  font-size: 13px;
+  color: var(--app-text-disabled);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.header-breadcrumb-item {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tone & Manner Section */
+.header-tonmana {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  background-color: transparent;
+  border: 1px solid var(--app-border-primary);
+}
+
+.header-tonmana:hover {
+  background-color: var(--app-bg-hover);
+  border-color: var(--app-border-secondary);
+}
+
+.header-tonmana.active {
+  background-color: var(--app-bg-active);
+  border-color: var(--app-accent);
+}
+
+.header-tonmana.active .header-tonmana-name {
+  color: var(--app-accent);
+}
+
+.header-tonmana.active .header-tonmana-icon {
+  color: var(--app-accent);
+}
+
+.header-tonmana-name {
+  font-size: 12px;
+  color: var(--app-text-secondary);
+  font-weight: 500;
+}
+
+.header-tonmana-icon {
+  font-size: 14px;
+  color: var(--app-text-disabled);
+}
+
+/* Actions Section */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--app-text-secondary);
+  transition: all 0.1s ease;
+}
+
+.header-action-btn:hover {
+  background-color: var(--app-bg-hover);
+  color: var(--app-text-primary);
+}
+
+.header-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.header-action-btn .material-icons {
+  font-size: 18px;
+}
+
+/* Save Button - Primary Style */
+.header-action-btn.primary {
+  background-color: var(--app-accent);
+  color: white;
+}
+
+.header-action-btn.primary:hover {
+  background-color: var(--app-accent-light);
+  color: white;
+}
+
+/* Undo/Redo Button Group */
+.header-history-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-right: 1px solid var(--app-border-primary);
+  margin-right: 4px;
+}
+
+.header-history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--app-text-disabled);
+  transition: all 0.1s ease;
+}
+
+.header-history-btn:hover:not(:disabled) {
+  background-color: var(--app-bg-hover);
+  color: var(--app-text-secondary);
+}
+
+.header-history-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.header-history-btn .material-icons {
+  font-size: 16px;
+}
+

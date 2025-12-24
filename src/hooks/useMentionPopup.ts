@@ -64,6 +64,9 @@ export const useMentionPopup = ({
 
   // キーボードイベントのハンドラー
   const handleKeyDown = useCallback((e: React.KeyboardEvent): boolean => {
+    // #region agent log
+    if (e.key === 'Enter') { fetch('http://127.0.0.1:7242/ingest/3d96004e-9efe-481b-a1bb-1edda335d827',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useMentionPopup.ts:handleKeyDown',message:'Enter in mentionPopup',data:{isOpen,filteredItemsLength:filteredItems.length,searchQuery},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,C'})}).catch(()=>{}); }
+    // #endregion
     if (!isOpen) return false
 
     switch (e.key) {
@@ -83,6 +86,9 @@ export const useMentionPopup = ({
 
       case 'Tab':
       case 'Enter':
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3d96004e-9efe-481b-a1bb-1edda335d827',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useMentionPopup.ts:EnterCase',message:'Enter case reached',data:{filteredItemsLength:filteredItems.length,selectedIndex,willConsumeEnter:filteredItems.length>0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         if (filteredItems.length > 0) {
           e.preventDefault()
           selectItem(selectedIndex)
