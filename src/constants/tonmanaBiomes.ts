@@ -823,6 +823,7 @@ export const tonmanaBiomes: TonmanaBiome[] = [
       fontHeading: '"Noto Sans JP", sans-serif',
       fontBody: '"Noto Sans JP", sans-serif',
       letterSpacing: '0.02em',
+      baseColor: 'oklch(0.85 0.12 350)',
       primary: 'linear-gradient(90deg, oklch(0.48 0.20 290), oklch(0.50 0.22 350), oklch(0.52 0.18 40))',
       secondary: 'oklch(0.48 0.18 110)',
       chartColors: ['oklch(0.48 0.18 290)', 'oklch(0.48 0.18 335)', 'oklch(0.48 0.18 20)', 'oklch(0.48 0.18 65)', 'oklch(0.48 0.18 110)', 'oklch(0.48 0.18 155)', 'oklch(0.48 0.18 200)', 'oklch(0.48 0.18 245)'],

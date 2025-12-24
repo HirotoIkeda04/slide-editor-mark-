@@ -213,6 +213,7 @@ export function EulerEditor({ item, onUpdateItem }: EulerEditorProps) {
       {/* Floating NavBar - 画面下部中央に固定 */}
       <div className="euler-navbar-wrapper">
         <FloatingNavBar
+          itemType="euler"
           mode="euler"
           eulerEditorMode={mode === 'addCircle' || mode === 'addElement' ? 'add' : 'select'}
           onEulerModeChange={handleModeChange}

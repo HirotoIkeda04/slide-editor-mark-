@@ -200,7 +200,23 @@ export const ChatPanel = ({
   
   // 外部/内部状態の切り替え
   const messages = externalMessages ?? internalMessages
-  const setMessages = onMessagesChange ?? setInternalMessages
+  const setMessages = useCallback((update: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    if (typeof update === 'function') {
+      const currentMessages = externalMessages ?? internalMessages
+      const newMessages = update(currentMessages)
+      if (onMessagesChange) {
+        onMessagesChange(newMessages)
+      } else {
+        setInternalMessages(newMessages)
+      }
+    } else {
+      if (onMessagesChange) {
+        onMessagesChange(update)
+      } else {
+        setInternalMessages(update)
+      }
+    }
+  }, [externalMessages, internalMessages, onMessagesChange])
   
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)

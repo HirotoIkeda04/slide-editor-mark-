@@ -5,7 +5,7 @@
  * 縦に重ねる → 積み上げ、横に並べる → 並列
  */
 
-import { useCallback, useMemo, useState, DragEvent } from 'react'
+import { useCallback, useMemo, useState, type DragEvent } from 'react'
 import type { TableItem, ChartYAxisConfig, ChartSeries, SeriesStack } from '../../../types'
 import { 
   getNumericColumns, 

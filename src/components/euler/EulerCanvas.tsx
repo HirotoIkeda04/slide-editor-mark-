@@ -244,7 +244,7 @@ export function EulerCanvas({
   }, [isDragging, isResizing, dragStart, initialPosition, initialRadius, draggedId, dragType, getMousePosition, onUpdateCircle, onUpdateElement, item.elements, findNonOverlappingPosition])
 
   // Calculate label position outside the circle, avoiding overlap with other circles
-  const getLabelPosition = useCallback((circle: EulerCircle, allCircles: EulerCircle[]): { x: number; y: number; textAnchor: string } => {
+  const getLabelPosition = useCallback((circle: EulerCircle, allCircles: EulerCircle[]): { x: number; y: number; textAnchor: 'start' | 'middle' | 'end' } => {
     const labelOffset = 20 // Distance from circle edge
     const candidates = [
       { angle: -90, name: 'top', textAnchor: 'middle' },      // 上
@@ -298,7 +298,7 @@ export function EulerCanvas({
     return {
       x: circle.position.x + Math.cos(angleRad) * (circle.radius + labelOffset),
       y: circle.position.y + Math.sin(angleRad) * (circle.radius + labelOffset),
-      textAnchor: bestCandidate.textAnchor
+      textAnchor: bestCandidate.textAnchor as 'start' | 'middle' | 'end'
     }
   }, [])
 

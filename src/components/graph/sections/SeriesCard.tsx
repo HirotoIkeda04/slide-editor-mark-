@@ -5,7 +5,7 @@
  * クリックで展開/折りたたみ、ドラッグで移動
  */
 
-import { useCallback, useState, DragEvent } from 'react'
+import { useCallback, useState, type DragEvent } from 'react'
 import type { ChartSeries, TableItem } from '../../../types'
 import { getColumnName } from '../../../utils/chartUtils'
 import { SeriesDetailPanel } from './SeriesDetailPanel'

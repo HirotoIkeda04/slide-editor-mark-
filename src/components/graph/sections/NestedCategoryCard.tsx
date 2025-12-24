@@ -5,7 +5,7 @@
  * 入れ子構造でカテゴリの包含関係を視覚的に表現
  */
 
-import { useCallback, DragEvent } from 'react'
+import { useCallback, type DragEvent } from 'react'
 import type { NestedCategory, TableItem } from '../../../types'
 import { getColumnName } from '../../../utils/chartUtils'
 

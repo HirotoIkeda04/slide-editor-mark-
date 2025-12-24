@@ -356,6 +356,10 @@ export type TableDisplayFormat =
   | 'boxplot'        // 箱ひげ図
   | 'radar'          // レーダーチャート
   | 'dot'            // ドットチャート
+  // 階層 (Hierarchy)
+  | 'sunburst'       // サンバーストチャート
+  // ランキング (Ranking)
+  | 'bump'           // バンプチャート
 
 // グラフカテゴリ
 export type GraphCategory = 'all' | 'basic' | 'composition' | 'analysis' | 'hierarchy' | 'financial' | 'statistical'

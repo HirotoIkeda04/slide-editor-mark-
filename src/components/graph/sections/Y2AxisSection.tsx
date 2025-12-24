@@ -5,7 +5,7 @@
  * 有効時はYAxisSectionと同構造
  */
 
-import { useCallback, useMemo, useState, DragEvent } from 'react'
+import { useCallback, useMemo, useState, type DragEvent } from 'react'
 import type { TableItem, ChartYAxisConfig, SeriesStack } from '../../../types'
 import { 
   getNumericColumns, 

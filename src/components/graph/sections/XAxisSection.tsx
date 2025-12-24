@@ -5,7 +5,7 @@
  * ドラッグ&ドロップで階層を作成・編集
  */
 
-import { useCallback, useMemo, useState, DragEvent } from 'react'
+import { useCallback, useMemo, useState, type DragEvent } from 'react'
 import type { TableItem, NestedCategory } from '../../../types'
 import { getCategoryColumns, getColumnName } from '../../../utils/chartUtils'
 import { NestedCategoryCard } from './NestedCategoryCard'

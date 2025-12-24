@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import type { EditorMode } from './PictoEditor'
+import type { PictogramEditorMode as EditorMode } from '../floatingNavBar/FloatingNavBar'
 import type { PictoElementType } from '../../types'
 import { PICTO_ELEMENT_CONFIGS } from '../../constants/pictoConfigs'
 import { PersonIcon } from './elements/PersonIcon'

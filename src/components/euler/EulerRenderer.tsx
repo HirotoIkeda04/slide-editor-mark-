@@ -15,7 +15,7 @@ export function EulerRenderer({ item, scale = 1, fitToContent = true }: EulerRen
   const { circles, elements = [], canvasSize } = item
 
   // Calculate label position outside the circle, avoiding overlap with other circles
-  const getLabelPosition = (circle: EulerCircle, allCircles: EulerCircle[]): { x: number; y: number; textAnchor: string } => {
+  const getLabelPosition = (circle: EulerCircle, allCircles: EulerCircle[]): { x: number; y: number; textAnchor: 'start' | 'middle' | 'end' } => {
     const candidates = [
       { angle: -90, name: 'top', textAnchor: 'middle' },      // 上
       { angle: 90, name: 'bottom', textAnchor: 'middle' },    // 下
@@ -68,7 +68,7 @@ export function EulerRenderer({ item, scale = 1, fitToContent = true }: EulerRen
     return {
       x: circle.position.x + Math.cos(angleRad) * (circle.radius + LABEL_OFFSET),
       y: circle.position.y + Math.sin(angleRad) * (circle.radius + LABEL_OFFSET),
-      textAnchor: bestCandidate.textAnchor
+      textAnchor: bestCandidate.textAnchor as 'start' | 'middle' | 'end'
     }
   }
 

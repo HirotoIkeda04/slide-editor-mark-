@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import './Items.css'
 import type { Item, ItemType, TableItem, ImageItem, TextItem, PictoItem, EulerItem, ImageDisplayMode, CellDataType, CellFormat, TableDisplayFormat, GraphCategory, TableChartConfig, TreeData, TreeSettings } from '../../types'
 import { createDefaultTreeData, DEFAULT_TREE_SETTINGS } from '../../types'
 import { NEW_ITEM_ID } from '../../types'
@@ -77,6 +78,7 @@ export const ItemDetailPanel = ({
   const [typeDropdownColumn, setTypeDropdownColumn] = useState<number | null>(null)
   const [tableDisplayFormat, setTableDisplayFormat] = useState<TableDisplayFormat>('table')
   const [hiddenRows, setHiddenRows] = useState<number[]>([])
+  const [hiddenColumns, setHiddenColumns] = useState<number[]>([])
   const tableScrollViewportRef = useRef<HTMLDivElement | null>(null)
   
   // Sort state
@@ -1054,6 +1056,13 @@ export const ItemDetailPanel = ({
     if (item.type === 'table') {
       onUpdateItem(item.id, { hiddenRows: [] } as Partial<TableItem>)
     }
+  }
+
+  // すべての非表示列を表示
+  const showAllColumns = () => {
+    if (!item || !onUpdateItem) return
+    setHiddenColumns([])
+    // hiddenColumns is currently local state only - not persisted to TableItem
   }
 
   // グリップアイコンのクリックハンドラ

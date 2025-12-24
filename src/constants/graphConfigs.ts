@@ -58,6 +58,10 @@ export const CHART_INPUT_MODE: Record<TableDisplayFormat, ChartInputMode> = {
   // ツリーベース
   sankey: 'tree',
   treemap: 'tree',
+  sunburst: 'tree',
+  
+  // ランキング
+  bump: 'spreadsheet',
 }
 
 // ============================================
@@ -501,6 +505,8 @@ export const CHART_Z_USAGE: Record<TableDisplayFormat, ZAxisUsage[]> = {
   boxplot: [],
   radar: [],
   dot: ['group'],
+  sunburst: [],
+  bump: [],
 }
 
 /**

@@ -1092,7 +1092,8 @@ export const TableChart = ({
   }
   
   // EChartsオプションを生成
-  const getOption = (): EChartsOption => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getOption = (): any => {
   switch (displayFormat) {
     case 'line':
         return {
@@ -1122,10 +1123,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1152,10 +1153,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1178,10 +1179,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1225,10 +1226,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1255,10 +1256,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1280,10 +1281,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1328,10 +1329,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1351,10 +1352,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1376,10 +1377,10 @@ export const TableChart = ({
                       value,
                       label: {
                         show: true,
-                        position: value < 0 ? 'bottom' : 'top',
+                        position: Number(value) < 0 ? 'bottom' : 'top',
                         fontSize: smallFontSize,
                         color: color,
-                        formatter: () => formatValue(value),
+                        formatter: () => formatValue(Number(value)),
                       },
                     }))
                   : seriesData,
@@ -1486,10 +1487,10 @@ export const TableChart = ({
                     value,
                     label: {
                       show: true,
-                      position: value < 0 ? 'left' : 'right',
+                      position: Number(value) < 0 ? 'left' : 'right',
                       fontSize: smallFontSize,
                       color: color,
-                      formatter: () => formatValue(value),
+                      formatter: () => formatValue(Number(value)),
                     },
                   }))
                 : seriesData,
@@ -1640,10 +1641,10 @@ export const TableChart = ({
                     value: [categoryData[i], d[key]],
                     label: {
                       show: true,
-                      position: d[key] < 0 ? 'bottom' : 'top',
+                      position: Number(d[key]) < 0 ? 'bottom' : 'top',
                       fontSize: smallFontSize,
                       color: color,
-                      formatter: () => formatValue(d[key]),
+                      formatter: () => formatValue(Number(d[key])),
                     },
                   }))
                 : data.map((d, i) => [categoryData[i], d[key]]),
@@ -1745,7 +1746,8 @@ export const TableChart = ({
         let runningTotal = 0
         
         data.forEach((entry, idx) => {
-          const value: number = typeof entry[seriesKeys[0]] === 'number' ? entry[seriesKeys[0]] : 0
+          const rawValue = entry[seriesKeys[0]]
+          const value: number = typeof rawValue === 'number' ? rawValue : 0
           const name = String(entry.name)
           const isFirst = idx === 0
           const isLast = idx === data.length - 1
@@ -1936,7 +1938,8 @@ export const TableChart = ({
           data.forEach(entry => {
             const source = String(entry.name)
             const target = String(entry[seriesKeys[0]] || '')
-            const value = typeof entry[seriesKeys[1]] === 'number' ? entry[seriesKeys[1]] : 1
+            const rawValue = entry[seriesKeys[1]]
+            const value = typeof rawValue === 'number' ? rawValue : 1
             if (source && target) {
               nodes.add(source)
               nodes.add(target)

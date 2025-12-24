@@ -6,7 +6,7 @@
  * 系列間のドロップゾーンで並び替え
  */
 
-import { useCallback, useState, DragEvent } from 'react'
+import { useCallback, useState, type DragEvent } from 'react'
 import type { ChartSeries, SeriesStack, TableItem } from '../../../types'
 import { SeriesCard } from './SeriesCard'
 

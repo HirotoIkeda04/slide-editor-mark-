@@ -5,7 +5,7 @@
  * ドラッグ&ドロップとクリックで追加可能
  */
 
-import { useCallback, useMemo, useState, DragEvent } from 'react'
+import { useCallback, useMemo, useState, type DragEvent } from 'react'
 import type { TableChartConfig, SeriesDisplayType, ZAxisUsage, TableItem, CellDataType, CellFormat } from '../../../types'
 
 interface AxisMappingProps {
@@ -390,8 +390,8 @@ export const AxisMappingSection = ({
         <label className="axis-mapping-option">
           <input
             type="checkbox"
-            checked={chartConfig.stacked === 'normal'}
-            onChange={(e) => onConfigChange({ stacked: e.target.checked ? 'normal' : undefined })}
+            checked={chartConfig.stacked === 'on'}
+            onChange={(e) => onConfigChange({ stacked: e.target.checked ? 'on' : undefined })}
           />
           <span>棒を積み上げる</span>
         </label>
